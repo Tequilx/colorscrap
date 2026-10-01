@@ -1,0 +1,352 @@
+<title>ColorScrap Style Board</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mali:wght@400;500;600;700&family=IBM+Plex+Sans+Thai+Looped:wght@400;500;600&family=Itim&family=Sriracha&family=Kodchasan:wght@400;600&display=swap">
+<style>
+/* Layout: one sketchbook column on cold-press paper; each section is a "page spread" separated by pencil rules, colour lives only in the watercolour marks */
+:root{
+  --paper:#F5F4F0; --paper-deep:#EAE8E2; --ink:#2D2B33; --ink-soft:#6A6771; --line:#CFCBC3; --tape:#E6D7B0;
+  --font-hand:"Mali","Itim",system-ui,sans-serif;
+  --font-body:"IBM Plex Sans Thai Looped","Noto Sans Thai",system-ui,sans-serif;
+  --e-happy:#F1BE48; --e-calm:#5FA3C8; --e-excited:#E2688A; --e-warm:#CF8A4A;
+  --e-sad:#4256A8; --e-angry:#D6453A; --e-anxious:#6E4FA0; --e-tired:#5B6773;
+  --grain-opacity:.07;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --paper:#1D1C21; --paper-deep:#27262C; --ink:#ECE8E1; --ink-soft:#A29EA8; --line:#3B3941; --tape:#7E7253; --grain-opacity:.05; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --paper:#1D1C21; --paper-deep:#27262C; --ink:#ECE8E1; --ink-soft:#A29EA8; --line:#3B3941; --tape:#7E7253; --grain-opacity:.05; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);font-family:var(--font-body);font-size:16px;line-height:1.7;position:relative}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;opacity:var(--grain-opacity);z-index:0;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>")}
+.wrap{max-width:1040px;margin:0 auto;padding-inline:20px;padding-block:28px 64px;position:relative;z-index:1}
+h1,h2,h3{font-family:var(--font-hand);font-weight:600;line-height:1.25;text-wrap:balance;margin:0}
+h1{font-size:clamp(2.2rem,5vw,3.4rem)}
+h2{font-size:1.7rem;display:inline-block;position:relative;padding-bottom:6px}
+h2 svg{position:absolute;left:-4px;right:-4px;bottom:-4px;width:calc(100% + 8px);height:12px}
+h3{font-size:1.15rem}
+p{margin:0;max-width:65ch}
+.muted{color:var(--ink-soft)}
+.small{font-size:.86rem}
+.label{font-size:.74rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft);font-weight:500}
+section{padding-block:40px;border-top:1.5px dashed var(--line);display:grid;gap:22px}
+section:first-of-type{border-top:0}
+.hero{display:grid;gap:14px;padding-bottom:20px}
+#heroCanvas{width:100%;height:240px;display:block}
+.kw{display:flex;flex-wrap:wrap;gap:10px}
+.kw span{font-family:var(--font-hand);border:1.8px solid var(--ink);padding:3px 14px;border-radius:999px 860px 920px 780px;filter:url(#wobble)}
+
+/* swatches */
+.grid{display:grid;gap:18px;grid-template-columns:repeat(auto-fill,minmax(210px,1fr))}
+.base-grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
+.chip{display:grid;gap:6px}
+.chip i{display:block;height:64px;border:1.6px solid var(--ink);border-radius:10px 14px 8px 12px;filter:url(#wobble)}
+.chip b{font-weight:600}
+code{font-family:ui-monospace,"SF Mono",Menlo,monospace;font-size:.82rem;color:var(--ink-soft)}
+.emo{display:grid;gap:4px;min-width:0}
+.emo canvas{width:100%;height:120px;display:block}
+.emo .row{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.emo .th{font-family:var(--font-hand);font-size:1.25rem;font-weight:600}
+.tone{display:flex;gap:4px;margin-top:4px}
+.tone span{flex:1;height:10px;border-radius:4px}
+
+/* shift */
+.shift{display:grid;gap:8px}
+.shift .bar{height:44px;border-radius:14px 22px 12px 18px;filter:url(#wobble)}
+.shift .ends{display:flex;justify-content:space-between;font-family:var(--font-hand)}
+
+/* type */
+.type-main{display:grid;gap:20px;grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
+.spec{border-left:2px solid var(--line);padding-left:16px;display:grid;gap:6px;min-width:0}
+.spec .big{font-size:2.4rem;line-height:1.2}
+.alt{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(210px,1fr))}
+.alt div{display:grid;gap:2px}
+.alt .s{font-size:1.6rem;line-height:1.3}
+
+/* wobble lab */
+.lab{display:grid;gap:22px;grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+@media (max-width:720px){.lab{grid-template-columns:1fr}}
+.stage{display:flex;flex-wrap:wrap;gap:18px;align-items:center;padding:22px;background:var(--paper-deep);border-radius:6px}
+.controls{display:grid;gap:14px;align-content:start}
+.controls label{display:grid;gap:4px;font-size:.9rem}
+input[type=range]{width:100%;accent-color:var(--ink)}
+.toggle{display:flex;gap:8px;align-items:center}
+
+/* components */
+.btn{font-family:var(--font-hand);font-size:1.05rem;font-weight:600;min-height:48px;padding:8px 22px;border:2px solid var(--ink);background:transparent;color:var(--ink);border-radius:16px 20px 14px 22px;cursor:pointer}
+.btn.primary{background:var(--ink);color:var(--paper)}
+.btn:focus-visible,.pick:focus-visible{outline:3px dashed var(--e-calm);outline-offset:4px}
+.wob{filter:url(#wobble)}
+.picker{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:10px;max-width:720px}
+.pick{background:none;border:0;padding:6px 2px;display:grid;justify-items:center;gap:2px;cursor:pointer;color:var(--ink);font-family:var(--font-hand);font-size:1rem;border-radius:12px;transition:transform .2s}
+.pick svg{width:72px;height:72px;transition:transform .25s}
+.pick:hover svg{transform:rotate(-6deg) scale(1.05)}
+.pick[aria-pressed="true"] svg{transform:scale(1.14)}
+.pick[aria-pressed="true"] span{text-decoration:underline wavy;text-underline-offset:5px}
+.preview-line{font-family:var(--font-hand);font-size:1.05rem}
+
+.book{display:grid;grid-template-columns:minmax(0,1fr) 46px;max-width:760px}
+.page{background:var(--paper-deep);padding:26px;border-radius:4px 0 0 4px;display:flex;flex-wrap:wrap;gap:28px;align-items:flex-start;min-height:300px}
+.tabs{display:grid;gap:8px;align-content:start;padding-top:24px}
+.tabs span{writing-mode:vertical-rl;font-family:var(--font-hand);font-size:.95rem;padding:10px 6px;border-radius:0 10px 10px 0;color:#FFFFFF;opacity:.75}
+.tabs span.on{opacity:1;transform:translateX(4px)}
+.photo{position:relative;background:var(--paper);padding:10px 10px 30px;box-shadow:0 2px 8px rgba(0,0,0,.12);width:200px;max-width:100%}
+.photo canvas{width:100%;height:150px;display:block;background:#FAF9F6}
+.photo small{position:absolute;left:12px;bottom:6px;font-family:var(--font-hand);color:var(--ink-soft)}
+.tape{position:absolute;top:-12px;left:50%;width:84px;height:24px;margin-left:-42px;background:var(--tape);opacity:.85;transform:rotate(-4deg);
+  clip-path:polygon(0 8%,6% 0,12% 10%,20% 2%,30% 8%,42% 0,55% 9%,66% 1%,78% 8%,88% 0,100% 7%,98% 92%,90% 100%,80% 91%,68% 100%,56% 92%,44% 100%,32% 91%,20% 100%,10% 92%,2% 100%)}
+.palette-card{background:var(--paper);border:2px solid var(--ink);border-radius:18px 14px 20px 12px;padding:16px;width:260px;max-width:100%;display:grid;gap:10px}
+.palette-card canvas{width:100%;height:120px;display:block}
+.mix{display:flex;gap:8px;flex-wrap:wrap}
+.mix span{display:flex;align-items:center;gap:6px;font-size:.85rem}
+.mix i{width:14px;height:14px;border-radius:50%;display:inline-block}
+
+/* lists */
+.two{display:grid;gap:22px;grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
+ul{margin:0;padding-left:1.2em;display:grid;gap:6px}
+.do li::marker{content:"✓  ";color:var(--e-calm)}
+.dont li::marker{content:"✕  ";color:var(--e-angry)}
+.refs{display:grid;gap:16px;grid-template-columns:repeat(auto-fill,minmax(230px,1fr))}
+.ref{display:grid;gap:4px;min-width:0}
+.ref b{font-family:var(--font-hand);font-size:1.15rem;font-weight:600}
+.assets{display:grid;gap:14px;grid-template-columns:repeat(auto-fill,minmax(220px,1fr))}
+.assets div{border-left:3px solid var(--line);padding-left:12px;display:grid;gap:2px}
+.assets .n{font-family:var(--font-hand);font-size:1.6rem;font-weight:700;font-variant-numeric:tabular-nums}
+@media (prefers-reduced-motion: reduce){.pick svg,.pick{transition:none}}
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <filter id="wobble"><feTurbulence id="turb" type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="2"/><feDisplacementMap id="disp" in="SourceGraphic" scale="3"/></filter>
+  <filter id="nowobble"><feOffset dx="0" dy="0"/></filter>
+</svg>
+
+<div class="wrap">
+
+  <header class="hero">
+    <span class="label">ColorScrap · บอร์ดอ้างอิงสไตล์ v0.1</span>
+    <h1>สมุดสเก็ตช์ที่สีน้ำเล่าความรู้สึกแทนคำพูด</h1>
+    <p class="muted">ทิศทางหลัก: <b>กระดาษสีน้ำ cold-press + เส้นดินสอกราไฟต์ + สีพิกเมนต์สีน้ำจริง</b> ตัว UI จะเงียบเป็นสีเทาดำ ปล่อยให้สีมีแค่ในส่วนที่เป็นอารมณ์เท่านั้น ภาพด้านล่างวาดสดด้วยโค้ด (canvas) ไม่ใช่ภาพนิ่ง</p>
+    <canvas id="heroCanvas" aria-label="หยดสีน้ำหลายสีซึมซ้อนกันบนกระดาษ"></canvas>
+    <div class="kw"><span>สมุดส่วนตัว</span><span>สีน้ำซึมกระดาษ</span><span>เส้นไม่สมบูรณ์</span><span>อ่อนโยน ไม่ตัดสิน</span><span>พูดน้อย ให้ภาพเล่า</span></div>
+  </header>
+
+  <section>
+    <h2>กระดาษ หมึก และเทปกาว<svg viewBox="0 0 200 12" preserveAspectRatio="none"><path d="M2 8 C40 3 80 10 120 6 S180 4 198 7" fill="none" stroke="var(--e-happy)" stroke-width="4" stroke-linecap="round"/></svg></h2>
+    <p class="muted">สีพื้นฐานของ UI ทั้งหมด ใช้กับพื้นหลัง ตัวหนังสือ เส้น และปุ่ม ตั้งใจให้เป็นขาวอมเทาเย็นแบบกระดาษสีน้ำจริง ไม่ใช่ครีมอมเหลือง สีอารมณ์จะได้ดูสดอยู่บนพื้นนี้</p>
+    <div class="base-grid">
+      <div class="chip"><i style="background:var(--paper)"></i><b>Paper</b><code>#F5F4F0 · dark #1D1C21</code><span class="small muted">พื้นหลังหลัก / ผ้าใบ</span></div>
+      <div class="chip"><i style="background:var(--paper-deep)"></i><b>Paper Deep</b><code>#EAE8E2 · dark #27262C</code><span class="small muted">หน้าสมุด, โซนรอง</span></div>
+      <div class="chip"><i style="background:var(--ink)"></i><b>Graphite</b><code>#2D2B33 · dark #ECE8E1</code><span class="small muted">เส้นวาด ตัวหนังสือ ปุ่มหลัก</span></div>
+      <div class="chip"><i style="background:var(--ink-soft)"></i><b>Pencil</b><code>#6A6771 · dark #A29EA8</code><span class="small muted">ข้อความรอง คำอธิบาย</span></div>
+      <div class="chip"><i style="background:var(--line)"></i><b>Ruled Line</b><code>#CFCBC3 · dark #3B3941</code><span class="small muted">เส้นแบ่ง เส้นประ</span></div>
+      <div class="chip"><i style="background:var(--tape)"></i><b>Masking Tape</b><code>#E6D7B0 · dark #7E7253</code><span class="small muted">เทปแปะภาพในสมุด</span></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>สีอารมณ์ 8 สี<svg viewBox="0 0 200 12" preserveAspectRatio="none"><path d="M2 8 C40 3 80 10 120 6 S180 4 198 7" fill="none" stroke="var(--e-calm)" stroke-width="4" stroke-linecap="round"/></svg></h2>
+    <p class="muted">ตั้งชื่ออิงสีพิกเมนต์สีน้ำที่มีขายจริง เวลาวาด asset ในโปรแกรมจะได้หาแปรงหรือสีที่ใกล้กันได้ แถบเล็กใต้แต่ละสีคือ 3 ระดับที่ใช้ใน fluid: ขอบเข้ม, เนื้อสี และสีจางตอนน้ำซึม</p>
+    <div class="grid" id="emoGrid"></div>
+  </section>
+
+  <section>
+    <h2>เมื่อเลือกอารมณ์ด้านลบ<svg viewBox="0 0 200 12" preserveAspectRatio="none"><path d="M2 8 C40 3 80 10 120 6 S180 4 198 7" fill="none" stroke="var(--e-excited)" stroke-width="4" stroke-linecap="round"/></svg></h2>
+    <p class="muted">หลักคือไม่เปลี่ยนสีทันที เพราะจะรู้สึกเหมือนแอปไม่ยอมรับความรู้สึก ให้สีเดิมอยู่สักพักก่อน แล้วสีอุ่นค่อย ๆ ไหลเข้ามาจากขอบ ประมาณ 20–40 วินาทีระหว่างที่ผู้ใช้กวนสี</p>
+    <div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(230px,1fr))">
+      <div class="shift"><div class="bar" style="background:linear-gradient(90deg,var(--e-sad) 0%,var(--e-sad) 25%,var(--e-calm) 65%,#F7DE99 100%)"></div><div class="ends"><span>เศร้า</span><span>→ ฟ้าใส → เหลืองอ่อน</span></div></div>
+      <div class="shift"><div class="bar" style="background:linear-gradient(90deg,var(--e-angry) 0%,var(--e-angry) 25%,var(--e-excited) 60%,#F4C9A2 100%)"></div><div class="ends"><span>โกรธ</span><span>→ ชมพู → พีช</span></div></div>
+      <div class="shift"><div class="bar" style="background:linear-gradient(90deg,var(--e-anxious) 0%,var(--e-anxious) 25%,var(--e-calm) 62%,#B9D7A4 100%)"></div><div class="ends"><span>กังวล</span><span>→ ฟ้า → เขียวใบไม้อ่อน</span></div></div>
+      <div class="shift"><div class="bar" style="background:linear-gradient(90deg,var(--e-tired) 0%,var(--e-tired) 25%,#9CC3D8 60%,#F7DE99 100%)"></div><div class="ends"><span>เหนื่อย</span><span>→ ฟ้าหม่น → แดดอ่อน</span></div></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>ตัวอักษร<svg viewBox="0 0 200 12" preserveAspectRatio="none"><path d="M2 8 C40 3 80 10 120 6 S180 4 198 7" fill="none" stroke="var(--e-warm)" stroke-width="4" stroke-linecap="round"/></svg></h2>
+    <div class="type-main">
+      <div class="spec"><span class="label">หัวข้อ ปุ่ม ชื่ออารมณ์ · Mali</span><div class="big" style="font-family:'Mali';font-weight:600">วันนี้รู้สึกยังไง?</div><p style="font-family:'Mali'">ตัวกลมมน อ่านง่าย มีหัว เหมือนลายมือคนที่เขียนเรียบร้อย ใช้น้ำหนัก 500–600</p></div>
+      <div class="spec"><span class="label">เนื้อหา คำอธิบาย · IBM Plex Sans Thai Looped</span><div class="big" style="font-family:'IBM Plex Sans Thai Looped';font-weight:500">บันทึกลงสมุดแล้ว</div><p>ตัวมีหัวที่อ่านง่ายในขนาดเล็ก ใช้กับข้อความยาว การตั้งค่า และวันที่ จะได้ไม่ใช้ฟอนต์ลายมือทั้งหน้าจนอ่านเหนื่อย</p></div>
+    </div>
+    <span class="label">ตัวเลือกฟอนต์ลายมืออื่นที่ลองได้</span>
+    <div class="alt">
+      <div><span class="s" style="font-family:'Itim'">วันนี้รู้สึกยังไง?</span><span class="small muted">Itim · เรียบ เป็นมิตร</span></div>
+      <div><span class="s" style="font-family:'Sriracha'">วันนี้รู้สึกยังไง?</span><span class="small muted">Sriracha · ลายมือจริงกว่า แต่อ่านยากกว่า</span></div>
+      <div><span class="s" style="font-family:'Kodchasan';font-weight:600">วันนี้รู้สึกยังไง?</span><span class="small muted">Kodchasan · ทันสมัย เป็นทางการขึ้น</span></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>เส้นสั่นแบบลายมือ (ทำด้วยโค้ด)<svg viewBox="0 0 200 12" preserveAspectRatio="none"><path d="M2 8 C40 3 80 10 120 6 S180 4 198 7" fill="none" stroke="var(--e-sad)" stroke-width="4" stroke-linecap="round"/></svg></h2>
+    <p class="muted">ปุ่มและกรอบพวกนี้เป็น HTML ธรรมดา แล้วใส่ SVG filter เดียวกันทั้งแอป ลองเลื่อนดูว่าความสั่นระดับไหนพอดี ทำเป็น directive หรือ class ใน Vue ได้เลย ไม่ต้องวาดกรอบทีละขนาด</p>
+    <div class="lab">
+      <div class="stage">
+        <button class="btn primary wob" type="button">บันทึกลงสมุด</button>
+        <button class="btn wob" type="button">ล้างผ้าใบ</button>
+        <span class="kw"><span>สงบ</span></span>
+        <svg class="wob" width="56" height="56" viewBox="0 0 56 56" aria-label="ไอคอนสมุด"><path d="M10 10 h30 a6 6 0 0 1 6 6 v30 h-30 a6 6 0 0 1 -6 -6z M16 10 v36 M24 20 h14 M24 27 h10" fill="none" stroke="var(--ink)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="controls">
+        <label for="wobScale">ความสั่นของเส้น: <b id="wobVal">3</b></label>
+        <input id="wobScale" type="range" min="0" max="8" step="0.5" value="3">
+        <label for="wobFreq">ความถี่ของคลื่น: <b id="freqVal">0.035</b></label>
+        <input id="wobFreq" type="range" min="0.01" max="0.08" step="0.005" value="0.035">
+        <div class="toggle"><input id="boil" type="checkbox"><label for="boil" style="display:inline">เส้นขยับเบา ๆ (boiling line) สลับ seed ทุก 160ms</label></div>
+        <p class="small muted">แนะนำค่า scale 2.5–3.5 สำหรับปุ่ม ถ้าเกิน 5 ตัวหนังสือในปุ่มจะเริ่มเบี้ยวจนอ่านยาก ให้ใส่ filter ที่กรอบ (pseudo-element) แทนตัวปุ่มทั้งปุ่ม</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>ตัวอย่างชิ้นส่วนหน้าจอ<svg viewBox="0 0 200 12" preserveAspectRatio="none"><path d="M2 8 C40 3 80 10 120 6 S180 4 198 7" fill="none" stroke="var(--e-anxious)" stroke-width="4" stroke-linecap="round"/></svg></h2>
+    <h3>ปุ่มเลือกอารมณ์</h3>
+    <p class="muted small">ใช้ภาพเส้นชุดเดียว ลงสีด้วย CSS ตามอารมณ์ หน้าตาเป็นหยดสีมีใบหน้าเรียบง่าย ไม่ใช่อีโมจิ ลองกดเลือกดูได้</p>
+    <div class="picker" id="picker" role="group" aria-label="เลือกอารมณ์"></div>
+    <p class="preview-line" id="pickLine" aria-live="polite"></p>
+
+    <h3 style="margin-top:12px">หน้าสมุดกับจานสีประจำวัน <span class="small muted" style="font-family:var(--font-body);font-weight:400">(ข้อมูลตัวอย่าง)</span></h3>
+    <div class="book">
+      <div class="page">
+        <div class="photo"><span class="tape"></span><canvas id="ph1"></canvas><small>09:12 · สงบ</small></div>
+        <div class="photo" style="transform:rotate(2deg)"><span class="tape" style="transform:rotate(5deg)"></span><canvas id="ph2"></canvas><small>21:40 · เหนื่อย → สุขใจ</small></div>
+        <div class="palette-card">
+          <span class="label">จานสีวันพฤหัสฯ 1 ต.ค.</span>
+          <canvas id="dayMix"></canvas>
+          <div class="mix"><span><i style="background:var(--e-calm)"></i>สงบ 2</span><span><i style="background:var(--e-tired)"></i>เหนื่อย 1</span><span><i style="background:var(--e-happy)"></i>สุขใจ 1</span></div>
+        </div>
+      </div>
+      <div class="tabs" aria-hidden="true">
+        <span style="background:var(--e-sad)">29 ก.ย.</span><span style="background:var(--e-warm)">30 ก.ย.</span><span class="on" style="background:var(--e-calm)">1 ต.ค.</span>
+      </div>
+    </div>
+    <p class="small muted">สีของแท็บคั่นหน้าคือสีอารมณ์ที่เด่นที่สุดของวันนั้น พอเปิดสมุดก็เห็นภาพรวมรายวันได้โดยไม่ต้องมีหน้าสรุปแยก</p>
+  </section>
+
+  <section>
+    <h2>ทำ / ไม่ทำ<svg viewBox="0 0 200 12" preserveAspectRatio="none"><path d="M2 8 C40 3 80 10 120 6 S180 4 198 7" fill="none" stroke="var(--e-tired)" stroke-width="4" stroke-linecap="round"/></svg></h2>
+    <div class="two">
+      <ul class="do">
+        <li>ใช้แปรงเดียว เส้นหนาเดียว สีเส้นเดียว (Graphite) ทุก asset</li>
+        <li>เว้นพื้นที่ว่างเยอะ ๆ ให้เหมือนกระดาษที่ยังไม่ได้เขียน</li>
+        <li>สีสดใช้เฉพาะอารมณ์และงานสีน้ำ ส่วน UI ใช้ขาวเทาดำ</li>
+        <li>ขอบเส้นไม่ต้องปิดสนิท ให้เหลือช่องเล็ก ๆ เหมือนวาดจริง</li>
+        <li>ปุ่มบน iPad สูงอย่างน้อย 48px</li>
+      </ul>
+      <ul class="dont">
+        <li>ไม่ใช้เงาหนา ๆ หรือ gradient แบบแอปทั่วไป ยกเว้นเงาบาง ๆ ใต้ภาพที่แปะ</li>
+        <li>ไม่ใช้อีโมจิหรือไอคอนสำเร็จรูปปนกับงานวาด</li>
+        <li>ไม่ใช้ฟอนต์ลายมือกับข้อความยาว</li>
+        <li>ไม่ใช้สีแดงเตือนแบบ error ตอนผู้ใช้เลือกอารมณ์ลบ</li>
+        <li>ไม่ใช้ข้อความสั่งสอน เช่น "อย่าเศร้านะ"</li>
+      </ul>
+    </div>
+  </section>
+
+  <section>
+    <h2>ผลงานที่ควรไปดูเป็น reference<svg viewBox="0 0 200 12" preserveAspectRatio="none"><path d="M2 8 C40 3 80 10 120 6 S180 4 198 7" fill="none" stroke="var(--e-happy)" stroke-width="4" stroke-linecap="round"/></svg></h2>
+    <div class="refs">
+      <div class="ref"><b>Florence (เกมมือถือ)</b><span class="small muted">ดูการเล่าอารมณ์ด้วยภาพวาดมือกับการโต้ตอบง่าย ๆ แทบไม่มีตัวหนังสือ ใกล้กับโจทย์ "ไม่ต้องพิมพ์" มากที่สุด</span></div>
+      <div class="ref"><b>GRIS (เกม)</b><span class="small muted">ดูการใช้สีน้ำแทนอารมณ์ และการที่สีค่อย ๆ กลับมาเมื่อตัวละครฟื้นตัว ตรงกับฟีเจอร์ปรับโทนลบเป็นบวก</span></div>
+      <div class="ref"><b>How We Feel (แอป)</b><span class="small muted">ดูฝั่งการใช้งาน: เลือกอารมณ์ด้วยสีและการสรุปรายวัน ไม่ต้องดูสไตล์ภาพ</span></div>
+      <div class="ref"><b>Finch (แอป)</b><span class="small muted">ดูน้ำเสียงข้อความที่อ่อนโยนและไม่ตัดสิน รวมถึงการให้กำลังใจแบบเบา ๆ</span></div>
+      <div class="ref"><b>Spotify Audio Aura</b><span class="small muted">ที่ใส่ไว้ในพิตช์อยู่แล้ว ใช้อ้างอิงการผสมสีแบบนุ่ม ๆ ของจานสีประจำวัน</span></div>
+      <div class="ref"><b>คำค้นใน Pinterest</b><span class="small muted">"watercolor journal", "sketchbook UI", "hand drawn app interface", "art journal washi tape"</span></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>ชุด asset ที่ต้องวาดจริง<svg viewBox="0 0 200 12" preserveAspectRatio="none"><path d="M2 8 C40 3 80 10 120 6 S180 4 198 7" fill="none" stroke="var(--e-calm)" stroke-width="4" stroke-linecap="round"/></svg></h2>
+    <div class="assets">
+      <div><span class="n">1</span><b>หยดสีปุ่มอารมณ์</b><span class="small muted">วาดรูปร่างเดียว + หน้า 8 แบบ (เส้นเท่านั้น สีลงด้วยโค้ด)</span></div>
+      <div><span class="n">1</span><b>ปกสมุด + สันสมุด</b><span class="small muted">ภาพใหญ่ชิ้นเดียวที่ควรลงแรงที่สุด</span></div>
+      <div><span class="n">2</span><b>เทปกาว</b><span class="small muted">2 ความยาว เอามาหมุนสลับให้ดูไม่ซ้ำ</span></div>
+      <div><span class="n">6</span><b>ไอคอน</b><span class="small muted">บันทึก ล้าง ย้อนกลับ เปิดสมุด ตั้งค่า ปิด</span></div>
+      <div><span class="n">1</span><b>แท็บคั่นหน้า</b><span class="small muted">รูปเดียว เปลี่ยนสีด้วยโค้ด</span></div>
+      <div><span class="n">1</span><b>texture กระดาษ</b><span class="small muted">สแกนกระดาษสีน้ำจริง หรือใช้ noise จากโค้ดแบบหน้านี้</span></div>
+    </div>
+    <p class="muted">รวมประมาณ 12 ชิ้น ถ้าต้องการเส้นขยับ (boiling) ให้ทำเพิ่มเฉพาะหยดสีปุ่มอารมณ์ 2–3 เฟรม</p>
+  </section>
+</div>
+
+<script>
+const EMO=[
+ {k:'happy',th:'สุขใจ',en:'Happy',pig:'Hansa Yellow',hex:'#F1BE48',mouth:'M38 60 Q50 71 62 60'},
+ {k:'calm',th:'สงบ',en:'Calm',pig:'Cerulean Blue',hex:'#5FA3C8',mouth:'M40 62 Q50 66 60 62',eyes:'closed'},
+ {k:'excited',th:'ตื่นเต้น',en:'Excited',pig:'Quinacridone Rose',hex:'#E2688A',mouth:'M38 58 Q50 76 62 58 Z',fillMouth:true},
+ {k:'warm',th:'อบอุ่นใจ',en:'Grateful',pig:'Raw Sienna',hex:'#CF8A4A',mouth:'M40 60 Q50 68 60 60'},
+ {k:'sad',th:'เศร้า',en:'Sad',pig:'Ultramarine',hex:'#4256A8',mouth:'M40 67 Q50 58 60 67'},
+ {k:'angry',th:'โกรธ',en:'Angry',pig:'Pyrrol Red',hex:'#D6453A',mouth:'M40 65 L60 65',brows:true},
+ {k:'anxious',th:'กังวล',en:'Anxious',pig:'Dioxazine Violet',hex:'#6E4FA0',mouth:'M37 64 q4.3 -5 8.6 0 t8.6 0 t8.6 0'},
+ {k:'tired',th:'เหนื่อย',en:'Tired',pig:"Payne's Grey",hex:'#5B6773',mouth:'M43 64 L57 64',eyes:'line'}
+];
+
+/* seeded random + watercolour blob (layered deformed polygons) */
+function rng(seed){return function(){seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function gauss(r){let u=0,v=0;while(!u)u=r();while(!v)v=r();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)}
+function deform(pts,depth,variance,r){
+  for(let d=0;d<depth;d++){const out=[];
+    for(let i=0;i<pts.length;i++){const a=pts[i],b=pts[(i+1)%pts.length];out.push(a);
+      const len=Math.hypot(b[0]-a[0],b[1]-a[1]),ang=r()*Math.PI*2,m=gauss(r)*variance*a[2]*(len/80);
+      out.push([(a[0]+b[0])/2+Math.cos(ang)*m,(a[1]+b[1])/2+Math.sin(ang)*m,(a[2]+b[2])/2*(0.85+r()*0.3)])}
+    pts=out;variance*=0.6}
+  return pts}
+function rgba(hex,a){const n=parseInt(hex.slice(1),16);return `rgba(${n>>16},${n>>8&255},${n&255},${a})`}
+function blob(ctx,cx,cy,rad,hex,seed,layers=34){
+  const r=rng(seed);let base=[];const n=10;
+  for(let i=0;i<n;i++){const a=i/n*Math.PI*2;base.push([cx+Math.cos(a)*rad,cy+Math.sin(a)*rad*0.86,0.6+r()*0.9])}
+  base=deform(base,3,rad*0.5,r);
+  for(let l=0;l<layers;l++){const p=deform(base.map(q=>q.slice()),3,rad*0.3,r);
+    ctx.fillStyle=rgba(hex,0.045);ctx.beginPath();ctx.moveTo(p[0][0],p[0][1]);for(const q of p)ctx.lineTo(q[0],q[1]);ctx.closePath();ctx.fill()}
+  // pigment edge darkening
+  ctx.strokeStyle=rgba(hex,0.12);ctx.lineWidth=1.2;ctx.beginPath();ctx.moveTo(base[0][0],base[0][1]);for(const q of base)ctx.lineTo(q[0],q[1]);ctx.closePath();ctx.stroke()}
+function prep(c){const d=Math.min(window.devicePixelRatio||1,2),w=c.clientWidth,h=c.clientHeight;c.width=w*d;c.height=h*d;const x=c.getContext('2d');x.setTransform(d,0,0,d,0,0);x.clearRect(0,0,w,h);return[x,w,h]}
+
+function drawHero(){const c=document.getElementById('heroCanvas');const[x,w,h]=prep(c);const r=rng(7);
+  const cols=EMO.map(e=>e.hex);const count=Math.max(5,Math.round(w/120));
+  for(let i=0;i<count;i++){const cx=(i+0.5)/count*w+(r()-0.5)*60,cy=h*0.5+(r()-0.5)*h*0.45;
+    blob(x,cx,cy,Math.min(70,h*0.24)+r()*30,cols[i%cols.length],100+i*13,30)}}
+
+function mix(hex,t,to){const a=parseInt(hex.slice(1),16),b=parseInt(to.slice(1),16);
+  const c=[16,8,0].map(s=>Math.round(((a>>s)&255)*(1-t)+((b>>s)&255)*t));return`rgb(${c})`}
+
+function buildEmo(){const g=document.getElementById('emoGrid');
+  EMO.forEach((e,i)=>{const d=document.createElement('div');d.className='emo';
+    d.innerHTML=`<canvas aria-label="หยดสี ${e.th}"></canvas><div class="row"><span class="th">${e.th}</span><span class="small muted">${e.en}</span></div>
+    <div class="row"><span class="small">${e.pig}</span><code>${e.hex}</code></div>
+    <div class="tone"><span style="background:${mix(e.hex,.35,'#1a1a22')}"></span><span style="background:${e.hex}"></span><span style="background:${mix(e.hex,.6,'#ffffff')}"></span></div>`;
+    g.appendChild(d)})}
+function drawEmo(){document.querySelectorAll('#emoGrid canvas').forEach((c,i)=>{const[x,w,h]=prep(c);blob(x,w/2,h/2,Math.min(w,h)*0.3,EMO[i].hex,40+i*7)})}
+
+function drawBook(){
+  let[x,w,h]=prep(document.getElementById('ph1'));blob(x,w*.42,h*.5,42,'#5FA3C8',3);blob(x,w*.62,h*.45,30,'#5FA3C8',9);
+  [x,w,h]=prep(document.getElementById('ph2'));blob(x,w*.35,h*.55,40,'#5B6773',5);blob(x,w*.65,h*.42,34,'#F1BE48',12);
+  [x,w,h]=prep(document.getElementById('dayMix'));
+  blob(x,w*.32,h*.52,40,'#5FA3C8',21);blob(x,w*.5,h*.48,30,'#5FA3C8',22);blob(x,w*.66,h*.55,30,'#5B6773',23);blob(x,w*.6,h*.38,26,'#F1BE48',24)}
+
+const BLOB='M50 8 C73 5 93 23 92 47 C92 71 73 93 49 92 C26 92 7 74 8 50 C9 25 27 10 50 8Z';
+function face(e){let eyes;
+  if(e.eyes==='closed')eyes='<path d="M33 46 Q38 50 43 46 M57 46 Q62 50 67 46" fill="none" stroke="var(--ink)" stroke-width="2.4" stroke-linecap="round"/>';
+  else if(e.eyes==='line')eyes='<path d="M33 47 L43 47 M57 47 L67 47" fill="none" stroke="var(--ink)" stroke-width="2.4" stroke-linecap="round"/>';
+  else eyes='<circle cx="38" cy="46" r="3.2" fill="var(--ink)"/><circle cx="62" cy="46" r="3.2" fill="var(--ink)"/>';
+  const brows=e.brows?'<path d="M32 36 L43 40 M68 36 L57 40" stroke="var(--ink)" stroke-width="2.4" stroke-linecap="round"/>':'';
+  return `<svg viewBox="0 0 100 100" aria-hidden="true"><g class="wob"><path d="${BLOB}" fill="${e.hex}" fill-opacity=".82" stroke="var(--ink)" stroke-width="2.4"/>${eyes}${brows}<path d="${e.mouth}" fill="${e.fillMouth?'var(--ink)':'none'}" stroke="var(--ink)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></g></svg>`}
+function buildPicker(){const p=document.getElementById('picker'),line=document.getElementById('pickLine');
+  EMO.forEach((e,i)=>{const b=document.createElement('button');b.type='button';b.className='pick';b.id='pick-'+e.k;b.setAttribute('aria-pressed',i===1?'true':'false');
+    b.innerHTML=face(e)+`<span>${e.th}</span>`;
+    b.addEventListener('click',()=>{p.querySelectorAll('.pick').forEach(x=>x.setAttribute('aria-pressed','false'));b.setAttribute('aria-pressed','true');
+      line.textContent=`เลือก "${e.th}" แล้ว · ผ้าใบจะเริ่มด้วยสี ${e.pig}`;line.style.color=e.hex});
+    p.appendChild(b)});
+  line.textContent='เลือก "สงบ" แล้ว · ผ้าใบจะเริ่มด้วยสี Cerulean Blue';line.style.color=EMO[1].hex}
+
+/* wobble controls */
+const disp=document.getElementById('disp'),turb=document.getElementById('turb');
+document.getElementById('wobScale').addEventListener('input',ev=>{disp.setAttribute('scale',ev.target.value);document.getElementById('wobVal').textContent=ev.target.value});
+document.getElementById('wobFreq').addEventListener('input',ev=>{turb.setAttribute('baseFrequency',ev.target.value);document.getElementById('freqVal').textContent=ev.target.value});
+let boilT=null;document.getElementById('boil').addEventListener('change',ev=>{
+  clearInterval(boilT);if(ev.target.checked&&!matchMedia('(prefers-reduced-motion: reduce)').matches){let s=1;boilT=setInterval(()=>{s=s%3+1;turb.setAttribute('seed',s)},160)}else turb.setAttribute('seed',2)});
+
+buildEmo();buildPicker();
+function drawAll(){drawHero();drawEmo();drawBook()}
+(document.fonts?document.fonts.ready:Promise.resolve()).then(drawAll);drawAll();
+let rt;addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(drawAll,200)});
+</script>

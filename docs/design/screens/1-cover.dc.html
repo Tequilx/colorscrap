@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<title>ColorScrap หน้าแรก</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mali:wght@400;500;600;700&amp;family=IBM+Plex+Sans+Thai+Looped:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#2D2B33}a:hover{color:#000000}
+</style>
+</helmet>
+<div style="position: relative; width: 1280px; height: 800px; overflow: hidden; background: #E6E3DC; color: #2D2B33; font-family: 'IBM Plex Sans Thai Looped', system-ui, sans-serif">
+  <svg width="0" height="0" style="position: absolute" aria-hidden="true">
+    <defs>
+      <filter id="wob"><feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="2"></feTurbulence><feDisplacementMap in="SourceGraphic" scale="3"></feDisplacementMap></filter>
+      <filter id="wc" x="-30%" y="-30%" width="160%" height="160%"><feTurbulence type="fractalNoise" baseFrequency="0.014" numOctaves="3" seed="5" result="n"></feTurbulence><feDisplacementMap in="SourceGraphic" in2="n" scale="30" result="d"></feDisplacementMap><feGaussianBlur in="d" stdDeviation="1.4"></feGaussianBlur></filter>
+      <filter id="wcs" x="-30%" y="-30%" width="160%" height="160%"><feTurbulence type="fractalNoise" baseFrequency="0.05" numOctaves="2" seed="8" result="n"></feTurbulence><feDisplacementMap in="SourceGraphic" in2="n" scale="8" result="d"></feDisplacementMap><feGaussianBlur in="d" stdDeviation="0.6"></feGaussianBlur></filter>
+      <filter id="grain"><feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="3" stitchTiles="stitch"></feTurbulence><feColorMatrix values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.12 0"></feColorMatrix></filter>
+    </defs>
+  </svg>
+  <svg width="1280" height="800" style="position: absolute; left: 0; top: 0; pointer-events: none" aria-hidden="true"><rect width="1280" height="800" filter="url(#grain)"></rect></svg>
+
+  <a href="Hello.dc.html" aria-label="ตั้งค่าข้อมูลของฉัน" style="position: absolute; right: 36px; top: 28px; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; border: 2px solid #2D2B33; border-radius: 16px 20px 14px 18px; filter: url(#wob); color: #2D2B33">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2D2B33" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7 H12 M17 7 H20 M4 17 H7 M12 17 H20"></path><circle cx="14.5" cy="7" r="2.5"></circle><circle cx="9.5" cy="17" r="2.5"></circle></svg>
+  </a>
+
+  <div style="position: absolute; left: 0; top: 0; width: 1280px; height: 800px; display: flex; align-items: center; justify-content: center; gap: 96px">
+
+    <div style="position: relative; width: 420px; height: 540px; transform: rotate(-2.5deg); flex-shrink: 0">
+      <div style="position: absolute; top: -30px; left: 196px; display: flex; gap: 8px">
+        <div style="width: 46px; height: 46px; background: #4256A8; border-radius: 8px 8px 0 0"></div>
+        <div style="width: 46px; height: 46px; background: #CF8A4A; border-radius: 8px 8px 0 0"></div>
+        <div style="width: 46px; height: 56px; margin-top: -10px; background: #5FA3C8; border-radius: 8px 8px 0 0"></div>
+      </div>
+      <div style="position: absolute; left: 0; top: 0; width: 420px; height: 540px; background: {{cover}}; border-radius: 6px 14px 14px 6px; box-shadow: 0 22px 44px rgba(45, 43, 51, 0.30); overflow: hidden">
+        <div style="position: absolute; left: 0; top: 0; bottom: 0; width: 30px; background: {{spine}}; border-right: 2px dashed rgba(255, 255, 255, 0.14)"></div>
+        <svg width="420" height="540" viewBox="0 0 420 540" style="position: absolute; left: 0; top: 0" aria-hidden="true">
+          <g filter="url(#wc)" opacity="0.62">
+            <path d="M150 30 C215 22 268 70 262 132 C256 196 196 236 136 226 C76 216 34 170 42 112 C50 62 92 36 150 30Z" transform="translate(210 -40) scale(0.85)" fill="#5FA3C8"></path>
+            <path d="M150 30 C215 22 268 70 262 132 C256 196 196 236 136 226 C76 216 34 170 42 112 C50 62 92 36 150 30Z" transform="translate(230 360) scale(0.75)" fill="#E2688A"></path>
+            <path d="M150 30 C215 22 268 70 262 132 C256 196 196 236 136 226 C76 216 34 170 42 112 C50 62 92 36 150 30Z" transform="translate(20 400) scale(0.6)" fill="#F1BE48"></path>
+          </g>
+        </svg>
+        <div style="position: absolute; left: 72px; top: 178px; width: 284px; box-sizing: border-box; padding: 22px 26px; background: #FBFAF6; border-radius: 4px; transform: rotate(1.2deg); box-shadow: 0 3px 10px rgba(0, 0, 0, 0.22); display: flex; flex-direction: column; gap: 6px">
+          <span style="font-size: 13px; letter-spacing: 0.06em; color: #5E5B66">สมุดระบายความรู้สึก</span>
+          <span style="font-family: Mali, sans-serif; font-weight: 700; font-size: 42px; line-height: 1.1">ColorScrap</span>
+          <span style="border-top: 2px dotted #CFCBC3; padding-top: 8px; font-family: Mali, sans-serif; font-size: 16px; color: #5E5B66">ของ [ชื่อผู้ใช้]</span>
+        </div>
+        <div style="position: absolute; right: 44px; top: 0; bottom: 0; width: 18px; background: {{strap}}; box-shadow: inset 2px 0 0 rgba(255, 255, 255, 0.08)"></div>
+      </div>
+    </div>
+
+    <div style="width: 440px; display: flex; flex-direction: column; gap: 22px">
+      <span style="font-size: 15px; font-weight: 500; letter-spacing: 0.04em; color: #5E5B66">พฤหัสบดี 1 ตุลาคม</span>
+      <h1 style="margin: 0; font-family: Mali, sans-serif; font-weight: 600; font-size: 52px; line-height: 1.15">สวัสดีตอนบ่าย</h1>
+      <p style="margin: 0; font-size: 19px; line-height: 1.7; color: #3E3C45">วันนี้รู้สึกยังไงบ้าง ไม่ต้องอธิบายเป็นคำพูด แค่เลือกสีแล้วปล่อยให้มันไหลไป</p>
+      <div style="display: flex; gap: 14px; align-items: center; padding-top: 6px">
+        <a href="Pick.dc.html" style="display: inline-flex; align-items: center; gap: 10px; min-height: 56px; padding: 0 28px; background: #2D2B33; color: #FBFAF6; text-decoration: none; font-family: Mali, sans-serif; font-weight: 600; font-size: 19px; border-radius: 18px 22px 16px 24px; filter: url(#wob)">เลือกความรู้สึกวันนี้</a>
+        <a href="Book.dc.html" style="display: inline-flex; align-items: center; gap: 10px; min-height: 56px; padding: 0 24px; border: 2px solid #2D2B33; color: #2D2B33; text-decoration: none; font-family: Mali, sans-serif; font-weight: 600; font-size: 18px; border-radius: 18px 22px 16px 24px; filter: url(#wob)">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2D2B33" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4 H16 A3 3 0 0 1 19 7 V20 H8 A3 3 0 0 1 5 17 Z M8.5 4 V20"></path></svg>
+          เปิดสมุด
+        </a>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 10px; padding-top: 22px; border-top: 1.5px dashed #C4C0B7">
+        <span style="font-size: 14px; color: #5E5B66">7 วันล่าสุด</span>
+        <div style="display: flex; gap: 12px">
+          <sc-for list="{{days}}" as="d" hint-placeholder-count="7">
+            <div style="display: flex; flex-direction: column; align-items: center; gap: 4px; width: 46px">
+              <svg width="42" height="42" viewBox="0 0 170 120" aria-hidden="true"><g filter="url(#wcs)"><path d="M85 18 C118 14 142 38 140 62 C138 92 108 106 80 102 C50 98 28 80 32 54 C36 32 58 21 85 18Z" fill="{{d.hex}}" fill-opacity="{{d.op}}" stroke="{{d.hex}}" stroke-width="3"></path></g></svg>
+              <span style="font-family: Mali, sans-serif; font-size: 14px; color: {{d.labelColor}}; font-weight: {{d.weight}}">{{d.label}}</span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"cover":{"editor":"color","default":"#9E2F2A","options":["#9E2F2A","#2F5D50","#E0704A","#34323A"],"section":"สมุด"},"$preview":{"width":1280,"height":800}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const cover = this.props.cover ?? '#9E2F2A';
+    const mix = (hex, t) => { const a = parseInt(hex.slice(1), 16), b = 0x2D2B33; const c = [16, 8, 0].map((s) => Math.round(((a >> s) & 255) * (1 - t) + ((b >> s) & 255) * t)); return 'rgb(' + c.join(',') + ')'; };
+    const book = { cover: cover, spine: mix(cover, 0.14), strap: mix(cover, 0.32) };
+    const d = (label, hex, today) => ({ label: label, hex: hex, op: today ? 0.8 : 0.6, labelColor: today ? '#2D2B33' : '#5E5B66', weight: today ? 700 : 400 });
+    return {
+      cover: book.cover, spine: book.spine, strap: book.strap,
+      days: [
+        d('ศ', '#CF8A4A'), d('ส', '#F1BE48'), d('อา', '#5FA3C8'), d('จ', '#5B6773'),
+        d('อ', '#4256A8'), d('พ', '#CF8A4A'), d('วันนี้', '#5FA3C8', true)
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

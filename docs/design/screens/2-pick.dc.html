@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<title>ColorScrap เลือกความรู้สึก</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mali:wght@400;500;600;700&amp;family=IBM+Plex+Sans+Thai+Looped:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#2D2B33}a:hover{color:#000000}
+</style>
+</helmet>
+<div style="position: relative; width: 1280px; height: 800px; overflow: hidden; background: #E6E3DC; color: #2D2B33; font-family: 'IBM Plex Sans Thai Looped', system-ui, sans-serif">
+  <svg width="0" height="0" style="position: absolute" aria-hidden="true">
+    <defs>
+      <filter id="wob"><feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="2"/><feDisplacementMap in="SourceGraphic" scale="3"/></filter>
+      <filter id="wcs" x="-30%" y="-30%" width="160%" height="160%"><feTurbulence type="fractalNoise" baseFrequency="0.05" numOctaves="2" seed="8" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="8" result="d"/><feGaussianBlur in="d" stdDeviation="0.6"/></filter>
+      <filter id="grain"><feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="3" stitchTiles="stitch"/><feColorMatrix values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.12 0"/></filter>
+    </defs>
+  </svg>
+  <svg width="1280" height="800" style="position: absolute; left: 0; top: 0; pointer-events: none" aria-hidden="true"><rect width="1280" height="800" filter="url(#grain)"/></svg>
+
+  <a href="Main.dc.html" style="position: absolute; left: 32px; top: 28px; display: inline-flex; align-items: center; gap: 8px; min-height: 48px; padding: 0 18px 0 12px; font-family: Mali, sans-serif; font-weight: 600; font-size: 17px; text-decoration: none; color: #2D2B33; border: 2px solid #2D2B33; border-radius: 16px 20px 14px 18px; filter: url(#wob)">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2D2B33" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5 L8 12 L15 19"/></svg>
+    หน้าแรก
+  </a>
+
+  <div style="position: absolute; left: 0; top: 64px; width: 1280px; display: flex; flex-direction: column; align-items: center; gap: 8px">
+    <h1 style="margin: 0; font-family: Mali, sans-serif; font-weight: 600; font-size: 44px; line-height: 1.2">ตอนนี้รู้สึกแบบไหน?</h1>
+    <p style="margin: 0; font-size: 18px; color: #5E5B66">เลือกสีที่ใกล้ที่สุดหนึ่งสี ไม่มีคำตอบผิด</p>
+  </div>
+
+  <div style="position: absolute; left: 200px; top: 196px; width: 880px; height: 364px">
+    <div style="position: absolute; left: 0; top: 0; right: 0; bottom: 0; background: #EFEDE8; border: 2px solid #2D2B33; border-radius: 26px 30px 24px 28px; filter: url(#wob); box-shadow: 0 10px 24px rgba(45, 43, 51, 0.12)"></div>
+    <div role="group" aria-label="เลือกความรู้สึก" style="position: absolute; left: 22px; top: 22px; right: 22px; bottom: 22px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px">
+      <sc-for list="{{emos}}" as="e" hint-placeholder-count="8">
+        <button type="button" onClick="{{e.pick}}" aria-pressed="{{e.pressed}}" style="height: 150px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; background: {{e.wellBg}}; border: 2px solid {{e.bd}}; border-radius: 18px 22px 16px 20px; transform: {{e.tf}}; box-shadow: {{e.shadow}}; cursor: pointer; color: #2D2B33; font-family: Mali, sans-serif; font-size: 19px; font-weight: 600; padding: 0">
+          <svg width="88" height="88" viewBox="0 0 100 100" aria-hidden="true">
+            <g filter="url(#wob)">
+              <path d="M50 8 C73 5 93 23 92 47 C92 71 73 93 49 92 C26 92 7 74 8 50 C9 25 27 10 50 8Z" fill="{{e.hex}}" fill-opacity="0.85" stroke="#2D2B33" stroke-width="2.4"/>
+              <path d="{{e.eyes}}" fill="none" stroke="#2D2B33" stroke-width="{{e.eyeW}}" stroke-linecap="round"/>
+              <path d="{{e.brows}}" fill="none" stroke="#2D2B33" stroke-width="2.4" stroke-linecap="round"/>
+              <path d="{{e.mouth}}" fill="{{e.mouthFill}}" stroke="#2D2B33" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+            </g>
+          </svg>
+          <span style="text-decoration: {{e.underline}}; text-underline-offset: 6px">{{e.th}}</span>
+        </button>
+      </sc-for>
+    </div>
+  </div>
+
+  <div style="position: absolute; left: 0; top: 590px; width: 1280px; display: flex; justify-content: center; align-items: center; gap: 14px">
+    <span style="font-family: Mali, sans-serif; font-size: 17px; font-weight: 600; margin-right: 6px">เข้มข้นแค่ไหน</span>
+    <sc-for list="{{levels}}" as="l" hint-placeholder-count="3">
+      <button type="button" onClick="{{l.pick}}" aria-pressed="{{l.pressed}}" style="display: inline-flex; align-items: center; gap: 8px; min-height: 48px; padding: 0 18px; border: 2px solid #2D2B33; background: {{l.bg}}; color: {{l.fg}}; border-radius: 999px; font-family: 'IBM Plex Sans Thai Looped', sans-serif; font-size: 16px; font-weight: 500; cursor: pointer">
+        <svg width="{{l.size}}" height="{{l.size}}" viewBox="0 0 170 120" aria-hidden="true"><g filter="url(#wcs)"><path d="M85 18 C118 14 142 38 140 62 C138 92 108 106 80 102 C50 98 28 80 32 54 C36 32 58 21 85 18Z" fill="{{selHex}}"/></g></svg>
+        {{l.label}}
+      </button>
+    </sc-for>
+  </div>
+
+  <div style="position: absolute; left: 0; top: 672px; width: 1280px; display: flex; justify-content: center; align-items: center; gap: 24px">
+    <span style="font-size: 17px; color: #3E3C45"><b style="font-family: Mali, sans-serif; font-size: 19px; color: #2D2B33">{{selTh}}</b> · {{selPig}} · {{selLevel}}</span>
+    <a href="Paint.dc.html" style="display: inline-flex; align-items: center; gap: 10px; min-height: 58px; padding: 0 30px; background: #2D2B33; color: #FBFAF6; text-decoration: none; font-family: Mali, sans-serif; font-weight: 600; font-size: 20px; border-radius: 18px 22px 16px 24px; filter: url(#wob)">
+      เริ่มระบาย
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#FBFAF6" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5 L16 12 L9 19"/></svg>
+    </a>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":800}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { picked: 'calm', level: 1 };
+  }
+  renderVals() {
+    const DOT = 'M38 46 L38 46.1 M62 46 L62 46.1';
+    const EMO = [
+      { k: 'happy', th: 'สุขใจ', pig: 'Hansa Yellow', hex: '#F1BE48', eyes: DOT, eyeW: 6.5, brows: '', mouth: 'M38 60 Q50 71 62 60', mouthFill: 'none' },
+      { k: 'calm', th: 'สงบ', pig: 'Cerulean Blue', hex: '#5FA3C8', eyes: 'M33 46 Q38 50 43 46 M57 46 Q62 50 67 46', eyeW: 2.4, brows: '', mouth: 'M40 62 Q50 66 60 62', mouthFill: 'none' },
+      { k: 'excited', th: 'ตื่นเต้น', pig: 'Quinacridone Rose', hex: '#E2688A', eyes: DOT, eyeW: 6.5, brows: '', mouth: 'M38 58 Q50 76 62 58 Z', mouthFill: '#2D2B33' },
+      { k: 'warm', th: 'อบอุ่นใจ', pig: 'Raw Sienna', hex: '#CF8A4A', eyes: DOT, eyeW: 6.5, brows: '', mouth: 'M40 60 Q50 68 60 60', mouthFill: 'none' },
+      { k: 'sad', th: 'เศร้า', pig: 'Ultramarine', hex: '#4256A8', eyes: DOT, eyeW: 6.5, brows: '', mouth: 'M40 67 Q50 58 60 67', mouthFill: 'none' },
+      { k: 'angry', th: 'โกรธ', pig: 'Pyrrol Red', hex: '#D6453A', eyes: DOT, eyeW: 6.5, brows: 'M32 36 L43 40 M68 36 L57 40', mouth: 'M40 65 L60 65', mouthFill: 'none' },
+      { k: 'anxious', th: 'กังวล', pig: 'Dioxazine Violet', hex: '#6E4FA0', eyes: DOT, eyeW: 6.5, brows: '', mouth: 'M37 64 Q41.3 59 45.6 64 T54.2 64 T62.8 64', mouthFill: 'none' },
+      { k: 'tired', th: 'เหนื่อย', pig: "Payne's Grey", hex: '#5B6773', eyes: 'M33 47 L43 47 M57 47 L67 47', eyeW: 2.4, brows: '', mouth: 'M43 64 L57 64', mouthFill: 'none' }
+    ];
+    const LEVELS = ['นิดหน่อย', 'พอประมาณ', 'มากเลย'];
+    const picked = this.state.picked;
+    const sel = EMO.find((e) => e.k === picked) || EMO[1];
+    const emos = EMO.map((e) => {
+      const on = e.k === picked;
+      return Object.assign({}, e, {
+        pressed: on ? 'true' : 'false',
+        wellBg: on ? e.hex + '2E' : '#FBFAF6',
+        bd: on ? '#2D2B33' : 'transparent',
+        tf: on ? 'translateY(-5px) rotate(-1deg)' : 'none',
+        shadow: on ? '0 8px 0 -2px ' + e.hex + '80' : 'none',
+        underline: on ? 'underline wavy' : 'none',
+        pick: () => this.setState({ picked: e.k })
+      });
+    });
+    const levels = LEVELS.map((label, i) => {
+      const on = i === this.state.level;
+      return { label: label, size: 14 + i * 7, pressed: on ? 'true' : 'false', bg: on ? '#2D2B33' : 'transparent', fg: on ? '#FBFAF6' : '#2D2B33', pick: () => this.setState({ level: i }) };
+    });
+    return { emos: emos, levels: levels, selHex: sel.hex, selTh: sel.th, selPig: sel.pig, selLevel: LEVELS[this.state.level] };
+  }
+}
+</script>
+</body>
+</html>

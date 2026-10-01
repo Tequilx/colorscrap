@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<title>ColorScrap บันทึกลงสมุด</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mali:wght@400;500;600;700&amp;family=IBM+Plex+Sans+Thai+Looped:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#2D2B33}a:hover{color:#000000}
+</style>
+</helmet>
+<div style="position: relative; width: 1280px; height: 800px; overflow: hidden; background: #E6E3DC; color: #2D2B33; font-family: 'IBM Plex Sans Thai Looped', system-ui, sans-serif">
+  <svg width="0" height="0" style="position: absolute" aria-hidden="true">
+    <defs>
+      <filter id="wob"><feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="2"/><feDisplacementMap in="SourceGraphic" scale="3"/></filter>
+      <filter id="wc" x="-30%" y="-30%" width="160%" height="160%"><feTurbulence type="fractalNoise" baseFrequency="0.014" numOctaves="3" seed="5" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="30" result="d"/><feGaussianBlur in="d" stdDeviation="1.4"/></filter>
+      <filter id="wcm" x="-30%" y="-30%" width="160%" height="160%"><feTurbulence type="fractalNoise" baseFrequency="0.03" numOctaves="3" seed="3" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="18" result="d"/><feGaussianBlur in="d" stdDeviation="1"/></filter>
+      <filter id="wct" x="-40%" y="-40%" width="180%" height="180%"><feTurbulence type="fractalNoise" baseFrequency="0.09" numOctaves="2" seed="4" result="n"></feTurbulence><feDisplacementMap in="SourceGraphic" in2="n" scale="7" result="d"></feDisplacementMap><feGaussianBlur in="d" stdDeviation="0.5"></feGaussianBlur></filter>
+      <filter id="grain"><feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="3" stitchTiles="stitch"/><feColorMatrix values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.12 0"/></filter>
+    </defs>
+  </svg>
+  <svg width="1280" height="800" style="position: absolute; left: 0; top: 0; pointer-events: none" aria-hidden="true"><rect width="1280" height="800" filter="url(#grain)"/></svg>
+
+
+  <div style="position: absolute; left: 40px; top: 36px; width: 1140px; height: 740px; background: {{cover}}; border-radius: 14px; box-shadow: 0 28px 56px rgba(45, 43, 51, 0.30)"></div>
+  <div style="position: absolute; left: 1166px; top: 360px; width: 44px; height: 80px; background: {{strap}}; border-radius: 0 12px 12px 0"></div>
+
+  <div style="position: absolute; left: 1178px; top: 70px; display: flex; flex-direction: column; gap: 8px">
+    <div style="width: 40px; height: 70px; background: #4256A8; border-radius: 0 10px 10px 0"></div>
+    <div style="width: 40px; height: 70px; background: #CF8A4A; border-radius: 0 10px 10px 0"></div>
+    <div style="width: 52px; height: 70px; background: #5FA3C8; border-radius: 0 10px 10px 0"></div>
+  </div>
+
+  <div style="position: absolute; left: 58px; top: 54px; width: 620px; height: 704px; background: #FBFAF6; border-radius: 6px 0 0 6px; box-shadow: inset -22px 0 26px -18px rgba(45, 43, 51, 0.38)">
+    <div style="position: absolute; left: 44px; top: 34px; display: flex; flex-direction: column; gap: 2px">
+      <span style="font-family: Mali, sans-serif; font-weight: 600; font-size: 32px">พฤหัสบดี 1 ตุลาคม</span>
+      <span style="font-size: 15px; color: #5E5B66">ภาพที่ 3 ของวันนี้</span>
+    </div>
+      <div style="position: absolute; left: 44px; top: 126px; width: 250px; box-sizing: border-box; padding: 10px 9px 38px; background: #FFFFFF; transform: rotate(-3deg); box-shadow: 0 3px 10px rgba(45, 43, 51, 0.18)">
+        <div style="position: absolute; left: 77px; top: -13px; width: 96px; height: 26px; background: rgba(230, 215, 176, 0.92); transform: rotate(4.2deg)"></div>
+        <svg width="232" height="164" viewBox="0 0 170 120" style="display: block; background: #FBFAF6" aria-label="ภาพสีน้ำโทนฟ้าตอนเช้า">
+          <g filter="url(#wcm)">
+            <path d="M85 18 C118 14 142 38 140 62 C138 92 108 106 80 102 C50 98 28 80 32 54 C36 32 58 21 85 18Z" transform="translate(-14 4)" fill="#5FA3C8" fill-opacity="0.6" stroke="#5FA3C8" stroke-width="2"></path>
+            <path d="M85 18 C118 14 142 38 140 62 C138 92 108 106 80 102 C50 98 28 80 32 54 C36 32 58 21 85 18Z" transform="translate(52 34) scale(0.62)" fill="#9CC3D8" fill-opacity="0.6"></path>
+          </g>
+        </svg>
+        <span style="position: absolute; left: 14px; bottom: 8px; font-family: Mali, sans-serif; font-size: 18px; color: #5E5B66">09:12 · สงบ</span>
+      </div>
+      <div style="position: absolute; left: 330px; top: 160px; width: 250px; box-sizing: border-box; padding: 10px 9px 38px; background: #FFFFFF; transform: rotate(2.5deg); box-shadow: 0 3px 10px rgba(45, 43, 51, 0.18)">
+        <div style="position: absolute; left: 77px; top: -13px; width: 96px; height: 26px; background: rgba(230, 215, 176, 0.92); transform: rotate(-3.5deg)"></div>
+        <svg width="232" height="164" viewBox="0 0 170 120" style="display: block; background: #FBFAF6" aria-label="ภาพสีน้ำโทนเทาที่ค่อยๆ มีสีเหลืองอ่อนเข้ามา">
+          <g filter="url(#wcm)">
+            <path d="M85 18 C118 14 142 38 140 62 C138 92 108 106 80 102 C50 98 28 80 32 54 C36 32 58 21 85 18Z" transform="translate(-14 4)" fill="#5B6773" fill-opacity="0.6" stroke="#5B6773" stroke-width="2"></path>
+            <path d="M85 18 C118 14 142 38 140 62 C138 92 108 106 80 102 C50 98 28 80 32 54 C36 32 58 21 85 18Z" transform="translate(52 34) scale(0.62)" fill="#F1BE48" fill-opacity="0.6"></path>
+          </g>
+        </svg>
+        <span style="position: absolute; left: 14px; bottom: 8px; font-family: Mali, sans-serif; font-size: 18px; color: #5E5B66">13:40 · เหนื่อย</span>
+      </div>
+
+    <div style="position: absolute; left: 150px; top: 420px; width: 300px; height: 252px; border: 2px dashed #B9B4AC; transform: rotate(1.5deg); box-sizing: border-box"></div>
+      <div style="position: absolute; left: 128px; top: 392px; width: 300px; box-sizing: border-box; padding: 10px 9px 38px; background: #FFFFFF; transform: rotate(-4deg) translateY(-8px); box-shadow: 0 26px 34px rgba(45, 43, 51, 0.32)">
+        <div style="position: absolute; left: 102px; top: -13px; width: 96px; height: 26px; background: rgba(230, 215, 176, 0.92); transform: rotate(5.6deg)"></div>
+        <svg width="282" height="199" viewBox="0 0 170 120" style="display: block; background: #FBFAF6" aria-label="ภาพที่เพิ่งบันทึก โทนฟ้า">
+          <g filter="url(#wcm)">
+            <path d="M85 18 C118 14 142 38 140 62 C138 92 108 106 80 102 C50 98 28 80 32 54 C36 32 58 21 85 18Z" transform="translate(-14 4)" fill="#5FA3C8" fill-opacity="0.6" stroke="#5FA3C8" stroke-width="2"></path>
+            <path d="M85 18 C118 14 142 38 140 62 C138 92 108 106 80 102 C50 98 28 80 32 54 C36 32 58 21 85 18Z" transform="translate(52 34) scale(0.62)" fill="#3E7FA6" fill-opacity="0.6"></path>
+          </g>
+        </svg>
+        <span style="position: absolute; left: 14px; bottom: 8px; font-family: Mali, sans-serif; font-size: 18px; color: #2D2B33">15:12 · สงบ</span><span style="position: absolute; right: 14px; bottom: 9px; font-family: Mali, sans-serif; font-size: 15px; font-weight: 700; color: #9E2F2A">ใหม่</span>
+      </div>
+  </div>
+
+  <div style="position: absolute; left: 678px; top: 54px; width: 484px; height: 704px; background: #FBFAF6; border-radius: 0 6px 6px 0; box-shadow: inset 22px 0 26px -18px rgba(45, 43, 51, 0.38)">
+    <span style="position: absolute; left: 40px; top: 40px; font-family: Mali, sans-serif; font-weight: 600; font-size: 28px; color: #B9B4AC">จานสีของวันนี้</span>
+  </div>
+
+  <div style="position: absolute; left: 790px; top: 110px; width: 400px; box-sizing: border-box; padding: 28px 30px; background: #FFFFFF; border: 2px solid #2D2B33; border-radius: 22px 26px 20px 24px; box-shadow: 0 24px 44px rgba(45, 43, 51, 0.24); display: flex; flex-direction: column; gap: 18px">
+    <div style="display: flex; align-items: center; gap: 12px">
+      <div style="width: 44px; height: 44px; border-radius: 50%; background: #5FA3C8; display: flex; align-items: center; justify-content: center; filter: url(#wob)">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2D2B33" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12 L10 17 L19 7"></path></svg>
+      </div>
+      <div role="status" style="display: flex; flex-direction: column">
+        <span style="font-family: Mali, sans-serif; font-weight: 600; font-size: 26px; line-height: 1.2">แปะลงสมุดแล้ว</span>
+        <span style="font-size: 14px; color: #5E5B66">15:12 · สงบ · พอประมาณ</span>
+      </div>
+    </div>
+
+    <div style="border-top: 1.5px dashed #CFCBC3; padding-top: 16px; display: flex; flex-direction: column; gap: 10px">
+      <span style="font-family: Mali, sans-serif; font-weight: 600; font-size: 17px">สีของวันนี้เปลี่ยนไปนิดหนึ่ง</span>
+      <svg width="340" height="150" viewBox="0 0 340 150" aria-label="หยดสีฟ้ากำลังตกลงในหลุมผสมสีของวันนี้">
+        <defs><clipPath id="well2"><circle cx="170" cy="96" r="44"></circle></clipPath></defs>
+        <path d="M170 6 C170 6 160 20 160 27 A10 10 0 0 0 180 27 C180 20 170 6 170 6 Z" fill="#5FA3C8" stroke="#2D2B33" stroke-width="1.6"></path>
+        <path d="M150 12 V30 M190 16 V34" stroke="#8E8A93" stroke-width="1.6" stroke-linecap="round" stroke-dasharray="3 5"></path>
+        <ellipse cx="173" cy="102" rx="58" ry="56" fill="rgba(45, 43, 51, 0.10)"></ellipse>
+        <circle cx="170" cy="96" r="56" fill="#F1EEE8" stroke="#DCD6CC" stroke-width="2"></circle>
+        <circle cx="170" cy="96" r="45" fill="#FFFFFF" stroke="#E4DFD6" stroke-width="2.5"></circle>
+        <g clip-path="url(#well2)"><g filter="url(#wcm)">
+          <path d="M85 18 C118 14 142 38 140 62 C138 92 108 106 80 102 C50 98 28 80 32 54 C36 32 58 21 85 18Z" transform="translate(98 44) scale(0.75)" fill="#5FA3C8" fill-opacity="0.6"></path>
+          <path d="M85 18 C118 14 142 38 140 62 C138 92 108 106 80 102 C50 98 28 80 32 54 C36 32 58 21 85 18Z" transform="translate(142 52) scale(0.5)" fill="#5B6773" fill-opacity="0.55"></path>
+          <path d="M85 18 C118 14 142 38 140 62 C138 92 108 106 80 102 C50 98 28 80 32 54 C36 32 58 21 85 18Z" transform="translate(150 90) scale(0.3)" fill="#F1BE48" fill-opacity="0.55"></path>
+        </g></g>
+        <circle cx="170" cy="78" r="10" fill="none" stroke="#5FA3C8" stroke-width="2"></circle>
+        <circle cx="170" cy="78" r="18" fill="none" stroke="#5FA3C8" stroke-opacity="0.45" stroke-width="1.6"></circle>
+      </svg>
+      <div style="display: flex; align-items: center; gap: 10px">
+        <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px; align-items: center">
+          <svg width="120" height="34" viewBox="0 0 170 36" aria-hidden="true"><g filter="url(#wct)"><path d="M14 20 C54 12 110 26 156 16" fill="none" stroke="#5D859D" stroke-width="20" stroke-linecap="round"></path></g></svg>
+          <span style="font-family: Mali, sans-serif; font-size: 15px; color: #5E5B66">ฟ้าหม่นเที่ยงวัน</span>
+        </div>
+        <svg width="28" height="20" viewBox="0 0 28 20" aria-hidden="true"><path d="M2 10 H24 M17 3 L25 10 L17 17" fill="none" stroke="#2D2B33" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+        <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px; align-items: center">
+          <svg width="120" height="34" viewBox="0 0 170 36" aria-hidden="true"><g filter="url(#wct)"><path d="M14 20 C54 12 110 26 156 16" fill="none" stroke="#5E8FAC" stroke-width="20" stroke-linecap="round"></path></g></svg>
+          <span style="font-family: Mali, sans-serif; font-size: 15px; font-weight: 600">ฟ้าครึ้มยามบ่าย</span>
+        </div>
+      </div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 10px; padding-top: 4px">
+      <a href="Book.dc.html" style="display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 56px; background: #2D2B33; color: #FBFAF6; text-decoration: none; font-family: Mali, sans-serif; font-weight: 600; font-size: 18px; border-radius: 16px 20px 14px 22px; filter: url(#wob)">ดูสมุดทั้งเล่ม</a>
+      <a href="Paint.dc.html" style="display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 52px; border: 2px solid #2D2B33; color: #2D2B33; text-decoration: none; font-family: Mali, sans-serif; font-weight: 600; font-size: 17px; border-radius: 16px 20px 14px 22px; filter: url(#wob)">ระบายต่ออีกแผ่น</a>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"cover":{"editor":"color","default":"#9E2F2A","options":["#9E2F2A","#2F5D50","#E0704A","#34323A"],"section":"สมุด"},"$preview":{"width":1280,"height":800}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const cover = this.props.cover ?? '#9E2F2A';
+    const mix = (hex, t) => { const a = parseInt(hex.slice(1), 16), b = 0x2D2B33; const c = [16, 8, 0].map((s) => Math.round(((a >> s) & 255) * (1 - t) + ((b >> s) & 255) * t)); return 'rgb(' + c.join(',') + ')'; };
+    const book = { cover: cover, spine: mix(cover, 0.14), strap: mix(cover, 0.32) };
+    return Object.assign({}, book);
+  }
+}
+</script>
+</body>
+</html>

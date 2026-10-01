@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<title>ColorScrap ทำความรู้จัก</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mali:wght@400;500;600;700&amp;family=IBM+Plex+Sans+Thai+Looped:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#2D2B33}a:hover{color:#000000}
+</style>
+</helmet>
+<div style="position: relative; width: 1280px; height: 800px; overflow: hidden; background: #E6E3DC; color: #2D2B33; font-family: 'IBM Plex Sans Thai Looped', system-ui, sans-serif">
+  <svg width="0" height="0" style="position: absolute" aria-hidden="true">
+    <defs>
+      <filter id="wob"><feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="2"></feTurbulence><feDisplacementMap in="SourceGraphic" scale="3"></feDisplacementMap></filter>
+      <filter id="wc" x="-30%" y="-30%" width="160%" height="160%"><feTurbulence type="fractalNoise" baseFrequency="0.014" numOctaves="3" seed="5" result="n"></feTurbulence><feDisplacementMap in="SourceGraphic" in2="n" scale="30" result="d"></feDisplacementMap><feGaussianBlur in="d" stdDeviation="1.4"></feGaussianBlur></filter>
+      <filter id="grain"><feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="3" stitchTiles="stitch"></feTurbulence><feColorMatrix values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.12 0"></feColorMatrix></filter>
+    </defs>
+  </svg>
+  <svg width="1280" height="800" style="position: absolute; left: 0; top: 0; pointer-events: none" aria-hidden="true"><rect width="1280" height="800" filter="url(#grain)"></rect></svg>
+
+  <div style="position: absolute; left: 72px; top: 44px; width: 640px; height: 712px; box-sizing: border-box; padding: 36px 44px; background: #FBFAF6; box-shadow: 0 10px 28px rgba(45, 43, 51, 0.16); transform: rotate(-0.6deg); display: flex; flex-direction: column; gap: 22px">
+    <div style="position: absolute; left: 270px; top: -12px; width: 100px; height: 26px; background: rgba(230, 215, 176, 0.9); transform: rotate(-3deg)"></div>
+
+    <div style="display: flex; flex-direction: column; gap: 4px">
+      <span style="font-size: 14px; letter-spacing: 0.06em; color: #5E5B66">หน้าแรกของสมุด · แก้ทีหลังได้เสมอ</span>
+      <h1 style="margin: 0; font-family: Mali, sans-serif; font-weight: 600; font-size: 38px; line-height: 1.2">สมุดเล่มนี้เป็นของ...</h1>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 6px">
+      <label for="hello-name" style="font-family: Mali, sans-serif; font-weight: 600; font-size: 17px">ชื่อที่อยากให้เรียก</label>
+      <input id="hello-name" type="text" value="{{name}}" onChange="{{setName}}" placeholder="เช่น ฝน, มิ้นท์, เจ้าหญิงนอนดึก" maxlength="20" style="font-family: Mali, sans-serif; font-size: 26px; color: #2D2B33; background: transparent; border: 0; border-bottom: 2px dashed #8E8A93; padding: 6px 2px; outline-offset: 4px">
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 8px">
+      <span style="font-family: Mali, sans-serif; font-weight: 600; font-size: 17px">ตัวแทนของฉัน</span>
+      <div role="group" aria-label="เลือกรูปตัวแทน" style="display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 8px">
+        <sc-for list="{{doodles}}" as="d" hint-placeholder-count="8">
+          <button type="button" onClick="{{d.pick}}" aria-pressed="{{d.pressed}}" aria-label="{{d.label}}" title="{{d.label}}" style="height: 60px; display: flex; align-items: center; justify-content: center; border-radius: 16px 18px 14px 20px; border: 2px solid {{d.bd}}; background: {{d.bg}}; cursor: pointer; padding: 0; transform: {{d.tf}}">
+            <svg width="38" height="38" viewBox="0 0 48 48" fill="none" stroke="#2D2B33" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><g filter="url(#wob)"><path d="{{d.path}}"></path></g></svg>
+          </button>
+        </sc-for>
+      </div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 8px">
+      <span style="font-family: Mali, sans-serif; font-weight: 600; font-size: 17px">สีปกสมุด</span>
+      <div role="group" aria-label="เลือกสีปก" style="display: flex; gap: 12px">
+        <sc-for list="{{covers}}" as="c" hint-placeholder-count="4">
+          <button type="button" onClick="{{c.pick}}" aria-pressed="{{c.pressed}}" aria-label="{{c.label}}" title="{{c.label}}" style="width: 52px; height: 52px; border-radius: 50%; background: {{c.hex}}; border: 3px solid #FBFAF6; box-shadow: 0 0 0 {{c.ring}}px #2D2B33; cursor: pointer; padding: 0"></button>
+        </sc-for>
+      </div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 8px">
+      <span style="font-family: Mali, sans-serif; font-weight: 600; font-size: 17px">สิ่งที่ทำให้ใจฟู <span style="font-family: 'IBM Plex Sans Thai Looped', sans-serif; font-weight: 400; font-size: 14px; color: #5E5B66">เลือกได้หลายอย่าง หรือข้ามก็ได้</span></span>
+      <div style="display: flex; flex-wrap: wrap; gap: 8px">
+        <sc-for list="{{likes}}" as="l" hint-placeholder-count="8">
+          <button type="button" onClick="{{l.toggle}}" aria-pressed="{{l.pressed}}" style="min-height: 44px; padding: 0 16px; border-radius: 999px; border: 2px solid #2D2B33; background: {{l.bg}}; color: {{l.fg}}; font-family: 'IBM Plex Sans Thai Looped', sans-serif; font-size: 15px; font-weight: 500; cursor: pointer">{{l.label}}</button>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+
+  <div style="position: absolute; left: 790px; top: 80px; width: 420px; display: flex; flex-direction: column; align-items: center; gap: 28px">
+    <span style="font-size: 14px; color: #5E5B66">ตัวอย่างปกของคุณ</span>
+    <div style="position: relative; width: 340px; height: 440px; transform: rotate(2deg)">
+      <div style="position: absolute; left: 0; top: 0; width: 340px; height: 440px; background: {{cover}}; border-radius: 6px 14px 14px 6px; box-shadow: 0 22px 44px rgba(45, 43, 51, 0.30); overflow: hidden">
+        <div style="position: absolute; left: 0; top: 0; bottom: 0; width: 26px; background: {{spine}}; border-right: 2px dashed rgba(255, 255, 255, 0.16)"></div>
+        <svg width="340" height="440" viewBox="0 0 340 440" style="position: absolute; left: 0; top: 0" aria-hidden="true">
+          <g filter="url(#wc)" opacity="0.55">
+            <path d="M150 30 C215 22 268 70 262 132 C256 196 196 236 136 226 C76 216 34 170 42 112 C50 62 92 36 150 30Z" transform="translate(190 300) scale(0.6)" fill="#F1BE48"></path>
+            <path d="M150 30 C215 22 268 70 262 132 C256 196 196 236 136 226 C76 216 34 170 42 112 C50 62 92 36 150 30Z" transform="translate(10 340) scale(0.5)" fill="#5FA3C8"></path>
+          </g>
+        </svg>
+        <div style="position: absolute; left: 56px; top: 170px; width: 238px; box-sizing: border-box; padding: 18px 22px; background: #FBFAF6; border-radius: 4px; transform: rotate(1deg); box-shadow: 0 3px 10px rgba(0, 0, 0, 0.22); display: flex; flex-direction: column; gap: 4px">
+          <span style="font-size: 12px; letter-spacing: 0.06em; color: #5E5B66">สมุดระบายความรู้สึก</span>
+          <span style="font-family: Mali, sans-serif; font-weight: 700; font-size: 34px; line-height: 1.1">ColorScrap</span>
+          <span style="border-top: 2px dotted #CFCBC3; padding-top: 6px; font-family: Mali, sans-serif; font-size: 16px; color: {{nameColor}}">ของ {{shownName}}</span>
+        </div>
+        <div style="position: absolute; right: 36px; top: 0; bottom: 0; width: 16px; background: {{strap}}"></div>
+      </div>
+      <div style="position: absolute; left: 36px; top: 46px; width: 96px; height: 96px; border-radius: 50%; background: #FBFAF6; border: 2px solid #2D2B33; display: flex; align-items: center; justify-content: center; transform: rotate(-8deg); box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25); filter: url(#wob)">
+        <svg width="62" height="62" viewBox="0 0 48 48" fill="none" stroke="#2D2B33" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{doodlePath}}"></path></svg>
+      </div>
+      <div style="position: absolute; right: -14px; bottom: 54px; display: flex; flex-direction: column; gap: 6px; align-items: flex-end">
+        <sc-for list="{{likeStickers}}" as="s" hint-placeholder-count="2">
+          <span style="padding: 4px 12px; background: #E6D7B0; font-family: Mali, sans-serif; font-size: 14px; font-weight: 600; transform: rotate({{s.r}}deg); box-shadow: 0 2px 4px rgba(0, 0, 0, 0.18)">{{s.label}}</span>
+        </sc-for>
+      </div>
+    </div>
+    <a href="Main.dc.html" style="display: inline-flex; align-items: center; gap: 10px; min-height: 58px; padding: 0 32px; background: #2D2B33; color: #FBFAF6; text-decoration: none; font-family: Mali, sans-serif; font-weight: 600; font-size: 20px; border-radius: 18px 22px 16px 24px; filter: url(#wob)">
+      เริ่มใช้สมุด
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#FBFAF6" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5 L16 12 L9 19"></path></svg>
+    </a>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":800}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { name: '', doodle: 'cat', cover: '#9E2F2A', likes: ['เพลง', 'แมว'] };
+  }
+  renderVals() {
+    const DOODLES = [
+      { k: 'cat', label: 'แมว', path: 'M12 39 C10 29 12 21 16 17 L14 8 L21 13 C23 12.5 25 12.5 27 13 L34 8 L32 17 C36 21 38 29 36 39 Z M19 24 V26 M29 24 V26 M22 30 Q24 32 26 30' },
+      { k: 'plant', label: 'ต้นไม้', path: 'M15 30 H33 L31 41 H17 Z M24 30 V18 M24 23 C18 23 15 18 15 13 C21 13 24 18 24 23 M24 19 C30 19 33 14 33 10 C27 10 24 14 24 19' },
+      { k: 'cloud', label: 'ก้อนเมฆ', path: 'M14 34 C8 34 7 26 13 25 C13 18 22 16 25 21 C28 16 37 18 36 25 C42 26 41 34 35 34 Z' },
+      { k: 'moon', label: 'พระจันทร์', path: 'M30 9 C21 10 15 17 15 25 C15 34 22 40 31 39 C24 36 20 30 20 24 C20 17 24 11 30 9 Z M36 14 V18 M34 16 H38' },
+      { k: 'flower', label: 'ดอกไม้', path: 'M24 20 C19 12 29 12 24 20 Z M28 23 C36 19 37 29 28 26 Z M26 28 C30 36 21 37 22 28 Z M20 26 C12 30 10 21 20 22 Z M24 30 V42 M24 37 C20 35 18 36 17 38' },
+      { k: 'fish', label: 'ปลา', path: 'M8 24 C14 15 28 15 34 24 C28 33 14 33 8 24 Z M34 24 L42 17 L41 31 Z M15 22 V24' },
+      { k: 'mug', label: 'แก้วกาแฟ', path: 'M12 18 H32 V34 C32 38 29 40 26 40 H18 C15 40 12 38 12 34 Z M32 22 C38 22 38 31 32 31 M18 8 C16 11 20 12 18 15 M25 8 C23 11 27 12 25 15' },
+      { k: 'star', label: 'ดวงดาว', path: 'M24 8 L28.5 18.5 L40 19.5 L31 27 L34 38.5 L24 32 L14 38.5 L17 27 L8 19.5 L19.5 18.5 Z' }
+    ];
+    const COVERS = [
+      { hex: '#9E2F2A', label: 'แดงเข้ม' },
+      { hex: '#2F5D50', label: 'เขียวเข้ม' },
+      { hex: '#E0704A', label: 'ส้ม' },
+      { hex: '#34323A', label: 'เทาถ่าน' }
+    ];
+    const LIKES = ['เพลง', 'แมว', 'กาแฟ', 'การนอน', 'เดินเล่น', 'วาดรูป', 'เกม', 'ทะเล'];
+    const mix = (hex, t) => { const a = parseInt(hex.slice(1), 16), b = 0x2D2B33; const c = [16, 8, 0].map((s) => Math.round(((a >> s) & 255) * (1 - t) + ((b >> s) & 255) * t)); return 'rgb(' + c.join(',') + ')'; };
+    const st = this.state;
+    const cur = DOODLES.find((d) => d.k === st.doodle) || DOODLES[0];
+    return {
+      name: st.name,
+      setName: (e) => this.setState({ name: e.target.value }),
+      shownName: st.name.trim() ? st.name.trim() : 'ชื่อของคุณ',
+      nameColor: st.name.trim() ? '#2D2B33' : '#8E8A93',
+      doodles: DOODLES.map((d) => {
+        const on = d.k === st.doodle;
+        return Object.assign({}, d, { pressed: on ? 'true' : 'false', bd: on ? '#2D2B33' : 'transparent', bg: on ? 'rgba(241, 190, 72, 0.28)' : '#F0EEE9', tf: on ? 'translateY(-3px) rotate(-3deg)' : 'none', pick: () => this.setState({ doodle: d.k }) });
+      }),
+      doodlePath: cur.path,
+      covers: COVERS.map((c) => Object.assign({}, c, { pressed: c.hex === st.cover ? 'true' : 'false', ring: c.hex === st.cover ? 3 : 0, pick: () => this.setState({ cover: c.hex }) })),
+      cover: st.cover,
+      spine: mix(st.cover, 0.14),
+      strap: mix(st.cover, 0.32),
+      likes: LIKES.map((l) => {
+        const on = st.likes.indexOf(l) !== -1;
+        return { label: l, pressed: on ? 'true' : 'false', bg: on ? '#2D2B33' : 'transparent', fg: on ? '#FBFAF6' : '#2D2B33', toggle: () => this.setState({ likes: on ? st.likes.filter((x) => x !== l) : st.likes.concat([l]) }) };
+      }),
+      likeStickers: st.likes.slice(0, 3).map((l, i) => ({ label: l, r: [-4, 3, -2][i] }))
+    };
+  }
+}
+</script>
+</body>
+</html>
