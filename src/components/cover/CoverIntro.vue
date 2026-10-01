@@ -13,8 +13,7 @@
       <p class="m-0 text-19 leading-[1.7] text-ink-2">วันนี้รู้สึกยังไงบ้าง ไม่ต้องอธิบายเป็นคำพูด แค่เลือกสีแล้วปล่อยให้มันไหลไป</p>
       <div class="flex items-center gap-3.5 pt-1.5">
         <HandButton @click="app.go('pick')">เลือกความรู้สึกวันนี้</HandButton>
-        <!-- สมุดทั้งเล่มทำในช่วง C -->
-        <HandButton variant="secondary" disabled><Doodle name="book" :size="22" /> เปิดสมุด</HandButton>
+        <HandButton variant="secondary" @click="app.go('book')"><Doodle name="book" :size="22" /> เปิดสมุด</HandButton>
       </div>
       <WeekStrip :days="entries.lastSevenDays" />
     </div>

@@ -28,6 +28,8 @@ const props = defineProps({
   tilt: { type: Boolean, default: false },
   // ปิดใช้งาน: เปลี่ยนเป็นปุ่มขอบจาง (พื้นโปร่ง) opacity 0.4 เคอร์เซอร์ not-allowed
   disabled: { type: Boolean, default: false },
+  // พื้นกระดาษทึบ (ใช้เมื่อปุ่มวางทับกระดาน/ผ้าใบ)
+  solid: { type: Boolean, default: false },
 })
 
 const sizes = computed(
@@ -46,7 +48,7 @@ const textColor = computed(() => (isOn.value ? 'text-paper' : 'text-ink'))
 
 const frame = computed(() => {
   const radius = props.variant === 'chip' ? 'rounded-chip' : props.variant === 'icon' ? 'rounded-hand-sm' : 'rounded-hand'
-  return `${radius} border-2 border-ink ${isOn.value ? 'bg-ink' : 'bg-transparent'}`
+  return `${radius} border-2 border-ink ${isOn.value ? 'bg-ink' : props.solid ? 'bg-paper' : 'bg-transparent'}`
 })
 
 // ชิปเล็กไม่ใส่ wob เพื่อลดงานของ filter

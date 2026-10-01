@@ -5,6 +5,7 @@
     <component :is="Kit" v-if="Kit" />
     <template v-else>
       <!-- วัตถุบนโต๊ะที่อยู่ตลอด ไม่ถูก unmount เวลาเปลี่ยน view -->
+      <DrawingBoard />
       <Scrapbook />
       <EmotionPalette />
 
@@ -17,6 +18,15 @@
       </Transition>
       <Transition name="fade">
         <CoverIntro v-if="app.view === 'cover'" class="absolute inset-0" />
+      </Transition>
+      <Transition name="fade">
+        <SavedCard v-if="app.view === 'saved'" />
+      </Transition>
+      <!-- ปุ่มนำทางของหน้า book -->
+      <Transition name="fade">
+        <div v-if="app.view === 'book'" class="absolute left-[124px] top-7">
+          <HandButton variant="secondary" @click="app.go('cover')"><Doodle name="back" :size="22" /> หน้าแรก</HandButton>
+        </div>
       </Transition>
     </template>
   </Stage>
@@ -31,6 +41,10 @@ import EmotionPalette from '@/components/pick/EmotionPalette.vue'
 import HelloSheet from '@/components/hello/HelloSheet.vue'
 import CoverPreview from '@/components/hello/CoverPreview.vue'
 import CoverIntro from '@/components/cover/CoverIntro.vue'
+import DrawingBoard from '@/components/paint/DrawingBoard.vue'
+import SavedCard from '@/components/saved/SavedCard.vue'
+import HandButton from '@/components/ui/HandButton.vue'
+import Doodle from '@/components/ui/Doodle.vue'
 import { useAppStore } from '@/stores/app'
 import { useProfileStore } from '@/stores/profile'
 import { useHashView } from '@/lib/useHashView'

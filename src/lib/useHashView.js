@@ -2,7 +2,7 @@
 import { watch } from 'vue'
 
 // view ที่เปิดจาก hash ได้ (เพิ่มเมื่อทำหน้าอื่นเสร็จ)
-const HASH_VIEWS = ['hello', 'cover', 'pick']
+const HASH_VIEWS = ['hello', 'cover', 'pick', 'paint', 'book']
 
 export const useHashView = (app, profile) => {
   const fromHash = () => location.hash.replace('#', '')
@@ -12,7 +12,7 @@ export const useHashView = (app, profile) => {
   // ตอนโหลดแอป: มีโปรไฟล์ → cover ไม่มี → hello (ถ้า hash ถูกต้องและใช้ได้ ให้ใช้ตาม hash)
   app.boot(profile.exists)
   const initial = fromHash()
-  if (accepts(initial)) app.view = initial
+  if (accepts(initial)) app.setView(initial)
   if (fromHash() !== app.view) history.replaceState(null, '', `#${app.view}`)
 
   watch(
@@ -25,7 +25,7 @@ export const useHashView = (app, profile) => {
   window.addEventListener('hashchange', () => {
     const v = fromHash()
     if (accepts(v) && v !== app.view) {
-      app.view = v
+      app.setView(v)
       // กลับเข้า hello จากปุ่ม back ถือเป็นโหมดแก้ไขถ้ามีโปรไฟล์แล้ว
       app.helloEditing = v === 'hello' && profile.exists
     }

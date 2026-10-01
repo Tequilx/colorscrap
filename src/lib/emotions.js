@@ -38,6 +38,10 @@ export const EMOTIONS = EMOTION_KEYS.map((key) => ({
 
 export const EMOTION_BY_KEY = Object.fromEntries(EMOTIONS.map((e) => [e.key, e]))
 
+// จำนวนหยดเริ่มต้นตอนเข้าหน้า paint (SPEC §6.3) ค่าตั้งต้นปรับจูนได้ และตัวคูณตามความเข้ม
+export const INITIAL_SPLATS = { happy: 5, calm: 3, excited: 8, warm: 4, sad: 3, angry: 6, anxious: 10, tired: 2 }
+export const INTENSITY_FACTOR = [0.6, 1, 1.5]
+
 // อารมณ์ด้านลบ ใช้กับการปรับโทน (SPEC §6.4)
 export const NEGATIVE_EMOTIONS = ['sad', 'angry', 'anxious', 'tired']
 

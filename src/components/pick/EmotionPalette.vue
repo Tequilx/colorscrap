@@ -60,8 +60,7 @@
       <span class="text-17 text-ink-2">
         <b class="font-hand text-19 text-ink">{{ current.th }}</b> · {{ current.pigment }} · {{ INTENSITY_LABELS[app.selection.intensity] }}
       </span>
-      <!-- หน้า paint ทำในช่วง C -->
-      <HandButton disabled>เริ่มระบาย <Doodle name="forward" :size="22" /></HandButton>
+      <HandButton @click="app.go('paint')">เริ่มระบาย <Doodle name="forward" :size="22" /></HandButton>
     </div>
   </div>
 </template>

@@ -4,6 +4,7 @@ import { EMOTION_COLORS } from '@/lib/tokens'
 import { emotionShades, SHIFT_TARGETS } from '@/lib/emotions'
 import { addDays, localDateStr, parseLocalDate, thaiWeekdayShort } from '@/lib/dates'
 import { dominantColorOfDay } from '@/lib/palette'
+import { emotionShades as shadesOf } from '@/lib/emotions'
 
 // สีที่ "ดูดได้" ของภาพจำลอง: รูปแบบเดียวกับ entries.colors ใน SPEC §7.2 (ratio รวม 1)
 const mockColors = (emotion, shifted) => {
@@ -84,5 +85,30 @@ export const useEntriesStore = defineStore('entries', () => {
     return dates.map((date) => ({ date, hex: dominantColorOfDay(entriesOfDay(date)), day: parseLocalDate(date) }))
   })
 
-  return { entries, entriesOfDay, todayCount, lastSevenDays, recentTabs }
+  // วันที่ที่มีบันทึก เรียงเก่า → ใหม่
+  const dates = computed(() => [...new Set(entries.value.map((e) => e.local_date))].sort())
+
+  // บันทึกภาพใหม่ลงสมุด (จำลอง; ขั้นที่ 7 จะส่งขึ้น Supabase)
+  // colors: ช่วงนี้ใช้สีอารมณ์ ขั้นที่ 5 จะเปลี่ยนเป็นสีที่ดูดจากภาพจริง (SPEC §6.6)
+  const addEntry = ({ emotion, intensity, shifted = false, colors }) => {
+    const now = new Date()
+    const shades = shadesOf(emotion)
+    const entry = {
+      id: `local-${now.getTime()}`,
+      local_date: localDateStr(now),
+      local_time: `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`,
+      emotion,
+      intensity,
+      shifted,
+      colors: colors ?? [
+        { hex: shades.base, ratio: 0.55 },
+        { hex: shades.light, ratio: 0.25 },
+        { hex: shades.deep, ratio: 0.2 },
+      ],
+    }
+    entries.value.push(entry)
+    return entry
+  }
+
+  return { entries, entriesOfDay, todayCount, lastSevenDays, recentTabs, dates, addEntry }
 })

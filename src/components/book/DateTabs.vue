@@ -1,0 +1,25 @@
+<template>
+  <!-- แท็บคั่นหน้าที่ขอบบนของหน้าขวา ใช้วันที่เป็นป้าย สีแท็บคือสีเด่นของวันนั้น (SPEC §5.5) -->
+  <nav aria-label="เลือกวันในสมุด" class="absolute left-[640px] top-[-38px] flex items-end gap-2">
+    <button
+      v-for="t in tabs"
+      :key="t.date"
+      type="button"
+      :aria-current="t.date === current ? 'page' : undefined"
+      class="box-border flex w-[84px] cursor-pointer items-start justify-center rounded-t-[10px] border-0 p-0 pt-2 font-hand text-14 transition-[height] duration-450 ease-desk"
+      :class="t.date === current ? 'h-[58px] font-bold' : 'h-[46px] font-semibold'"
+      :style="{ background: t.hex, color: readableOn(t.hex) }"
+      @click="$emit('pick', t.date)"
+    >
+      {{ t.label }}
+    </button>
+  </nav>
+</template>
+
+<script setup>
+import { readableOn } from '@/lib/color'
+
+// tabs: [{ date, hex, label }] เก่า → ใหม่
+defineProps({ tabs: { type: Array, required: true }, current: { type: String, default: null } })
+defineEmits(['pick'])
+</script>
