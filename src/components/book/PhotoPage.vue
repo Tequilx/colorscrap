@@ -10,7 +10,7 @@
         <span class="font-hand text-26 font-semibold">{{ dateText }}</span>
         <span class="text-14 text-ink-soft">{{ subtitle }}</span>
       </div>
-      <PhotoSlot v-for="(e, i) in leaf" :key="e.id" :entry="e" :slot-pos="FIRST_LEAF_SLOTS[i]" :is-new="e.id === newId" />
+      <PhotoSlot v-for="(e, i) in leaf" :key="e.id" :entry="e" :slot-pos="FIRST_LEAF_SLOTS[i]" :is-new="e.id === newId" :interactive="mode === 'book'" @open="$emit('photo', $event)" />
       <!-- ว่างทั้งวัน -->
       <div v-if="!leaf.length" class="absolute left-[140px] top-[180px] box-border flex h-[165px] w-[196px] rotate-1 items-center justify-center border-2 border-dashed border-[#C4C0B7] p-4 text-center font-hand text-15 text-[#8E8A93]">ยังไม่มีภาพของวันนี้</div>
       <div v-else-if="leaf.length < PHOTOS_PER_LEAF && isLatestLeaf" class="absolute box-border flex h-[165px] w-[196px] rotate-1 items-center justify-center border-2 border-dashed border-[#C4C0B7] p-4 text-center font-hand text-15 text-[#8E8A93]" :style="{ left: FIRST_LEAF_SLOTS[leaf.length].x + 'px', top: FIRST_LEAF_SLOTS[leaf.length].y + 'px' }">ภาพถัดไปของวันนี้<br />จะมาอยู่ตรงนี้</div>
@@ -29,7 +29,7 @@
           <span class="font-hand text-26 font-semibold">{{ dateTextShort }} (ต่อ)</span>
           <span class="text-14 text-ink-soft">แผ่นที่ {{ leafIndex + 1 }}</span>
         </div>
-        <PhotoSlot v-for="(e, i) in leaf" :key="e.id" :entry="e" :slot-pos="INSERT_LEAF_SLOTS[i]" :is-new="e.id === newId" />
+        <PhotoSlot v-for="(e, i) in leaf" :key="e.id" :entry="e" :slot-pos="INSERT_LEAF_SLOTS[i]" :is-new="e.id === newId" :interactive="mode === 'book'" @open="$emit('photo', $event)" />
         <div v-if="leaf.length < PHOTOS_PER_LEAF && isLatestLeaf" class="absolute box-border flex h-[165px] w-[196px] rotate-1 items-center justify-center border-2 border-dashed border-[#C4C0B7] p-4 text-center font-hand text-15 text-[#8E8A93]" :style="{ left: INSERT_LEAF_SLOTS[leaf.length].x + 'px', top: INSERT_LEAF_SLOTS[leaf.length].y + 'px' }">ภาพถัดไปของวันนี้<br />จะมาอยู่ตรงนี้</div>
       </div>
       <!-- เทปของแผ่นที่เพิ่งงอกในวันนั้น มีป้าย "แผ่นใหม่" จนกว่าผู้ใช้จะพลิกดูแผ่นอื่น -->
@@ -60,7 +60,7 @@ const props = defineProps({
   mode: { type: String, default: 'book' },
 })
 
-defineEmits(['leaf'])
+defineEmits(['leaf', 'photo'])
 
 const leaf = computed(() => props.leaves[props.leafIndex] ?? [])
 const total = computed(() => props.leaves.flat().length)

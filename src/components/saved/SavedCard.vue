@@ -11,10 +11,22 @@
       </div>
     </div>
 
+    <!-- สีในภาพนี้: หยดสีน้ำไม่เกิน 5 หยด ขนาดตาม ratio พร้อม % -->
+    <div class="flex flex-col gap-2 border-t-[1.5px] border-dashed border-line pt-4">
+      <span class="font-hand text-17 font-semibold">สีในภาพนี้</span>
+      <ul class="m-0 flex list-none items-end justify-between gap-1 p-0">
+        <li v-for="(c, i) in entry.colors.slice(0, 5)" :key="c.hex" class="flex w-[60px] flex-col items-center gap-0.5" :aria-label="`${hueGroup(c.hex)} ${pct[i]}%`">
+          <WatercolorBlob :color="c.hex" :width="blobSize(c.ratio)" :height="Math.round(blobSize(c.ratio) * 120 / 170)" :opacity="0.75" />
+          <span class="text-13 text-ink-2">{{ pct[i] }}%</span>
+        </li>
+      </ul>
+    </div>
+
     <div class="flex flex-col gap-2.5 border-t-[1.5px] border-dashed border-line pt-4">
       <span class="font-hand text-17 font-semibold">{{ before.length ? 'สีของวันนี้เปลี่ยนไปนิดหนึ่ง' : 'สีแรกของวันนี้' }}</span>
       <!-- หยดสีตกลงหลุมผสมสี มีวงคลื่นกระจาย -->
-      <svg width="340" height="156" viewBox="0 0 340 156" role="img" :aria-label="`หยดสี${emotion.th}กำลังตกลงในหลุมผสมสีของวันนี้`">
+      <!-- หลุมผสมสีย่อลง (80%) ให้การ์ดที่มีหัวข้อสีในภาพนี้เพิ่มยังสูงไม่เกินพื้นที่ -->
+      <svg width="272" height="125" viewBox="0 0 340 156" class="self-center" role="img" :aria-label="`หยดสี${emotion.th}กำลังตกลงในหลุมผสมสีของวันนี้`">
         <defs><clipPath :id="clipId"><circle cx="170" cy="96" r="44" /></clipPath></defs>
         <path d="M170 6 C170 6 160 20 160 27 A10 10 0 0 0 180 27 C180 20 170 6 170 6 Z" :fill="entry.colors[0].hex" stroke="#2D2B33" stroke-width="1.6" />
         <path d="M150 12 V30 M190 16 V34" stroke="#8E8A93" stroke-width="1.6" stroke-linecap="round" stroke-dasharray="3 5" />
@@ -56,9 +68,10 @@
 import { computed, useId } from 'vue'
 import HandButton from '@/components/ui/HandButton.vue'
 import Doodle from '@/components/ui/Doodle.vue'
+import WatercolorBlob from '@/components/ui/WatercolorBlob.vue'
 import { BLOB_PATHS } from '@/lib/doodles'
 import { EMOTION_BY_KEY, INTENSITY_LABELS } from '@/lib/emotions'
-import { colorWeightsOfDay, mixColors, nameOfDay } from '@/lib/palette'
+import { colorWeightsOfDay, hueGroup, mixColors, nameOfDay, percentsOf } from '@/lib/palette'
 import { useAppStore } from '@/stores/app'
 import { useEntriesStore } from '@/stores/entries'
 
@@ -68,6 +81,9 @@ const clipId = useId()
 
 const entry = computed(() => entriesStore.entries.find((e) => e.id === app.lastSavedEntryId) ?? entriesStore.entries.at(-1))
 const emotion = computed(() => EMOTION_BY_KEY[entry.value.emotion])
+const pct = computed(() => percentsOf(entry.value.colors.slice(0, 5)))
+// ขนาดหยด 28–60px ตาม ratio (สีที่มากที่สุดใหญ่สุด)
+const blobSize = (ratio) => Math.round(28 + 32 * Math.sqrt(ratio / Math.max(...entry.value.colors.slice(0, 5).map((c) => c.ratio))))
 const day = computed(() => entriesStore.entriesOfDay(entry.value.local_date))
 const before = computed(() => day.value.filter((e) => e.id !== entry.value.id))
 

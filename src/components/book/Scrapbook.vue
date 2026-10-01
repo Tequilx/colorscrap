@@ -17,9 +17,9 @@
   <!-- ชั้นเปิดเต็มเล่ม: book / saved -->
   <div
     class="absolute left-0 top-0 h-[640px] w-[1012px] transition-[transform,opacity] duration-600 ease-desk"
-    :class="openVisible ? '' : 'pointer-events-none'"
+    :class="openInteractive ? '' : 'pointer-events-none'"
     :style="openPlacement"
-    :inert="!openVisible"
+    :inert="!openInteractive"
     :aria-hidden="!openVisible"
   >
     <OpenBook :mode="view === 'saved' ? 'saved' : 'book'" />
@@ -54,6 +54,8 @@ const OPEN = {
   book: { transform: 'translate(176px, 112px)', opacity: 1 },
   // ช็อตซูมเข้าหน้าซ้าย: ซูม 1.15 เท่า (SPEC §5.4)
   saved: { transform: 'translate(40px, 32px) scale(1.15)', opacity: 1, transformOrigin: 'top left' },
+  // ดูภาพเดี่ยว: หน้าสมุดด้านหลังจางลง
+  photo: { transform: 'translate(176px, 112px)', opacity: 0.3 },
 }
 const OPEN_HIDDEN = { transform: 'translate(176px, 140px) scale(0.9)', opacity: 0 }
 
@@ -61,4 +63,6 @@ const closedPlacement = computed(() => CLOSED[view.value] ?? CLOSED_HIDDEN)
 const openPlacement = computed(() => ({ transformOrigin: 'top left', ...(OPEN[view.value] ?? OPEN_HIDDEN) }))
 const closedVisible = computed(() => view.value in CLOSED)
 const openVisible = computed(() => view.value in OPEN)
+// กดได้เฉพาะตอน book/saved (ตอน photo จางลงและโฟกัสอยู่ที่ภาพ)
+const openInteractive = computed(() => view.value === 'book' || view.value === 'saved')
 </script>

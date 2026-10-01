@@ -2,7 +2,7 @@
   <!-- กระดานวาดรูป อยู่บนโต๊ะตลอด (WebGL context ไม่หาย): paint = เต็มจอ, book = เหลือแถบซ้าย 92px — SPEC §4.3 -->
   <div
     class="absolute overflow-hidden bg-board transition-[left,top,width,height,opacity,border-radius] duration-600 ease-desk"
-    :class="app.view === 'book' ? 'rounded-r-xl shadow-[0_4px_12px_rgba(45,43,51,0.12)]' : ''"
+    :class="inStrip ? 'rounded-r-xl shadow-[0_4px_12px_rgba(45,43,51,0.12)]' : ''"
     :style="wrapperStyle"
     :inert="!visible"
     :aria-hidden="!visible"
@@ -36,7 +36,7 @@
   </div>
 
   <!-- แถบซ้ายในหน้า book: ขอบกระดานสี board รอบกระดาษ 24px บนล่าง และรอยสีโผล่จากกระดาษ (5-book.dc.html) -->
-  <div class="pointer-events-none absolute left-0 top-[150px] h-[500px] w-[92px] overflow-hidden rounded-r-xl transition-opacity duration-600 ease-desk" :class="app.view === 'book' ? 'opacity-100' : 'opacity-0'" aria-hidden="true">
+  <div class="pointer-events-none absolute left-0 top-[150px] h-[500px] w-[92px] overflow-hidden rounded-r-xl transition-opacity duration-600 ease-desk" :class="app.view === 'book' ? 'opacity-100' : app.view === 'photo' ? 'opacity-30' : 'opacity-0'" aria-hidden="true">
     <span class="absolute inset-x-0 top-0 h-6 bg-board"></span>
     <span class="absolute inset-x-0 bottom-0 h-6 bg-board"></span>
     <svg width="64" height="452" viewBox="0 0 64 452" class="absolute left-0 top-6">
@@ -77,16 +77,18 @@ const canvasRef = ref(null)
 const current = computed(() => EMOTION_BY_KEY[app.selection.emotion])
 
 const visible = computed(() => app.view === 'paint' || app.view === 'book')
+// แถบซ้ายของหน้า book (จางลงตอนดูภาพเดี่ยว)
+const inStrip = computed(() => app.view === 'book' || app.view === 'photo')
 
 // wrapper: paint = เต็มจอ | book = แถบซ้าย 92×500 | อื่น ๆ = ซ่อนนอกจอ
 const wrapperStyle = computed(() => {
   if (app.view === 'paint') return { left: '0px', top: '0px', width: '1280px', height: '800px', opacity: 1 }
-  if (app.view === 'book') return { left: '0px', top: '150px', width: '92px', height: '500px', opacity: 1 }
+  if (inStrip.value) return { left: '0px', top: '150px', width: '92px', height: '500px', opacity: app.view === 'photo' ? 0.3 : 1 }
   return { left: '-1300px', top: '0px', width: '1280px', height: '800px', opacity: 0 }
 })
 
 // ใน book: ขอบขวาของกระดาษ (x=1196) ไปอยู่ที่ x=64 และเลื่อนขึ้น 150 ให้แถบแสดงช่วงกลางกระดาษ
-const layerTransform = computed(() => (app.view === 'book' ? 'translate(-1132px, -150px)' : 'translate(0, 0)'))
+const layerTransform = computed(() => (inStrip.value ? 'translate(-1132px, -150px)' : 'translate(0, 0)'))
 
 defineExpose({ canvasRef })
 </script>

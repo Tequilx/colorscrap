@@ -22,6 +22,7 @@
       <Transition name="fade">
         <SavedCard v-if="app.view === 'saved'" />
       </Transition>
+      <PhotoView />
       <!-- ปุ่มนำทางของหน้า book -->
       <Transition name="fade">
         <div v-if="app.view === 'book'" class="absolute left-[124px] top-7">
@@ -43,6 +44,7 @@ import CoverPreview from '@/components/hello/CoverPreview.vue'
 import CoverIntro from '@/components/cover/CoverIntro.vue'
 import DrawingBoard from '@/components/paint/DrawingBoard.vue'
 import SavedCard from '@/components/saved/SavedCard.vue'
+import PhotoView from '@/components/photo/PhotoView.vue'
 import HandButton from '@/components/ui/HandButton.vue'
 import Doodle from '@/components/ui/Doodle.vue'
 import { useAppStore } from '@/stores/app'

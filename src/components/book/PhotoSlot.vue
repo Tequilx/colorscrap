@@ -1,10 +1,13 @@
 <template>
   <!-- โพลารอยด์หนึ่งใบในตำแหน่ง slot: มุมเอียงสุ่มจาก entry.id ให้ผลเหมือนเดิมทุกครั้ง -->
   <div class="absolute" :style="{ left: slotPos.x + 'px', top: slotPos.y + 'px' }">
+    <!-- ปุ่มโปร่งใสทับโพลารอยด์ เปิดดูภาพเดี่ยว (figure อยู่ใน button ไม่ได้) -->
+    <button v-if="interactive" type="button" class="absolute inset-0 z-10 cursor-zoom-in border-0 bg-transparent p-0" :aria-label="`ดูภาพ ${caption} ขยาย`" @click="$emit('open', entry.id)"></button>
     <Polaroid
       :caption="caption"
       :alt="`ภาพสีน้ำ ${emotion.th}`"
       :colors="entry.colors.slice(0, 2).map((c) => c.hex)"
+      :palette="entry.colors"
       :rotate="rot.rotate"
       :tape-rotate="rot.tape"
       :badge="isNew ? 'ใหม่' : ''"
@@ -23,7 +26,10 @@ const props = defineProps({
   entry: { type: Object, required: true },
   slotPos: { type: Object, required: true },
   isNew: { type: Boolean, default: false },
+  interactive: { type: Boolean, default: false },
 })
+
+defineEmits(['open'])
 
 const emotion = computed(() => EMOTION_BY_KEY[props.entry.emotion])
 const rot = computed(() => photoRotation(props.entry.id))

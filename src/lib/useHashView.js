@@ -2,12 +2,13 @@
 import { watch } from 'vue'
 
 // view ที่เปิดจาก hash ได้ (เพิ่มเมื่อทำหน้าอื่นเสร็จ)
-const HASH_VIEWS = ['hello', 'cover', 'pick', 'paint', 'book']
+const HASH_VIEWS = ['hello', 'cover', 'pick', 'paint', 'book', 'photo']
 
 export const useHashView = (app, profile) => {
   const fromHash = () => location.hash.replace('#', '')
 
-  const accepts = (v) => HASH_VIEWS.includes(v) && (v === 'hello' || profile.exists)
+  // photo ต้องมีภาพที่เปิดอยู่ (เช่น กด forward กลับมา) ไม่งั้นเข้าตรง ๆ จาก URL ไม่ได้
+  const accepts = (v) => HASH_VIEWS.includes(v) && (v === 'hello' || profile.exists) && (v !== 'photo' || Boolean(app.photoEntryId))
 
   // ตอนโหลดแอป: มีโปรไฟล์ → cover ไม่มี → hello (ถ้า hash ถูกต้องและใช้ได้ ให้ใช้ตาม hash)
   app.boot(profile.exists)

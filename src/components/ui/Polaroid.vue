@@ -1,6 +1,7 @@
 <template>
   <!-- ภาพโพลารอยด์กว้าง 196px มีเทปและคำบรรยายลายมือ (SPEC §5.5) -->
-  <figure class="relative m-0 box-border w-[196px] bg-white px-[9px] pb-8 pt-[9px] shadow-photo" :style="{ transform: `rotate(${rotate}deg)` }">
+  <figure class="relative m-0 box-border w-[196px] bg-white px-[9px] pt-[9px] shadow-photo"
+    :class="palette.length ? 'pb-[46px]' : 'pb-8'" :style="{ transform: `rotate(${rotate}deg)` }">
     <Tape class="left-[56px] top-[-11px]" :rotate="tapeRotate" />
     <div class="h-[124px] w-[178px] bg-paper">
       <slot>
@@ -14,6 +15,8 @@
       </slot>
     </div>
     <!-- คำบรรยายกับป้ายอยู่แถว flex เดียวกันคนละฝั่ง คำบรรยายยาวเกินให้ตัดด้วย ellipsis -->
+    <!-- แถบสีที่ดูดได้จากภาพ ใต้ตัวภาพ เหนือคำบรรยาย -->
+    <ColorStrip v-if="palette.length" :colors="palette" class="mt-1.5" />
     <figcaption class="absolute inset-x-3 bottom-1.5 flex items-center justify-between gap-2 font-hand text-15 text-ink-soft">
       <span class="min-w-0 flex-1 truncate" :title="caption">{{ caption }}</span>
       <span v-if="badge" class="shrink-0 rounded-[10px] bg-cover px-2 text-13 font-semibold text-white">{{ badge }}</span>
@@ -23,6 +26,7 @@
 
 <script setup>
 import Tape from '@/components/ui/Tape.vue'
+import ColorStrip from '@/components/ui/ColorStrip.vue'
 import { BLOB_PATHS } from '@/lib/doodles'
 
 defineProps({
@@ -32,6 +36,8 @@ defineProps({
   colors: { type: Array, default: () => ['#5FA3C8', '#F1BE48'] },
   rotate: { type: Number, default: 0 },
   tapeRotate: { type: Number, default: -3 },
+  // สีที่ดูดได้ทั้งหมด [{ hex, ratio }] ถ้าใส่จะแสดงแถบสีใต้ภาพ
+  palette: { type: Array, default: () => [] },
   // ป้าย "ใหม่" ที่มุมขวาล่าง
   badge: { type: String, default: '' },
 })

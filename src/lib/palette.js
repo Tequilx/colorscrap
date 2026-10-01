@@ -124,3 +124,18 @@ export const chunk = (list, n) => {
   for (let i = 0; i < list.length; i += n) out.push(list.slice(i, i + n))
   return out
 }
+
+// เปอร์เซ็นต์ของแต่ละสีในภาพ เป็นจำนวนเต็มที่รวมกันได้ 100 พอดี (ปัดแบบ largest remainder)
+export const percentsOf = (colors) => {
+  const total = colors.reduce((s, c) => s + c.ratio, 0) || 1
+  const raw = colors.map((c) => (c.ratio / total) * 100)
+  const out = raw.map(Math.floor)
+  let left = 100 - out.reduce((s, v) => s + v, 0)
+  raw
+    .map((v, i) => ({ i, r: v - Math.floor(v) }))
+    .sort((a, b) => b.r - a.r)
+    .forEach(({ i }) => {
+      if (left-- > 0) out[i] += 1
+    })
+  return out
+}

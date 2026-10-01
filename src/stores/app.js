@@ -12,6 +12,7 @@ export const VIEWS = Object.freeze({
   paint: 'paint',
   saved: 'saved',
   book: 'book',
+  photo: 'photo', // ดูภาพเดี่ยว (ลอยขึ้นมาจากหน้าสมุด)
 })
 
 // จำนวนภาพต่อแผ่น (SPEC §5.6)
@@ -24,7 +25,8 @@ const ALLOWED = {
   pick: ['paint', 'cover'],
   paint: ['saved', 'pick', 'book', 'cover'],
   saved: ['book', 'pick'],
-  book: ['paint', 'cover'],
+  book: ['paint', 'cover', 'photo'],
+  photo: ['book'],
 }
 
 export const useAppStore = defineStore('app', () => {
@@ -35,6 +37,7 @@ export const useAppStore = defineStore('app', () => {
   const openDate = ref(null) // วันที่กำลังเปิดดูในสมุด (YYYY-MM-DD)
   const leafIndex = ref(0) // แผ่นที่เปิดอยู่ในวันนั้น
   const lastSavedEntryId = ref(null)
+  const photoEntryId = ref(null) // ภาพที่กำลังดูแบบเดี่ยว (view photo)
   // แผ่นแทรกที่เพิ่งงอกจากการบันทึก (แสดงป้าย "แผ่นใหม่" จนกว่าผู้ใช้จะพลิกดูแผ่นอื่น)
   const freshLeaf = ref(null) // { date, index } | null
   // โหมดแก้ไขโปรไฟล์: เปิด hello จากปุ่มตั้งค่าในหน้า cover
@@ -62,7 +65,8 @@ export const useAppStore = defineStore('app', () => {
   // ผลข้างเคียงตอนเข้า view ใหม่ (ใช้ร่วมกันระหว่าง go() กับปุ่ม back ของเบราว์เซอร์)
   const enter = (next) => {
     const from = view.value
-    if (next === VIEWS.book && from !== VIEWS.saved) openBook()
+    // กลับจาก saved/photo คงวันและแผ่นเดิมไว้ ไม่รีเซ็ตไปแผ่นล่าสุด
+    if (next === VIEWS.book && from !== VIEWS.saved && from !== VIEWS.photo) openBook()
     view.value = next
   }
 
@@ -96,6 +100,11 @@ export const useAppStore = defineStore('app', () => {
 
   const selectIntensity = (intensity) => {
     selection.value = { ...selection.value, intensity }
+  }
+
+  const openPhoto = (id) => {
+    photoEntryId.value = id
+    go(VIEWS.photo)
   }
 
   // พลิกแผ่นโดยผู้ใช้ (ล้างป้าย "แผ่นใหม่")
@@ -133,6 +142,7 @@ export const useAppStore = defineStore('app', () => {
     openDate,
     leafIndex,
     lastSavedEntryId,
+    photoEntryId,
     freshLeaf,
     helloEditing,
     clearTick,
@@ -145,6 +155,7 @@ export const useAppStore = defineStore('app', () => {
     selectEmotion,
     selectIntensity,
     setLeaf,
+    openPhoto,
     clearCanvas,
     saveToBook,
   }
