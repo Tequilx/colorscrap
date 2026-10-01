@@ -44,6 +44,9 @@ const MOCK = [
   [6, '14:20', 'angry', 2, true],
 ]
 
+// VITE_USE_MOCK=false → ไม่มีภาพจำลอง ใช้เฉพาะ entries จริงจาก IndexedDB (ตั้งใน .env / .env.production)
+const USE_MOCK = import.meta.env.VITE_USE_MOCK !== 'false'
+
 const pad2 = (n) => String(n).padStart(2, '0')
 
 // ภาพของวันนี้ต้องมีเวลาไม่เกินเวลาปัจจุบัน ภาพที่บันทึกใหม่จะได้อยู่ท้ายแผ่นเสมอ
@@ -69,7 +72,7 @@ const buildMock = () => {
 }
 
 export const useEntriesStore = defineStore('entries', () => {
-  const entries = ref(buildMock())
+  const entries = ref(USE_MOCK ? buildMock() : [])
 
   // ชั่วคราวจนถึงขั้นที่ 7: entries ที่ผู้ใช้บันทึกอยู่ใน IndexedDB (mock ไม่เก็บ เพราะสร้างใหม่ทุกครั้งตามวันที่ปัจจุบัน)
   // ต้องส่ง object แบบ plain เข้า IndexedDB (reactive proxy ถูก structured clone ไม่ได้)

@@ -34,7 +34,7 @@
 </template>
 
 <script setup>
-import { watchEffect, defineAsyncComponent } from 'vue'
+import { watchEffect, defineAsyncComponent, onBeforeUnmount } from 'vue'
 import Stage from '@/components/desk/Stage.vue'
 import SvgDefs from '@/components/desk/SvgDefs.vue'
 import Scrapbook from '@/components/book/Scrapbook.vue'
@@ -56,6 +56,15 @@ const app = useAppStore()
 const profile = useProfileStore()
 
 useHashView(app, profile)
+
+// ผ้าใบมีภาพที่ยังไม่บันทึก: เตือนก่อนปิดแท็บ/รีเฟรช (เบราว์เซอร์แสดงข้อความมาตรฐานเอง)
+const warnUnsaved = (e) => {
+  if (!app.canvasDirty) return
+  e.preventDefault()
+  e.returnValue = ''
+}
+window.addEventListener('beforeunload', warnUnsaved)
+onBeforeUnmount(() => window.removeEventListener('beforeunload', warnUnsaved))
 
 // สีปกเป็นตัวแปรรันไทม์ที่ root (สันปก/สายรัดคำนวณจากสีปก)
 watchEffect(() => {

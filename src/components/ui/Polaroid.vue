@@ -3,15 +3,16 @@
   <figure class="relative m-0 box-border w-[196px] bg-white px-[9px] pt-[9px] shadow-photo"
     :class="palette.length ? 'pb-[46px]' : 'pb-8'" :style="{ transform: `rotate(${rotate}deg)` }">
     <Tape class="left-[56px] top-[-11px]" :rotate="tapeRotate" />
-    <div class="h-[124px] w-[178px] overflow-hidden bg-paper">
-      <!-- ภาพจริงของผู้ใช้: เต็มกรอบเดิม ตัดส่วนเกิน -->
+    <!-- ช่องภาพสัดส่วนเท่ากระดาษวาด 1112:612 ภาพจริงจึงไม่ถูกตัดขอบ (178×~98) -->
+    <div class="aspect-[1112/612] w-[178px] overflow-hidden bg-paper">
+      <!-- ภาพจริงของผู้ใช้: สัดส่วนเดียวกับช่อง -->
       <img v-if="src" :src="src" :alt="alt" draggable="false" class="block h-full w-full object-cover" />
       <slot v-else>
         <!-- ค่าเริ่มต้น: หยดสีน้ำสองก้อนจากสีที่ส่งมา -->
-        <svg width="178" height="124" viewBox="0 0 170 120" role="img" :aria-label="alt">
+        <svg class="block h-full w-full" viewBox="0 0 170 94" role="img" :aria-label="alt">
           <g class="filter-wcm">
-            <path :d="BLOB_PATHS.small" transform="translate(-14 4)" :fill="colors[0]" fill-opacity="0.6" :stroke="colors[0]" stroke-width="2" />
-            <path :d="BLOB_PATHS.small" transform="translate(52 34) scale(0.62)" :fill="colors[1] ?? colors[0]" fill-opacity="0.6" />
+            <path :d="BLOB_PATHS.small" transform="translate(-14 -4)" :fill="colors[0]" fill-opacity="0.6" :stroke="colors[0]" stroke-width="2" />
+            <path :d="BLOB_PATHS.small" transform="translate(52 22) scale(0.62)" :fill="colors[1] ?? colors[0]" fill-opacity="0.6" />
           </g>
         </svg>
       </slot>
