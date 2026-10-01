@@ -1,10 +1,10 @@
 <template>
   <!-- กระดาษหน้าแรกของสมุด ฝั่งซ้ายของหน้า hello (SPEC §5.0) -->
-  <div class="absolute left-[72px] top-[44px] box-border flex h-[712px] w-[640px] -rotate-[0.6deg] flex-col gap-[22px] bg-paper px-11 py-9 shadow-card">
+  <div class="absolute left-[72px] top-[72px] box-border flex w-[640px] -rotate-[0.6deg] flex-col gap-[22px] bg-paper px-11 py-9 shadow-card">
     <Tape class="left-[270px] top-[-12px]" long :rotate="-3" />
 
     <div class="flex flex-col gap-1">
-      <span class="text-14 tracking-[0.06em] text-ink-soft">หน้าแรกของสมุด · แก้ทีหลังได้เสมอ</span>
+      <span class="text-14 text-ink-soft">หน้าแรกของสมุด · แก้ทีหลังได้เสมอ</span>
       <h1 class="m-0 font-hand text-38 font-semibold leading-[1.2]">สมุดเล่มนี้เป็นของ...</h1>
     </div>
 
@@ -61,8 +61,8 @@
         สิ่งที่ทำให้ใจฟู
         <span class="font-body text-14 font-normal text-ink-soft">เลือกได้หลายอย่าง หรือข้ามก็ได้</span>
       </span>
-      <div role="group" aria-label="สิ่งที่ทำให้ใจฟู" class="flex flex-wrap gap-2">
-        <HandButton v-for="l in LIKES" :key="l" variant="chip" :pressed="profile.likes.includes(l)" @click="profile.toggleLike(l)">{{ l }}</HandButton>
+      <div role="group" aria-label="สิ่งที่ทำให้ใจฟู" class="flex gap-1.5">
+        <HandButton v-for="l in LIKES" :key="l" variant="chip" class="!px-3" :pressed="profile.likes.includes(l)" @click="profile.toggleLike(l)">{{ l }}</HandButton>
       </div>
     </div>
   </div>

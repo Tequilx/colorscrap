@@ -15,15 +15,16 @@
     <div class="absolute inset-0 overflow-hidden rounded-[6px_14px_14px_6px] bg-cover shadow-book">
       <span class="absolute inset-y-0 left-0 w-[30px] border-r-2 border-dashed border-white/[.14] bg-cover-spine"></span>
       <svg width="420" height="540" viewBox="0 0 420 540" class="absolute left-0 top-0" aria-hidden="true">
-        <g class="filter-wc" opacity="0.62">
-          <path :d="BLOB_PATHS.large" transform="translate(210 -40) scale(0.85)" :fill="EMOTION_COLORS.calm" />
-          <path :d="BLOB_PATHS.large" transform="translate(230 360) scale(0.75)" :fill="EMOTION_COLORS.excited" />
-          <path :d="BLOB_PATHS.large" transform="translate(20 400) scale(0.6)" :fill="EMOTION_COLORS.happy" />
+        <!-- รอยสีเลอะเล็กและจาง อยู่รอบขอบ ไม่ทับป้ายชื่อและสติกเกอร์ -->
+        <g class="filter-wc" opacity="0.45">
+          <path :d="BLOB_PATHS.large" transform="translate(292 6) scale(0.42)" :fill="EMOTION_COLORS.calm" />
+          <path :d="BLOB_PATHS.large" transform="translate(262 408) scale(0.38)" :fill="EMOTION_COLORS.excited" />
+          <path :d="BLOB_PATHS.large" transform="translate(48 420) scale(0.32)" :fill="EMOTION_COLORS.happy" />
         </g>
       </svg>
       <!-- ป้ายกระดาษ -->
       <div class="absolute left-[72px] top-[178px] box-border flex w-[284px] rotate-[1.2deg] flex-col gap-1.5 rounded bg-paper px-[26px] py-[22px] shadow-[0_3px_10px_rgba(0,0,0,0.22)]">
-        <span class="text-13 tracking-[0.06em] text-ink-soft">สมุดระบายความรู้สึก</span>
+        <span class="text-13 text-ink-soft">สมุดระบายความรู้สึก</span>
         <span class="font-hand text-[42px] font-bold leading-[1.1]">ColorScrap</span>
         <span class="border-t-2 border-dotted border-line pt-2 font-hand text-16" :class="name ? 'text-ink' : 'text-[#8E8A93]'">ของ {{ name || 'ชื่อของคุณ' }}</span>
       </div>

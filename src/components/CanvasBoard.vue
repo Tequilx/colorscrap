@@ -23,7 +23,7 @@
             class="relative w-full max-w-4xl h-[500px] rounded-lg overflow-hidden border border-gray-700 shadow-[0_0_20px_rgba(0,0,0,0.5)]">
             <canvas class="w-full h-full cursor-crosshair" :style="{ backgroundColor: PAPER_COLOR }"></canvas>
             <div
-                class="absolute top-4 left-0 w-full text-center pointer-events-none text-black/40 text-sm tracking-widest">
+                class="absolute top-4 left-0 w-full text-center pointer-events-none text-black/40 text-sm">
                 ลองลากเมาส์เพื่อระบายความรู้สึกของคุณ
             </div>
         </div>
