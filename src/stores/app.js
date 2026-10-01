@@ -52,6 +52,8 @@ export const useAppStore = defineStore('app', () => {
   // ผ้าใบมีภาพที่ยังไม่บันทึก (หยดเริ่มต้นก็นับ) และอารมณ์ที่หยดลงแผ่นนี้ตามลำดับ (SPEC §5.3, §7.2)
   const canvasDirty = ref(false)
   const sheetEmotions = ref([])
+  // มีการหยดสีปลายทางลงแผ่นนี้แล้วอย่างน้อย 1 หยด (SPEC §6.4) ตั้งโดย FluidCanvas
+  const sheetShifted = ref(false)
   let pickFrom = null // view ที่มาก่อนเข้า pick ใช้ตัดสินว่าเป็น "เปลี่ยนสี" หรือเริ่มระบายใหม่
   const saving = ref(false) // กำลังจับภาพ/ดูดสีตอนบันทึก (กันกดซ้ำ)
   // ผ้าใบ (FluidCanvas) ลงทะเบียนตัวเองไว้ที่นี่ ใช้ตัวแปรธรรมดาไม่ใช้ ref เพื่อไม่ให้ Vue ครอบ proxy
@@ -104,6 +106,7 @@ export const useAppStore = defineStore('app', () => {
   const newSheet = () => {
     clearTick.value += 1
     sheetEmotions.value = []
+    sheetShifted.value = false
     dropOnSheet()
     go(VIEWS.paint)
   }
@@ -166,6 +169,7 @@ export const useAppStore = defineStore('app', () => {
   const clearCanvas = () => {
     clearTick.value += 1
     sheetEmotions.value = []
+    sheetShifted.value = false
     dropOnSheet()
   }
 
@@ -197,6 +201,7 @@ export const useAppStore = defineStore('app', () => {
     const entry = entries.addEntry({
       emotions,
       intensity: selection.value.intensity,
+      shifted: sheetShifted.value,
       colors: grabbed.colors,
       images: grabbed.images,
     })
@@ -211,6 +216,7 @@ export const useAppStore = defineStore('app', () => {
     clearTick.value += 1 // ผ้าใบเริ่มใหม่สำหรับภาพถัดไป (ว่าง: เข้า paint ครั้งหน้าจะหยดสีเอง)
     canvasDirty.value = false
     sheetEmotions.value = []
+    sheetShifted.value = false
     go(VIEWS.saved)
     return entry
   }
@@ -229,6 +235,7 @@ export const useAppStore = defineStore('app', () => {
     dropTick,
     canvasDirty,
     sheetEmotions,
+    sheetShifted,
     saving,
     registerPainter,
     go,

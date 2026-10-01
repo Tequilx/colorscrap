@@ -20,7 +20,7 @@
 <script setup>
 import { ref, watch, onMounted, onBeforeUnmount } from 'vue'
 import WebGLFluid from 'webgl-fluid-enhanced'
-import { emotionShades, FLUID_PARAMS, DISSIPATION_SCALE, INITIAL_SPLATS, INTENSITY_FACTOR } from '@/lib/emotions'
+import { emotionShades, FLUID_PARAMS, DISSIPATION_SCALE, INITIAL_SPLATS, INTENSITY_FACTOR, NEGATIVE_EMOTIONS, SHIFT_TARGETS } from '@/lib/emotions'
 import { PALETTE } from '@/lib/tokens'
 import { dyeSetting, invertedHex } from '@/lib/dye'
 
@@ -37,6 +37,8 @@ const props = defineProps({
   dropTick: { type: Number, default: 0 },
 })
 
+const emit = defineEmits(['shifted'])
+
 const SIZE = { w: 1112, h: 612 }
 const HOLD_MS = 400 // กดค้างเกินนี้ = หยดต่อเนื่อง (SPEC §6.5)
 const HOLD_INTERVAL = 120
@@ -46,6 +48,18 @@ const SMEAR_RADIUS = 0.25
 const DROP_RADIUS_SCALE = 3 // splatRadius ของ SPEC เล็กเกินไปบนกระดาษ 1112×612 ปรับให้หยดมีเนื้อสีพอ
 const SMEAR_FORCE = 1500
 const CLEAR_FRAMES = 8
+
+// ปรับโทนอารมณ์ลบ (SPEC §6.4) เวลาทั้งหมดเป็น ms ของ "เวลาที่ผ้าใบวิ่งอยู่จริง" (หยุดนับตอนไม่ได้อยู่หน้า paint / กำลังล้าง)
+const SHIFT_WAIT = 8000 // รอหลังแตะครั้งแรก
+const SHIFT_DURATION = [20000, 40000] // ช่วงที่ค่อย ๆ หยด (สุ่มต่อแผ่น)
+const SHIFT_INTERVAL = [2500, 4000] // ห่างกันต่อหยด
+const SHIFT_RADIUS = 0.25 // หยดเล็กกว่าหยดอารมณ์ (initial = radius × 3 ≈ 0.3–0.7)
+const SHIFT_SPEED = 160 // ความเร็วต่ำ (initial = 220 × speed ของอารมณ์)
+const SHIFT_TICK = 250
+// เร่งเวลาตอน dev เพื่อทดสอบ: เปิดหน้าด้วย ?shiftSpeed=10 (ผลเฉพาะจังหวะการปรับโทน ไม่ยุ่งกับ simulation)
+const SHIFT_TIME_SCALE = import.meta.env.DEV ? Number(new URLSearchParams(location.search).get('shiftSpeed')) || 1 : 1
+// prefers-reduced-motion: ยังปรับโทนได้ แต่หยดช้าลงครึ่งหนึ่ง (ห่างขึ้น 2 เท่า)
+const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')
 
 // webgl-fluid-enhanced v0.8 รับ "container" (ไม่ใช่ canvas) แล้วหา <canvas> ข้างในเอง
 const containerRef = ref(null)
@@ -57,6 +71,9 @@ let fluid = null
 let wantDrop = false
 let clearing = false
 let gravityTimer = null
+let shiftTimer = null
+// สถานะการปรับโทนของแผ่นปัจจุบัน (รีเซ็ตเมื่อล้างผ้าใบ)
+let shift = null // { elapsed, duration, nextIn, dropped } | null = ยังไม่มีใครแตะแผ่นนี้
 const timers = new Set() // timeout ของหยดเริ่มต้นแบบเป็นจังหวะ
 const pointers = new Map() // pointerId → { x, y, downX, downY, hold, holdStart }
 
@@ -156,6 +173,45 @@ const tryDrop = () => {
   startGravity()
 }
 
+// ---- ปรับโทนอารมณ์ลบ (SPEC §6.4) ----
+
+const startShift = () => {
+  shift = { elapsed: 0, duration: rand(...SHIFT_DURATION), nextIn: 0, dropped: 0 }
+}
+
+// หยด 1 หยดของสีปลายทางจากขอบกระดาษ พุ่งเข้าด้านในช้า ๆ
+const dropShiftTarget = (hex) => {
+  const margin = 12
+  const side = Math.floor(Math.random() * 4) // บน ขวา ล่าง ซ้าย
+  const t = rand(0.1, 0.9)
+  const [x, y, inward] = [
+    [SIZE.w * t, margin, Math.PI / 2],
+    [SIZE.w - margin, SIZE.h * t, Math.PI],
+    [SIZE.w * t, SIZE.h - margin, -Math.PI / 2],
+    [margin, SIZE.h * t, 0],
+  ][side] // inward = ทิศเข้าหากลางกระดาษ (แกน y ของไลบรารีชี้ขึ้น)
+  const angle = inward + rand(-0.4, 0.4)
+  // ชดเชย INTENSITY_FACTOR ที่ useShade คูณให้: สีปลายทางไม่ควรเข้มขึ้นตามความเข้มของอารมณ์เดิม
+  const strength = 1 / INTENSITY_FACTOR[props.intensity]
+  splat(x, y, Math.cos(angle) * SHIFT_SPEED, Math.sin(angle) * SHIFT_SPEED, { hex, radius: SHIFT_RADIUS, strength })
+}
+
+const shiftTick = () => {
+  if (!shift || !fluid || !props.running || clearing) return
+  shift.elapsed += SHIFT_TICK * SHIFT_TIME_SCALE
+  const phase = shift.elapsed - SHIFT_WAIT
+  if (phase < 0 || phase > shift.duration) return
+  // อารมณ์ล่าสุดของแผ่นเป็นตัวตัดสิน: ถ้าเป็นบวกก็ไม่หยด (เวลายังเดินต่อ)
+  if (!NEGATIVE_EMOTIONS.includes(props.emotion)) return
+  shift.nextIn -= SHIFT_TICK * SHIFT_TIME_SCALE
+  if (shift.nextIn > 0) return
+  shift.nextIn = rand(...SHIFT_INTERVAL) * (reducedMotion?.matches ? 2 : 1)
+  // ไล่สีตามลำดับตามความคืบหน้าของช่วงปรับ: สีแรกครึ่งแรก สีสุดท้ายครึ่งหลัง
+  const targets = SHIFT_TARGETS[props.emotion]
+  dropShiftTarget(targets[Math.min(targets.length - 1, Math.floor((phase / shift.duration) * targets.length))])
+  if (++shift.dropped === 1) emit('shifted')
+}
+
 const clearTimers = () => {
   timers.forEach(clearTimeout)
   timers.clear()
@@ -204,6 +260,7 @@ const clear = async () => {
   clearing = true
   releaseAll()
   clearTimers()
+  shift = null
   fluid.start() // no-op ถ้ากำลังวิ่งอยู่ (ถ้าถูกสั่งล้างตอนหยุด loop จะต้องวิ่งก่อนถึงจะล้างได้)
   fluid.setConfig({ densityDissipation: 1000, velocityDissipation: 1000 })
   await nextFrames(CLEAR_FRAMES)
@@ -244,6 +301,7 @@ const releaseAll = () => {
 const onDown = (e) => {
   if (!fluid || !props.running || clearing) return
   inputRef.value.setPointerCapture?.(e.pointerId)
+  if (!shift) startShift() // แตะครั้งแรกของแผ่น เริ่มนับ 8 วินาที
   const { x, y } = toCanvas(e)
   const pointer = { x, y, downX: x, downY: y, hold: null, holdStart: null }
   pointers.set(e.pointerId, pointer)
@@ -281,7 +339,10 @@ const onUp = (e) => {
   pointers.delete(e.pointerId)
 }
 
-onMounted(createFluid)
+onMounted(() => {
+  createFluid()
+  shiftTimer = setInterval(shiftTick, SHIFT_TICK)
+})
 
 watch(
   () => [props.emotion, props.intensity],
@@ -345,6 +406,7 @@ onBeforeUnmount(() => {
   releaseAll()
   stopGravity()
   clearTimers()
+  clearInterval(shiftTimer)
   fluid?.stop()
   fluid = null
 })
