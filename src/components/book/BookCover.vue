@@ -1,0 +1,62 @@
+<template>
+  <!-- สมุดปิด ขนาดจริง 420×540 (ย่อ/ขยายโดย Scrapbook) ใช้สี --cover จาก root -->
+  <div class="relative h-[540px] w-[420px]">
+    <!-- แท็บคั่นหน้า 3 อัน สีเด่นของ 3 วันล่าสุดที่มีบันทึก วันล่าสุดสูงกว่า -->
+    <div v-if="tabs.length" class="absolute left-[196px] top-[-30px] flex gap-2">
+      <span
+        v-for="(t, i) in tabs"
+        :key="t.date"
+        class="block w-[46px] rounded-t-lg"
+        :class="i === tabs.length - 1 ? 'mt-[-10px] h-[56px]' : 'h-[46px]'"
+        :style="{ background: t.hex }"
+      ></span>
+    </div>
+
+    <div class="absolute inset-0 overflow-hidden rounded-[6px_14px_14px_6px] bg-cover shadow-book">
+      <span class="absolute inset-y-0 left-0 w-[30px] border-r-2 border-dashed border-white/[.14] bg-cover-spine"></span>
+      <svg width="420" height="540" viewBox="0 0 420 540" class="absolute left-0 top-0" aria-hidden="true">
+        <g class="filter-wc" opacity="0.62">
+          <path :d="BLOB_PATHS.large" transform="translate(210 -40) scale(0.85)" :fill="EMOTION_COLORS.calm" />
+          <path :d="BLOB_PATHS.large" transform="translate(230 360) scale(0.75)" :fill="EMOTION_COLORS.excited" />
+          <path :d="BLOB_PATHS.large" transform="translate(20 400) scale(0.6)" :fill="EMOTION_COLORS.happy" />
+        </g>
+      </svg>
+      <!-- ป้ายกระดาษ -->
+      <div class="absolute left-[72px] top-[178px] box-border flex w-[284px] rotate-[1.2deg] flex-col gap-1.5 rounded bg-paper px-[26px] py-[22px] shadow-[0_3px_10px_rgba(0,0,0,0.22)]">
+        <span class="text-13 tracking-[0.06em] text-ink-soft">สมุดระบายความรู้สึก</span>
+        <span class="font-hand text-[42px] font-bold leading-[1.1]">ColorScrap</span>
+        <span class="border-t-2 border-dotted border-line pt-2 font-hand text-16" :class="name ? 'text-ink' : 'text-[#8E8A93]'">ของ {{ name || 'ชื่อของคุณ' }}</span>
+      </div>
+      <span class="absolute inset-y-0 right-[44px] w-[18px] bg-cover-strap shadow-[inset_2px_0_0_rgba(255,255,255,0.08)]"></span>
+    </div>
+
+    <!-- สติกเกอร์ตัวแทน มุมซ้ายบนของปก -->
+    <div class="filter-wob absolute left-[44px] top-[56px] flex h-[110px] w-[110px] -rotate-[8deg] items-center justify-center rounded-full border-2 border-ink bg-paper text-ink shadow-[0_4px_10px_rgba(0,0,0,0.25)]">
+      <Doodle :name="avatar" :size="70" />
+    </div>
+
+    <!-- ป้ายเทปของสิ่งที่ทำให้ใจฟู ไม่เกิน 3 อัน ที่ขอบขวา -->
+    <div class="absolute bottom-[64px] right-[-16px] flex flex-col items-end gap-1.5">
+      <span
+        v-for="(l, i) in likes.slice(0, 3)"
+        :key="l"
+        class="bg-tape px-3 py-1 font-hand text-14 font-semibold shadow-[0_2px_4px_rgba(0,0,0,0.18)]"
+        :style="{ transform: `rotate(${[-4, 3, -2][i]}deg)` }"
+      >{{ l }}</span>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import Doodle from '@/components/ui/Doodle.vue'
+import { BLOB_PATHS } from '@/lib/doodles'
+import { EMOTION_COLORS } from '@/lib/tokens'
+
+defineProps({
+  name: { type: String, default: '' },
+  avatar: { type: String, default: 'cat' },
+  likes: { type: Array, default: () => [] },
+  // [{ date, hex }] เก่า → ใหม่
+  tabs: { type: Array, default: () => [] },
+})
+</script>

@@ -19,8 +19,8 @@
 import { computed } from 'vue'
 
 const props = defineProps({
-  // primary: พื้น ink ตัวหนังสือ paper | secondary: พื้นโปร่ง ขอบ ink | chip: แคปซูล
-  variant: { type: String, default: 'primary', validator: (v) => ['primary', 'secondary', 'chip'].includes(v) },
+  // primary: พื้น ink ตัวหนังสือ paper | secondary: พื้นโปร่ง ขอบ ink | chip: แคปซูล | icon: ปุ่มสี่เหลี่ยมมีแต่ไอคอน (ต้องใส่ aria-label)
+  variant: { type: String, default: 'primary', validator: (v) => ['primary', 'secondary', 'chip', 'icon'].includes(v) },
   href: { type: String, default: '' },
   // ใช้กับชิปและปุ่มเลือก: null = ปุ่มธรรมดา
   pressed: { type: Boolean, default: null },
@@ -36,6 +36,7 @@ const sizes = computed(
       primary: 'min-h-[58px] px-8 font-hand text-19 font-semibold',
       secondary: 'min-h-[48px] px-[18px] font-hand text-17 font-semibold',
       chip: 'min-h-[44px] px-4 font-body text-15 font-medium',
+      icon: 'h-12 w-12',
     })[props.variant],
 )
 
@@ -44,7 +45,7 @@ const isOn = computed(() => !props.disabled && (props.variant === 'primary' || p
 const textColor = computed(() => (isOn.value ? 'text-paper' : 'text-ink'))
 
 const frame = computed(() => {
-  const radius = props.variant === 'chip' ? 'rounded-chip' : 'rounded-hand'
+  const radius = props.variant === 'chip' ? 'rounded-chip' : props.variant === 'icon' ? 'rounded-hand-sm' : 'rounded-hand'
   return `${radius} border-2 border-ink ${isOn.value ? 'bg-ink' : 'bg-transparent'}`
 })
 
