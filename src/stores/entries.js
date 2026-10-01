@@ -60,6 +60,7 @@ const buildMock = () => {
     local_date: localDateStr(addDays(today, -back)),
     local_time: back === 0 ? todayTime(time, today) : time,
     emotion,
+    emotions: [emotion],
     intensity,
     shifted,
     colors: mockColors(emotion, shifted),
@@ -101,14 +102,16 @@ export const useEntriesStore = defineStore('entries', () => {
   // บันทึกภาพใหม่ลงสมุด (จำลอง; ขั้นที่ 7 จะส่งขึ้น Supabase)
   // colors: สีที่ดูดจากภาพจริง (SPEC §6.6) ถ้าไม่มีใช้สีอารมณ์
   // images: { image, thumb } Blob จากผ้าใบ เก็บเป็น object URL ชั่วคราว (ขั้นที่ 7 เปลี่ยนเป็นอัปโหลดแล้วเก็บ image_path/thumb_path)
-  const addEntry = ({ emotion, intensity, shifted = false, colors, images = null }) => {
+  const addEntry = ({ emotions, intensity, shifted = false, colors, images = null }) => {
     const now = new Date()
+    const emotion = emotions.at(-1) // emotion = อารมณ์ล่าสุดของแผ่น, emotions = ตามลำดับที่หยด (SPEC §7.2)
     const shades = shadesOf(emotion)
     const entry = {
       id: `local-${now.getTime()}`,
       local_date: localDateStr(now),
       local_time: `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`,
       emotion,
+      emotions,
       intensity,
       shifted,
       image_url: images ? URL.createObjectURL(images.image) : null,

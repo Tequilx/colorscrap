@@ -7,7 +7,7 @@
       </span>
       <div role="status" class="flex flex-col">
         <span class="font-hand text-26 font-semibold leading-[1.2]">แปะลงสมุดแล้ว</span>
-        <span class="text-14 text-ink-soft">{{ entry.local_time }} · {{ emotion.th }} · {{ INTENSITY_LABELS[entry.intensity] }}</span>
+        <span class="text-14 text-ink-soft">{{ entry.local_time }} · {{ emotionLabel(entry) }} · {{ INTENSITY_LABELS[entry.intensity] }}</span>
       </div>
     </div>
 
@@ -70,7 +70,7 @@ import HandButton from '@/components/ui/HandButton.vue'
 import Doodle from '@/components/ui/Doodle.vue'
 import WatercolorBlob from '@/components/ui/WatercolorBlob.vue'
 import { BLOB_PATHS } from '@/lib/doodles'
-import { EMOTION_BY_KEY, INTENSITY_LABELS } from '@/lib/emotions'
+import { EMOTION_BY_KEY, INTENSITY_LABELS, emotionLabel } from '@/lib/emotions'
 import { colorWeightsOfDay, hueGroup, mixColors, nameOfDay, percentsOf } from '@/lib/palette'
 import { useAppStore } from '@/stores/app'
 import { useEntriesStore } from '@/stores/entries'

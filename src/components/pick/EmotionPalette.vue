@@ -56,17 +56,27 @@
       </div>
     </div>
 
-    <div class="absolute left-0 top-[672px] flex w-[1280px] items-center justify-center gap-6">
+    <div v-if="!choosing" class="absolute left-0 top-[672px] flex w-[1280px] items-center justify-center gap-6">
       <span class="text-17 text-ink-2">
         <b class="font-hand text-19 text-ink">{{ current.th }}</b> · {{ current.pigment }} · {{ INTENSITY_LABELS[app.selection.intensity] }}
       </span>
-      <HandButton @click="app.go('paint')">เริ่มระบาย <Doodle name="forward" :size="22" /></HandButton>
+      <HandButton @click="start">เริ่มระบาย <Doodle name="forward" :size="22" /></HandButton>
+    </div>
+
+    <!-- มีภาพที่ยังไม่บันทึกอยู่บนผ้าใบ: ถามว่าจะระบายต่อหรือเริ่มแผ่นใหม่ (SPEC §5.2) -->
+    <div v-else role="group" aria-label="ผ้าใบมีภาพที่ยังไม่ได้บันทึก" class="absolute left-0 top-[660px] flex w-[1280px] flex-col items-center gap-2.5">
+      <span class="text-17 text-ink-2">บนผ้าใบยังมีภาพที่ยังไม่ได้บันทึก</span>
+      <div class="flex items-center gap-4">
+        <HandButton variant="secondary" @click="app.continueSheet()">ระบายต่อแผ่นเดิม</HandButton>
+        <HandButton @click="app.newSheet()">เริ่มแผ่นใหม่</HandButton>
+        <button type="button" class="min-h-[44px] cursor-pointer border-0 bg-transparent px-2 font-hand text-16 font-semibold text-ink-soft underline underline-offset-4" @click="choosing = false">ยกเลิก</button>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import HandButton from '@/components/ui/HandButton.vue'
 import Doodle from '@/components/ui/Doodle.vue'
 import EmotionBlob from '@/components/ui/EmotionBlob.vue'
@@ -76,5 +86,14 @@ import { useAppStore } from '@/stores/app'
 
 const app = useAppStore()
 const active = computed(() => app.view === 'pick')
+
+// true = กำลังแสดงตัวเลือก "ระบายต่อแผ่นเดิม / เริ่มแผ่นใหม่"
+const choosing = ref(false)
+const start = () => {
+  choosing.value = app.beginPaint() === 'choose'
+}
+// ออกจากหน้า pick หรือเปลี่ยนอารมณ์แล้วให้กลับมาเป็นปุ่มปกติ
+watch(active, () => (choosing.value = false))
+watch(() => app.selection.emotion, () => (choosing.value = false))
 const current = computed(() => EMOTION_BY_KEY[app.selection.emotion])
 </script>

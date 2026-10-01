@@ -33,6 +33,8 @@ const props = defineProps({
   running: { type: Boolean, default: true },
   // เพิ่มค่าเพื่อสั่งล้างผ้าใบ
   clearTick: { type: Number, default: 0 },
+  // เพิ่มค่าเพื่อสั่งหยดสีเริ่มต้นของอารมณ์ที่เลือก (หยดทับของเดิมได้) store เป็นผู้ตัดสินว่าเมื่อไหร่ควรหยด (SPEC §5.3)
+  dropTick: { type: Number, default: 0 },
 })
 
 const SIZE = { w: 1112, h: 612 }
@@ -51,8 +53,8 @@ const inputRef = ref(null)
 
 // สำคัญมาก: ใช้ตัวแปรธรรมดา (let) ไม่ใช้ ref() เพื่อป้องกัน Vue Proxy เข้าไปแทรกแซง WebGL
 let fluid = null
-// ผ้าใบใหม่ที่ยังไม่เคยหยดสีเริ่มต้น (หยดตอนเข้าหน้า paint ครั้งแรก ไม่หยดซ้ำเมื่อกลับมาจากหน้าเลือกสี)
-let fresh = true
+// มีคำสั่งหยดสีเริ่มต้นค้างอยู่ รอจนผ้าใบวิ่งอยู่และล้างเสร็จก่อนค่อยหยด
+let wantDrop = false
 let clearing = false
 let gravityTimer = null
 const timers = new Set() // timeout ของหยดเริ่มต้นแบบเป็นจังหวะ
@@ -101,8 +103,7 @@ const rand = (min, max) => min + Math.random() * (max - min)
 
 // หยดเริ่มต้นตามอารมณ์และความเข้ม (SPEC §6.3)
 const dropInitial = () => {
-  if (!fluid || !fresh) return
-  fresh = false
+  if (!fluid) return
   const p = params()
   const count = Math.max(1, Math.round(INITIAL_SPLATS[props.emotion] * INTENSITY_FACTOR[props.intensity]))
   const mag = 220 * p.speed
@@ -147,6 +148,14 @@ const stopGravity = () => {
   gravityTimer = null
 }
 
+// หยดสีเริ่มต้นของอารมณ์ที่เลือกลงบนผ้าใบ (ทับของเดิมได้) ทำเมื่อผ้าใบวิ่งอยู่และไม่ได้กำลังล้าง
+const tryDrop = () => {
+  if (!wantDrop || !fluid || !props.running || clearing) return
+  wantDrop = false
+  dropInitial()
+  startGravity()
+}
+
 const clearTimers = () => {
   timers.forEach(clearTimeout)
   timers.clear()
@@ -174,11 +183,8 @@ const createFluid = () => {
     })
     applyParams()
     fluid.start()
-    fresh = true
-    if (props.running) {
-      dropInitial()
-      startGravity()
-    } else fluid.stop()
+    if (props.running) startGravity()
+    else fluid.stop()
   } catch (error) {
     // เครื่องที่ไม่มี WebGL: แอปส่วนอื่นยังใช้ได้
     console.error('เริ่มผ้าใบไม่สำเร็จ:', error)
@@ -204,9 +210,8 @@ const clear = async () => {
   clearing = false
   if (!fluid) return
   applyParams()
-  fresh = true
-  if (props.running) dropInitial()
-  else fluid.stop()
+  if (!props.running) fluid.stop()
+  tryDrop() // หยดที่รอจนล้างเสร็จ (เริ่มแผ่นใหม่ / เริ่มใหม่)
 }
 
 // ---- Pointer ----
@@ -290,8 +295,8 @@ watch(
     if (!fluid) return
     if (running) {
       fluid.start()
-      dropInitial()
       startGravity()
+      tryDrop()
     } else {
       releaseAll()
       stopGravity()
@@ -302,6 +307,14 @@ watch(
 )
 
 watch(() => props.clearTick, clear)
+
+watch(
+  () => props.dropTick,
+  () => {
+    wantDrop = true
+    tryDrop()
+  },
+)
 
 // อ่านภาพจากผ้าใบเป็น canvas 2D สีตรงกับที่เห็นบนจอ (ย้อนการกลับสีของ CSS ด้วย difference กับสีขาว)
 // ต้องอ่านใน requestAnimationFrame เพราะ WebGL ไม่เก็บ drawing buffer (preserveDrawingBuffer = false)

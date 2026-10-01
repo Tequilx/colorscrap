@@ -55,7 +55,7 @@ import Polaroid from '@/components/ui/Polaroid.vue'
 import ColorStrip from '@/components/ui/ColorStrip.vue'
 import HandButton from '@/components/ui/HandButton.vue'
 import Doodle from '@/components/ui/Doodle.vue'
-import { EMOTION_BY_KEY, INTENSITY_LABELS } from '@/lib/emotions'
+import { EMOTION_BY_KEY, INTENSITY_LABELS, emotionLabel } from '@/lib/emotions'
 import { percentsOf } from '@/lib/palette'
 import { useAppStore } from '@/stores/app'
 import { useEntriesStore } from '@/stores/entries'
@@ -69,7 +69,7 @@ let opener = null // ปุ่มที่เปิดภาพ (คืนโฟ
 const active = computed(() => app.view === 'photo')
 const entry = computed(() => entries.entries.find((e) => e.id === app.photoEntryId) ?? null)
 const emotion = computed(() => EMOTION_BY_KEY[entry.value?.emotion ?? 'calm'])
-const caption = computed(() => (entry.value ? `${entry.value.local_time} · ${emotion.value.th}${entry.value.shifted ? ' → อุ่นขึ้น' : ''}` : ''))
+const caption = computed(() => (entry.value ? `${entry.value.local_time} · ${emotionLabel(entry.value)}${entry.value.shifted ? ' → อุ่นขึ้น' : ''}` : ''))
 const pct = computed(() => (entry.value ? percentsOf(entry.value.colors) : []))
 
 // เส้นรอยพู่กันยาวตาม ratio (สีที่มากที่สุดยาวเต็ม)

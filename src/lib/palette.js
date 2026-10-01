@@ -36,8 +36,30 @@ export const colorWeightsOfDay = (entries) => {
   return groups.sort((a, b) => b.weight - a.weight || b.last - a.last)
 }
 
-// สีเด่นของวัน (SPEC §7.3)
-export const dominantColorOfDay = (entries) => colorWeightsOfDay(entries)[0]?.hex ?? null
+// ความอิ่มสี (HSV 0..1): สีจางของน้ำซึมและสีเทาได้ค่าต่ำ ต่างจาก HSL ที่สีซีดมาก ๆ ยังได้ค่าสูง
+export const saturationOf = (hex) => {
+  const [r, g, b] = hexToRgb(hex)
+  const max = Math.max(r, g, b)
+  return max === 0 ? 0 : (max - Math.min(r, g, b)) / max
+}
+
+// คะแนนความเด่นของสี = น้ำหนัก × saturation (บวกค่าเล็กน้อยไว้ให้สีเทาล้วนยังเรียงตามน้ำหนักได้)
+// เพื่อไม่ให้สีจางของน้ำซึมซึ่งกินพื้นที่มากชนะสีของหยดจริง ใช้กับสีเด่นเท่านั้น ส่วนชาร์ตสีแสดงตาม ratio จริง
+const prominence = (hex, weight) => weight * (saturationOf(hex) + 0.01)
+
+// สีของภาพเรียงตามความเด่น (ใช้เลือกสีหยดบนเส้นเวลา) ไม่แก้ลำดับของ entry.colors
+export const rankedColors = (colors) =>
+  [...colors].sort((a, b) => prominence(b.hex, b.ratio) - prominence(a.hex, a.ratio))
+
+// สีเด่นของวัน (SPEC §7.3) เลือกจาก น้ำหนัก × saturation เท่ากันใช้สีของภาพล่าสุด
+export const dominantColorOfDay = (entries) => {
+  const groups = colorWeightsOfDay(entries)
+  if (!groups.length) return null
+  return groups.reduce((best, g) => {
+    const diff = prominence(g.hex, g.weight) - prominence(best.hex, best.weight)
+    return diff > 1e-9 || (Math.abs(diff) <= 1e-9 && g.last > best.last) ? g : best
+  }).hex
+}
 
 // ตัวแทนชั่วคราว: เฉลี่ย RGB ถ่วงน้ำหนัก
 export const mixColors = (entries) => {

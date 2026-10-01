@@ -32,7 +32,7 @@
 <script setup>
 import { computed, useId } from 'vue'
 import { timelineDrop } from '@/lib/doodles'
-import { timelineX, spreadXs, TIMELINE_LEFT, TIMELINE_WIDTH } from '@/lib/palette'
+import { timelineX, spreadXs, rankedColors, TIMELINE_LEFT, TIMELINE_WIDTH } from '@/lib/palette'
 import { EMOTION_BY_KEY } from '@/lib/emotions'
 
 const props = defineProps({
@@ -58,8 +58,8 @@ const drops = computed(() =>
       id: e.id,
       x,
       path: timelineDrop(x),
-      // ภาพที่ปรับโทนไล่สีแนวตั้ง จากสีเด่นไปสีที่ซึมเข้ามา; ภาพปกติใช้สีเด่นสีเดียว
-      stops: e.shifted ? e.colors.slice(0, 3).map((c) => c.hex) : [e.colors[0].hex],
+      // ภาพที่ปรับโทนไล่สีแนวตั้ง จากสีเด่น (ratio × saturation) ไปสีที่ซึมเข้ามา; ภาพปกติใช้สีเด่นสีเดียว
+      stops: e.shifted ? rankedColors(e.colors).slice(0, 3).map((c) => c.hex) : [rankedColors(e.colors)[0].hex],
       name: e.shifted ? `${name} → อุ่นขึ้น` : name,
       isNew: e.id === props.newId,
     }

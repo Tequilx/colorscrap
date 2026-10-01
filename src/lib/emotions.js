@@ -38,6 +38,13 @@ export const EMOTIONS = EMOTION_KEYS.map((key) => ({
 
 export const EMOTION_BY_KEY = Object.fromEntries(EMOTIONS.map((e) => [e.key, e]))
 
+// ชื่ออารมณ์ของภาพสำหรับคำบรรยาย: "อารมณ์แรก → อารมณ์ล่าสุด" ถ้าแผ่นนั้นเปลี่ยนอารมณ์ ไม่งั้นชื่ออารมณ์เดียว (SPEC §5.5)
+export const emotionLabel = (entry) => {
+  const first = entry.emotions?.[0] ?? entry.emotion
+  const last = entry.emotion
+  return first === last ? EMOTION_BY_KEY[last].th : `${EMOTION_BY_KEY[first].th} → ${EMOTION_BY_KEY[last].th}`
+}
+
 // จำนวนหยดเริ่มต้นตอนเข้าหน้า paint (SPEC §6.3) ค่าตั้งต้นปรับจูนได้ และตัวคูณตามความเข้ม
 export const INITIAL_SPLATS = { happy: 5, calm: 3, excited: 8, warm: 4, sad: 3, angry: 6, anxious: 10, tired: 2 }
 export const INTENSITY_FACTOR = [0.6, 1, 1.5]

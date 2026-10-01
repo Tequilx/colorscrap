@@ -47,6 +47,12 @@ export const useAppStore = defineStore('app', () => {
   const helloEditing = ref(false)
   // เพิ่มทุกครั้งที่กด "เริ่มใหม่" ให้ผ้าใบล้างตัวเอง
   const clearTick = ref(0)
+  // เพิ่มทุกครั้งที่ต้องหยดสีเริ่มต้นของอารมณ์ที่เลือกลงผ้าใบ
+  const dropTick = ref(0)
+  // ผ้าใบมีภาพที่ยังไม่บันทึก (หยดเริ่มต้นก็นับ) และอารมณ์ที่หยดลงแผ่นนี้ตามลำดับ (SPEC §5.3, §7.2)
+  const canvasDirty = ref(false)
+  const sheetEmotions = ref([])
+  let pickFrom = null // view ที่มาก่อนเข้า pick ใช้ตัดสินว่าเป็น "เปลี่ยนสี" หรือเริ่มระบายใหม่
   const saving = ref(false) // กำลังจับภาพ/ดูดสีตอนบันทึก (กันกดซ้ำ)
   // ผ้าใบ (FluidCanvas) ลงทะเบียนตัวเองไว้ที่นี่ ใช้ตัวแปรธรรมดาไม่ใช้ ref เพื่อไม่ให้ Vue ครอบ proxy
   let painter = null
@@ -73,7 +79,44 @@ export const useAppStore = defineStore('app', () => {
     const from = view.value
     // กลับจาก saved/photo คงวันและแผ่นเดิมไว้ ไม่รีเซ็ตไปแผ่นล่าสุด
     if (next === VIEWS.book && from !== VIEWS.saved && from !== VIEWS.photo) openBook()
+    if (next === VIEWS.pick) pickFrom = from
+    // เข้า paint ตอนผ้าใบว่างหรือเพิ่งบันทึก: หยดสีของอารมณ์ที่เลือกทันที (SPEC §5.3)
+    // ถ้ามีภาพค้างอยู่ beginPaint / continueSheet / newSheet เป็นผู้ตัดสินแล้ว
+    if (next === VIEWS.paint && !canvasDirty.value) dropOnSheet()
     view.value = next
+  }
+
+  // หยดสีเริ่มต้นของอารมณ์ที่เลือกลงแผ่นปัจจุบัน และจดอารมณ์ลงรายการของแผ่น
+  const dropOnSheet = () => {
+    const emotion = selection.value.emotion
+    if (sheetEmotions.value.at(-1) !== emotion) sheetEmotions.value.push(emotion)
+    canvasDirty.value = true
+    dropTick.value += 1
+  }
+
+  // ระบายต่อแผ่นเดิม: เปลี่ยน palette เป็นอารมณ์ใหม่ แล้วหยดทับ (ถ้าอารมณ์ไม่เปลี่ยนก็ไม่ต้องหยดซ้ำ)
+  const continueSheet = () => {
+    if (selection.value.emotion !== sheetEmotions.value.at(-1)) dropOnSheet()
+    go(VIEWS.paint)
+  }
+
+  // เริ่มแผ่นใหม่: ล้างแล้วหยดสีของอารมณ์ที่เลือก
+  const newSheet = () => {
+    clearTick.value += 1
+    sheetEmotions.value = []
+    dropOnSheet()
+    go(VIEWS.paint)
+  }
+
+  // ปุ่ม "เริ่มระบาย" ในหน้า pick (SPEC §5.2) คืน 'choose' เมื่อต้องถามผู้ใช้ว่าจะระบายต่อหรือเริ่มแผ่นใหม่
+  const beginPaint = () => {
+    if (pickFrom === VIEWS.paint && canvasDirty.value) {
+      continueSheet() // มาจากปุ่ม "เปลี่ยนสี" ในหน้า paint
+      return 'paint'
+    }
+    if (canvasDirty.value) return 'choose' // มาจาก cover/book และมีภาพที่ยังไม่บันทึก
+    go(VIEWS.paint)
+    return 'paint'
   }
 
   // เปลี่ยนสถานะ ถ้าไม่อยู่ในตารางที่อนุญาตจะเมินและคืน false
@@ -119,8 +162,11 @@ export const useAppStore = defineStore('app', () => {
     freshLeaf.value = null
   }
 
+  // "เริ่มใหม่": ล้างแล้วหยดสีเริ่มต้นของอารมณ์ที่เลือกอยู่ (SPEC §5.3)
   const clearCanvas = () => {
     clearTick.value += 1
+    sheetEmotions.value = []
+    dropOnSheet()
   }
 
   const registerPainter = (instance) => {
@@ -129,7 +175,7 @@ export const useAppStore = defineStore('app', () => {
 
   // จับภาพจากผ้าใบ → ดูดสี (SPEC §6.6) ถ้าจับภาพไม่ได้ (ไม่มี WebGL) ใช้สีอารมณ์แทน
   const grabPainting = async () => {
-    const fallback = EMOTION_COLORS[selection.value.emotion]
+    const fallback = EMOTION_COLORS[sheetEmotions.value.at(-1) ?? selection.value.emotion]
     const canvas = await painter?.capture()
     if (!canvas) return { colors: [{ hex: fallback, ratio: 1 }], images: null }
     return { colors: extractColors(canvas, fallback), images: await exportImages(canvas) }
@@ -147,8 +193,9 @@ export const useAppStore = defineStore('app', () => {
     }
     const entries = useEntriesStore()
     const today = localDateStr()
+    const emotions = sheetEmotions.value.length ? [...sheetEmotions.value] : [selection.value.emotion]
     const entry = entries.addEntry({
-      emotion: selection.value.emotion,
+      emotions,
       intensity: selection.value.intensity,
       colors: grabbed.colors,
       images: grabbed.images,
@@ -161,7 +208,9 @@ export const useAppStore = defineStore('app', () => {
     // ภาพแรกของแผ่นแทรกใหม่ → ป้าย "แผ่นใหม่" จนกว่าผู้ใช้จะพลิกดูแผ่นอื่น
     freshLeaf.value = position > 0 && position % PHOTOS_PER_LEAF === 0 ? { date: today, index } : null
     lastSavedEntryId.value = entry.id
-    clearTick.value += 1 // ผ้าใบเริ่มใหม่สำหรับภาพถัดไป
+    clearTick.value += 1 // ผ้าใบเริ่มใหม่สำหรับภาพถัดไป (ว่าง: เข้า paint ครั้งหน้าจะหยดสีเอง)
+    canvasDirty.value = false
+    sheetEmotions.value = []
     go(VIEWS.saved)
     return entry
   }
@@ -177,6 +226,9 @@ export const useAppStore = defineStore('app', () => {
     freshLeaf,
     helloEditing,
     clearTick,
+    dropTick,
+    canvasDirty,
+    sheetEmotions,
     saving,
     registerPainter,
     go,
@@ -190,6 +242,9 @@ export const useAppStore = defineStore('app', () => {
     setLeaf,
     openPhoto,
     clearCanvas,
+    beginPaint,
+    continueSheet,
+    newSheet,
     saveToBook,
   }
 })
