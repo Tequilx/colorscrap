@@ -12,7 +12,7 @@
       <div class="absolute left-7 top-7 h-[744px] w-[1224px] rounded-xl bg-board shadow-[inset_0_0_0_2px_rgba(45,43,51,0.08)]"></div>
 
       <div class="absolute left-[84px] top-[92px] h-[612px] w-[1112px] bg-paper shadow-[0_2px_6px_rgba(45,43,51,0.16)]">
-        <FluidCanvas ref="canvasRef" :emotion="app.selection.emotion" :intensity="app.selection.intensity" :running="app.view === 'paint'" :clear-tick="app.clearTick" />
+        <FluidCanvas ref="canvasRef" :emotion="app.selection.emotion" :intensity="app.selection.intensity" :tool="app.tool" :running="app.view === 'paint'" :clear-tick="app.clearTick" />
         <Tape class="left-[-30px] top-[-10px] !h-[30px] !w-[110px]" :rotate="-38" />
         <Tape class="right-[-30px] top-[-10px] !h-[30px] !w-[110px]" :rotate="38" />
         <Tape class="bottom-[-10px] left-[-30px] !h-[30px] !w-[110px]" :rotate="38" />
@@ -59,7 +59,7 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import FluidCanvas from '@/components/paint/FluidCanvas.vue'
 import MoodCard from '@/components/paint/MoodCard.vue'
 import ToolTray from '@/components/paint/ToolTray.vue'
@@ -74,6 +74,7 @@ import { BLOB_PATHS } from '@/lib/doodles'
 const app = useAppStore()
 const entries = useEntriesStore()
 const canvasRef = ref(null)
+onMounted(() => app.registerPainter(canvasRef.value))
 const current = computed(() => EMOTION_BY_KEY[app.selection.emotion])
 
 const visible = computed(() => app.view === 'paint' || app.view === 'book')

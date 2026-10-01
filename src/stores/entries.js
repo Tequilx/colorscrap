@@ -99,8 +99,9 @@ export const useEntriesStore = defineStore('entries', () => {
   const dates = computed(() => [...new Set(entries.value.map((e) => e.local_date))].sort())
 
   // บันทึกภาพใหม่ลงสมุด (จำลอง; ขั้นที่ 7 จะส่งขึ้น Supabase)
-  // colors: ช่วงนี้ใช้สีอารมณ์ ขั้นที่ 5 จะเปลี่ยนเป็นสีที่ดูดจากภาพจริง (SPEC §6.6)
-  const addEntry = ({ emotion, intensity, shifted = false, colors }) => {
+  // colors: สีที่ดูดจากภาพจริง (SPEC §6.6) ถ้าไม่มีใช้สีอารมณ์
+  // images: { image, thumb } Blob จากผ้าใบ เก็บเป็น object URL ชั่วคราว (ขั้นที่ 7 เปลี่ยนเป็นอัปโหลดแล้วเก็บ image_path/thumb_path)
+  const addEntry = ({ emotion, intensity, shifted = false, colors, images = null }) => {
     const now = new Date()
     const shades = shadesOf(emotion)
     const entry = {
@@ -110,6 +111,8 @@ export const useEntriesStore = defineStore('entries', () => {
       emotion,
       intensity,
       shifted,
+      image_url: images ? URL.createObjectURL(images.image) : null,
+      thumb_url: images ? URL.createObjectURL(images.thumb) : null,
       colors: colors ?? [
         { hex: shades.base, ratio: 0.55 },
         { hex: shades.light, ratio: 0.25 },

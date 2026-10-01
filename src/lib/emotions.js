@@ -42,6 +42,24 @@ export const EMOTION_BY_KEY = Object.fromEntries(EMOTIONS.map((e) => [e.key, e])
 export const INITIAL_SPLATS = { happy: 5, calm: 3, excited: 8, warm: 4, sad: 3, angry: 6, anxious: 10, tired: 2 }
 export const INTENSITY_FACTOR = [0.6, 1, 1.5]
 
+// พารามิเตอร์ fluid ตามอารมณ์ (SPEC §6.3) ค่าตั้งต้น ปรับจูนได้
+// brightness = ตัวคูณความเข้มของ dye (1 = จุดศูนย์กลางหยดแรกได้สีเท่า hex ของอารมณ์ เกิน 1 = เข้มกว่า) จูนต่ออารมณ์ให้สีบนผ้าใบใกล้ hex
+// speed = ตัวคูณความเร็วหยด, dissipation = ค่าตาม SPEC (คูณ DISSIPATION_SCALE ก่อนใช้จริง), radius = ขนาดหยด (splatRadius ของไลบรารี)
+// pattern: burst กระจายรอบทิศ | drift ไหลช้า | fall ไหลลง (มีแรงถ่วง) | pulse พุ่งเป็นจังหวะ | scatter จุดเล็กทั่วกระดาษ | still แทบนิ่ง
+export const FLUID_PARAMS = {
+  happy: { brightness: 2.0, speed: 1.3, curl: 18, dissipation: 0.6, radius: 0.15, pattern: 'burst' },
+  calm: { brightness: 1.8, speed: 0.5, curl: 6, dissipation: 0.25, radius: 0.2, pattern: 'drift' },
+  excited: { brightness: 2.0, speed: 2, curl: 30, dissipation: 0.8, radius: 0.12, pattern: 'burst' },
+  warm: { brightness: 2.0, speed: 1, curl: 12, dissipation: 0.4, radius: 0.22, pattern: 'burst' },
+  sad: { brightness: 1.7, speed: 0.5, curl: 8, dissipation: 0.3, radius: 0.18, pattern: 'fall' },
+  angry: { brightness: 2.0, speed: 2, curl: 26, dissipation: 0.7, radius: 0.13, pattern: 'pulse' },
+  anxious: { brightness: 1.9, speed: 1, curl: 22, dissipation: 0.6, radius: 0.09, pattern: 'scatter' },
+  tired: { brightness: 1.6, speed: 0.2, curl: 4, dissipation: 0.2, radius: 0.2, pattern: 'still' },
+}
+
+// ค่า dissipation ใน SPEC (0.2–0.8) ทำให้สีจางหายใน 2–5 วินาที ซึ่งไม่เหมาะกับภาพที่ต้องบันทึก จึงลดลงด้วยตัวคูณนี้
+export const DISSIPATION_SCALE = 0.25
+
 // อารมณ์ด้านลบ ใช้กับการปรับโทน (SPEC §6.4)
 export const NEGATIVE_EMOTIONS = ['sad', 'angry', 'anxious', 'tired']
 

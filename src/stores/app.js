@@ -3,6 +3,9 @@ import { ref } from 'vue'
 import { useEntriesStore } from '@/stores/entries'
 import { localDateStr } from '@/lib/dates'
 import { chunk } from '@/lib/palette'
+import { extractColors } from '@/lib/extractColors'
+import { exportImages } from '@/lib/exportImage'
+import { EMOTION_COLORS } from '@/lib/tokens'
 
 // สถานะของโต๊ะ (SPEC §4.1) แทนการใช้ router
 export const VIEWS = Object.freeze({
@@ -44,6 +47,9 @@ export const useAppStore = defineStore('app', () => {
   const helloEditing = ref(false)
   // เพิ่มทุกครั้งที่กด "เริ่มใหม่" ให้ผ้าใบล้างตัวเอง
   const clearTick = ref(0)
+  const saving = ref(false) // กำลังจับภาพ/ดูดสีตอนบันทึก (กันกดซ้ำ)
+  // ผ้าใบ (FluidCanvas) ลงทะเบียนตัวเองไว้ที่นี่ ใช้ตัวแปรธรรมดาไม่ใช้ ref เพื่อไม่ให้ Vue ครอบ proxy
+  let painter = null
 
   const leavesOf = (date) => chunk(useEntriesStore().entriesOfDay(date), PHOTOS_PER_LEAF)
 
@@ -117,11 +123,36 @@ export const useAppStore = defineStore('app', () => {
     clearTick.value += 1
   }
 
+  const registerPainter = (instance) => {
+    painter = instance
+  }
+
+  // จับภาพจากผ้าใบ → ดูดสี (SPEC §6.6) ถ้าจับภาพไม่ได้ (ไม่มี WebGL) ใช้สีอารมณ์แทน
+  const grabPainting = async () => {
+    const fallback = EMOTION_COLORS[selection.value.emotion]
+    const canvas = await painter?.capture()
+    if (!canvas) return { colors: [{ hex: fallback, ratio: 1 }], images: null }
+    return { colors: extractColors(canvas, fallback), images: await exportImages(canvas) }
+  }
+
   // บันทึกภาพบนผ้าใบลงสมุด (SPEC §5.3 → §5.4)
-  const saveToBook = () => {
+  const saveToBook = async () => {
+    if (saving.value) return null
+    saving.value = true
+    let grabbed
+    try {
+      grabbed = await grabPainting()
+    } finally {
+      saving.value = false
+    }
     const entries = useEntriesStore()
     const today = localDateStr()
-    const entry = entries.addEntry({ emotion: selection.value.emotion, intensity: selection.value.intensity })
+    const entry = entries.addEntry({
+      emotion: selection.value.emotion,
+      intensity: selection.value.intensity,
+      colors: grabbed.colors,
+      images: grabbed.images,
+    })
     // ตำแหน่งของภาพใหม่ในวัน (เรียงตามเวลา) → แผ่นที่ภาพอยู่
     const position = entries.entriesOfDay(today).findIndex((e) => e.id === entry.id)
     const index = Math.floor(position / PHOTOS_PER_LEAF)
@@ -146,6 +177,8 @@ export const useAppStore = defineStore('app', () => {
     freshLeaf,
     helloEditing,
     clearTick,
+    saving,
+    registerPainter,
     go,
     setView,
     boot,
