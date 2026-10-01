@@ -10,7 +10,7 @@
         <!-- โพลารอยด์ขยาย ~2.2 เท่า (กล่อง 196×193 ขยายเป็น ~431×425) -->
         <div class="photo-lift relative h-[425px] w-[431px] shrink-0">
           <div class="pointer-events-auto absolute left-1/2 top-1/2 -ml-[98px] -mt-[96px] w-[196px] origin-center -rotate-2 scale-[2.2]">
-            <Polaroid :caption="caption" :alt="`ภาพสีน้ำ ${emotion.th}`" :colors="entry.colors.slice(0, 2).map((c) => c.hex)" :palette="entry.colors" :tape-rotate="-3" />
+            <Polaroid :caption="caption" :alt="`ภาพสีน้ำ ${emotion.th}`" :src="imageUrl" :colors="entry.colors.slice(0, 2).map((c) => c.hex)" :palette="entry.colors" :tape-rotate="-3" />
           </div>
         </div>
 
@@ -57,6 +57,7 @@ import HandButton from '@/components/ui/HandButton.vue'
 import Doodle from '@/components/ui/Doodle.vue'
 import { EMOTION_BY_KEY, INTENSITY_LABELS, emotionLabel } from '@/lib/emotions'
 import { percentsOf } from '@/lib/palette'
+import { useBlobUrl } from '@/lib/useBlobUrl'
 import { useAppStore } from '@/stores/app'
 import { useEntriesStore } from '@/stores/entries'
 
@@ -70,6 +71,8 @@ const active = computed(() => app.view === 'photo')
 const entry = computed(() => entries.entries.find((e) => e.id === app.photoEntryId) ?? null)
 const emotion = computed(() => EMOTION_BY_KEY[entry.value?.emotion ?? 'calm'])
 const caption = computed(() => (entry.value ? `${entry.value.local_time} · ${emotionLabel(entry.value)}${entry.value.shifted ? ' → อุ่นขึ้น' : ''}` : ''))
+// หน้า photo ใช้ภาพเต็ม สร้าง URL เฉพาะตอนเปิดดู (ปิดแล้วคืนหน่วยความจำ)
+const imageUrl = useBlobUrl(() => (active.value ? entry.value?.image : null))
 const pct = computed(() => (entry.value ? percentsOf(entry.value.colors) : []))
 
 // เส้นรอยพู่กันยาวตาม ratio (สีที่มากที่สุดยาวเต็ม)

@@ -3,8 +3,10 @@
   <figure class="relative m-0 box-border w-[196px] bg-white px-[9px] pt-[9px] shadow-photo"
     :class="palette.length ? 'pb-[46px]' : 'pb-8'" :style="{ transform: `rotate(${rotate}deg)` }">
     <Tape class="left-[56px] top-[-11px]" :rotate="tapeRotate" />
-    <div class="h-[124px] w-[178px] bg-paper">
-      <slot>
+    <div class="h-[124px] w-[178px] overflow-hidden bg-paper">
+      <!-- ภาพจริงของผู้ใช้: เต็มกรอบเดิม ตัดส่วนเกิน -->
+      <img v-if="src" :src="src" :alt="alt" draggable="false" class="block h-full w-full object-cover" />
+      <slot v-else>
         <!-- ค่าเริ่มต้น: หยดสีน้ำสองก้อนจากสีที่ส่งมา -->
         <svg width="178" height="124" viewBox="0 0 170 120" role="img" :aria-label="alt">
           <g class="filter-wcm">
@@ -31,6 +33,8 @@ import { BLOB_PATHS } from '@/lib/doodles'
 
 defineProps({
   caption: { type: String, default: '' },
+  // URL ภาพจริง (object URL) ถ้าไม่ใส่แสดงหยดสีจำลองจาก colors
+  src: { type: String, default: null },
   alt: { type: String, default: 'ภาพระบายสีน้ำ' },
   // สีที่ใช้วาดหยด (ส่ง hex 1–2 สี)
   colors: { type: Array, default: () => ['#5FA3C8', '#F1BE48'] },

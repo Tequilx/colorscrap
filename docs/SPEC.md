@@ -571,6 +571,8 @@ vec3 col = mix(paper, paper * pigment, 1.0 - exp(-density * ABSORB));
   4. นับ pixel ของภาพย่อ: ข้าม pixel ที่เป็นกระดาษ ที่เหลือจัดเข้าสีในจานที่ใกล้ที่สุด แล้วคิด `ratio = จำนวน pixel ของสี / จำนวน pixel ที่ไม่ใช่กระดาษ`
   5. เก็บสูงสุด 5 สี เรียงจากมากไปน้อย เป็น `colors = [{ hex, ratio }]` โดย `ratio` รวมกันได้ 1 (ถ้าไม่มี pixel ที่ไม่ใช่กระดาษเลย ให้ใช้สีอารมณ์ ratio 1)
 - อัปโหลดขึ้น Storage ทั้งสองไฟล์ แล้วจึง insert แถวใน `entries`
+- **ช่วงก่อนขั้นที่ 7 (ยังไม่มี Supabase):** ภาพเต็ม ภาพย่อ และ entries ที่ผู้ใช้บันทึกเก็บใน IndexedDB ของเบราว์เซอร์ (database `colorscrap`, store `entries`, keyPath `id`, เก็บ Blob ในแถวเดียวกับข้อมูล) โหลดกลับตอนเปิดแอป รีเฟรชแล้วยังอยู่ (`src/lib/imageStore.js`) entry จาก mock ไม่เก็บและไม่มีภาพ จึงแสดงหยดสีจำลอง ขั้นที่ 7 จะย้ายภาพไป **Supabase Storage** (`image_path`, `thumb_path` ตาม §7.2) และ entries ไปตาราง `entries` แล้ว IndexedDB เหลือหน้าที่เดียวคือคิวอัปโหลดซ้ำด้านล่าง
+- **การแสดงภาพจริง:** โพลารอยด์ในสมุดและหน้า `saved` ใช้ภาพย่อ หน้า `photo` (§5.8) ใช้ภาพเต็ม ใส่ในกรอบเดิมด้วย `object-fit: cover` ถ้า entry ไม่มีภาพให้แสดงหยดสีจำลองเหมือนเดิม object URL สร้างตอนแสดงและ `revokeObjectURL` เมื่อถอด component หรือเปลี่ยนภาพ
 - **ถ้าอัปโหลดไม่สำเร็จ:** เก็บ Blob ไว้ใน IndexedDB แล้วลองใหม่อัตโนมัติ พร้อมแสดง toast "ยังบันทึกไม่ได้ จะลองใหม่ให้อีกครั้ง"
 
 ---
@@ -848,7 +850,7 @@ M{x} 80 C{x-3} 66 {x-9} 52 {x-7} 38 C{x-5} 28 {x+7} 28 {x+8} 38 C{x+10} 52 {x+4}
 4. **ส่วนที่กดได้:** `hello` กับ `pick` ให้ทำงานครบ
 5. **ผ้าใบ:** port fluid มาทำ shader สีน้ำ ใส่พารามิเตอร์ตามอารมณ์ เครื่องมือ การ export ภาพ และดูดสี (`extractColors.js`, §6.6)
 6. **ปรับโทนอารมณ์ลบ:** ตาม §6.4
-7. **Supabase:** auth, profiles, entries, storage, RLS และเชื่อมกับ store
+7. **Supabase:** auth, profiles, entries, storage, RLS และเชื่อมกับ store (ย้ายภาพและ entries จาก IndexedDB ชั่วคราวของขั้นที่ 5 ไป Supabase Storage / ตาราง `entries`)
 8. **สมุด:** จัดกลุ่มรายวัน แท็บคั่นหน้า แผ่นแทรก `DailyPalette` และ `palette.js` พร้อม unit test (Vitest)
 9. **แอนิเมชันตอนบันทึก:** ทำลำดับในหน้า `saved` (§5.4)
 10. **เก็บงาน:** reduced motion, ทดสอบ performance บน iPad, การเข้าถึง และกรณีเน็ตหลุด

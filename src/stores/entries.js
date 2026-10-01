@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ref, computed, markRaw } from 'vue'
+import { saveRecord, loadRecords } from '@/lib/imageStore'
 import { EMOTION_COLORS } from '@/lib/tokens'
 import { emotionShades, SHIFT_TARGETS } from '@/lib/emotions'
 import { addDays, localDateStr, parseLocalDate, thaiWeekdayShort } from '@/lib/dates'
@@ -70,6 +71,29 @@ const buildMock = () => {
 export const useEntriesStore = defineStore('entries', () => {
   const entries = ref(buildMock())
 
+  // ชั่วคราวจนถึงขั้นที่ 7: entries ที่ผู้ใช้บันทึกอยู่ใน IndexedDB (mock ไม่เก็บ เพราะสร้างใหม่ทุกครั้งตามวันที่ปัจจุบัน)
+  // ต้องส่ง object แบบ plain เข้า IndexedDB (reactive proxy ถูก structured clone ไม่ได้)
+  const persist = (entry) =>
+    saveRecord({
+      id: entry.id,
+      local_date: entry.local_date,
+      local_time: entry.local_time,
+      emotion: entry.emotion,
+      emotions: [...entry.emotions],
+      intensity: entry.intensity,
+      shifted: entry.shifted,
+      colors: entry.colors.map((c) => ({ hex: c.hex, ratio: c.ratio })),
+      image: entry.image,
+      thumb: entry.thumb,
+    })
+
+  const hydrated = loadRecords().then((records) => {
+    records.forEach((r) => {
+      if (entries.value.some((e) => e.id === r.id)) return
+      entries.value.push({ ...r, image: r.image ? markRaw(r.image) : null, thumb: r.thumb ? markRaw(r.thumb) : null })
+    })
+  })
+
   const entriesOfDay = (date) =>
     entries.value.filter((e) => e.local_date === date).sort((a, b) => a.local_time.localeCompare(b.local_time))
 
@@ -114,8 +138,9 @@ export const useEntriesStore = defineStore('entries', () => {
       emotions,
       intensity,
       shifted,
-      image_url: images ? URL.createObjectURL(images.image) : null,
-      thumb_url: images ? URL.createObjectURL(images.thumb) : null,
+      // Blob ภาพเต็มและ thumb (markRaw ไม่ให้ Vue ครอบ proxy) mock ไม่มีภาพ = null → แสดงหยดสีจำลอง
+      image: images ? markRaw(images.image) : null,
+      thumb: images ? markRaw(images.thumb) : null,
       colors: colors ?? [
         { hex: shades.base, ratio: 0.55 },
         { hex: shades.light, ratio: 0.25 },
@@ -123,8 +148,9 @@ export const useEntriesStore = defineStore('entries', () => {
       ],
     }
     entries.value.push(entry)
+    persist(entry)
     return entry
   }
 
-  return { entries, entriesOfDay, todayCount, lastSevenDays, recentTabs, dates, addEntry }
+  return { entries, hydrated, entriesOfDay, todayCount, lastSevenDays, recentTabs, dates, addEntry }
 })
