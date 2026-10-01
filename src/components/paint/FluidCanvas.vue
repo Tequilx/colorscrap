@@ -1,6 +1,10 @@
 <template>
   <!-- ผ้าใบน้ำไหล (webgl-fluid-enhanced) ครอบเต็มกระดาษ ขนาดคงที่ 1112×612 บน stage -->
-  <div ref="containerRef" class="absolute inset-0 cursor-crosshair" aria-label="ผ้าใบระบายสี ลากเพื่อปาดและกวนสี" role="img"></div>
+  <!-- ไลบรารีเขียนทับ style ของ container (position: relative; display: flex) จึงต้องมีกล่องนอกที่ absolute inset-0 คอยกำหนดขนาด
+       ไม่งั้น canvas สูง 100% ของ container ที่ความสูงไม่แน่นอน แล้วถูกคำนวณจากอัตราส่วน 2:1 แทน -->
+  <div class="absolute inset-0 cursor-crosshair">
+    <div ref="containerRef" class="h-full w-full" aria-label="ผ้าใบระบายสี ลากเพื่อปาดและกวนสี" role="img"></div>
+  </div>
 </template>
 
 <script setup>

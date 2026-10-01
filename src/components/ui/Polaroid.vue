@@ -14,10 +14,10 @@
       </slot>
     </div>
     <!-- คำบรรยายกับป้ายอยู่แถว flex เดียวกันคนละฝั่ง คำบรรยายยาวเกินให้ตัดด้วย ellipsis -->
-    <div class="absolute inset-x-3 bottom-1.5 flex items-center justify-between gap-2">
-      <figcaption class="min-w-0 flex-1 truncate font-hand text-15 text-ink-soft" :title="caption">{{ caption }}</figcaption>
-      <span v-if="badge" class="shrink-0 rounded-[10px] bg-cover px-2 font-hand text-13 font-semibold text-white">{{ badge }}</span>
-    </div>
+    <figcaption class="absolute inset-x-3 bottom-1.5 flex items-center justify-between gap-2 font-hand text-15 text-ink-soft">
+      <span class="min-w-0 flex-1 truncate" :title="caption">{{ caption }}</span>
+      <span v-if="badge" class="shrink-0 rounded-[10px] bg-cover px-2 text-13 font-semibold text-white">{{ badge }}</span>
+    </figcaption>
   </figure>
 </template>
 

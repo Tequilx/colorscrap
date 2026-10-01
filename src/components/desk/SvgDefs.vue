@@ -20,7 +20,8 @@
         <feGaussianBlur in="d" stdDeviation="1" />
       </filter>
       <!-- หยดสีบนเส้นเวลา รอยพู่กัน -->
-      <filter id="wct" x="-40%" y="-40%" width="180%" height="180%">
+      <!-- region สูงพิเศษ: รอยพู่กันเส้นหนาเป็น stroke ซึ่งไม่นับใน bbox ถ้า region เล็กจะถูกตัดเหลือเส้นบาง -->
+      <filter id="wct" x="-40%" y="-150%" width="180%" height="400%">
         <feTurbulence type="fractalNoise" baseFrequency="0.09" numOctaves="2" seed="4" result="n" />
         <feDisplacementMap in="SourceGraphic" in2="n" scale="7" result="d" />
         <feGaussianBlur in="d" stdDeviation="0.5" />

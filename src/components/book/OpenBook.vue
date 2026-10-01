@@ -27,7 +27,7 @@
       :prev-date="prevDate"
       :next-date="nextDate"
       :new-id="mode === 'saved' ? app.lastSavedEntryId : null"
-      :placeholder="mode === 'saved'"
+      :hidden="mode === 'saved'"
       @day="app.openDay($event)"
     />
   </div>

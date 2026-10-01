@@ -43,12 +43,22 @@ const MOCK = [
   [6, '14:20', 'angry', 2, true],
 ]
 
+const pad2 = (n) => String(n).padStart(2, '0')
+
+// ภาพของวันนี้ต้องมีเวลาไม่เกินเวลาปัจจุบัน ภาพที่บันทึกใหม่จะได้อยู่ท้ายแผ่นเสมอ
+// จึงกระจายเวลาของภาพวันนี้ไว้ในช่วง 00:00 ถึงเวลาปัจจุบัน ตามสัดส่วนของเวลาในรายการ MOCK
+const todayTime = (time, now) => {
+  const [h, m] = time.split(':').map(Number)
+  const minutes = Math.floor(((h * 60 + m) / (24 * 60)) * (now.getHours() * 60 + now.getMinutes()))
+  return `${pad2(Math.floor(minutes / 60))}:${pad2(minutes % 60)}`
+}
+
 const buildMock = () => {
   const today = new Date()
   return MOCK.map(([back, time, emotion, intensity, shifted], i) => ({
     id: `mock-${i + 1}`,
     local_date: localDateStr(addDays(today, -back)),
-    local_time: time,
+    local_time: back === 0 ? todayTime(time, today) : time,
     emotion,
     intensity,
     shifted,

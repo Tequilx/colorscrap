@@ -96,10 +96,26 @@ export const nameOfDay = (mixHex, lastTime) => {
   return { colorPart, periodPart, full: colorPart + periodPart }
 }
 
-// ตำแหน่ง x บนเส้นเวลา (SPEC §8.3)
+// เส้นเวลา 00:00–24:00 ในกรอบ SVG กว้าง 412: เว้นขอบซ้ายขวา 18 ให้หยดและป้ายเวลาไม่ถูกตัด (SPEC §8.3)
+export const TIMELINE_LEFT = 18
+export const TIMELINE_WIDTH = 376
+
+// ตำแหน่ง x บนเส้นเวลา
 export const timelineX = (localTime) => {
   const [h, m] = localTime.split(':').map(Number)
-  return Math.min(1, Math.max(0, (h + m / 60 - 6) / 18)) * 410
+  return TIMELINE_LEFT + Math.min(1, Math.max(0, (h + m / 60) / 24)) * TIMELINE_WIDTH
+}
+
+// เลื่อนหยดที่ใกล้กันเกินไปออกจากกันเล็กน้อย ไม่ให้ทับกันสนิท (ห่างอย่างน้อย minGap)
+// รับ x ที่เรียงจากน้อยไปมาก คืน x ใหม่ในลำดับเดิม และยังอยู่ในกรอบเส้นเวลา
+export const spreadXs = (xs, minGap = 14) => {
+  const out = [...xs]
+  const hi = TIMELINE_LEFT + TIMELINE_WIDTH
+  for (let i = 1; i < out.length; i++) out[i] = Math.max(out[i], out[i - 1] + minGap)
+  // ถ้าดันเกินขอบขวา เลื่อนกลับทางซ้ายทีละตัว
+  if (out.length) out[out.length - 1] = Math.min(out[out.length - 1], hi)
+  for (let i = out.length - 2; i >= 0; i--) out[i] = Math.min(out[i], out[i + 1] - minGap)
+  return out
 }
 
 // แบ่งเป็นชุดละ n

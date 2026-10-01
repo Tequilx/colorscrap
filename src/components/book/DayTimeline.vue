@@ -7,11 +7,11 @@
       </linearGradient>
     </defs>
     <path d="M2 82 C80 78 160 86 240 81 S360 84 410 81" fill="none" stroke="#8E8A93" stroke-width="1.6" stroke-linecap="round" />
-    <path d="M2 76 V88 M137 76 V88 M275 76 V88 M410 76 V88" stroke="#8E8A93" stroke-width="1.6" stroke-linecap="round" />
-    <text x="2" y="110" class="fill-ink-soft font-body text-[12px]">06:00</text>
-    <text x="137" y="110" text-anchor="middle" class="fill-ink-soft font-body text-[12px]">12:00</text>
-    <text x="275" y="110" text-anchor="middle" class="fill-ink-soft font-body text-[12px]">18:00</text>
-    <text x="410" y="110" text-anchor="end" class="fill-ink-soft font-body text-[12px]">24:00</text>
+    <!-- ขีดบอกเวลา 00, 06, 12, 18, 24 -->
+    <template v-for="t in TICKS" :key="t.label">
+      <path :d="`M${t.x} 76 V88`" stroke="#8E8A93" stroke-width="1.6" stroke-linecap="round" />
+      <text :x="t.x" y="110" text-anchor="middle" class="fill-ink-soft font-body text-[12px]">{{ t.label }}</text>
+    </template>
     <g class="filter-wct">
       <path v-for="d in drops" :key="d.id" :d="d.path" :fill="d.stops.length > 1 ? `url(#${uid}-${d.id})` : d.stops[0]" fill-opacity="0.82" />
     </g>
@@ -32,7 +32,7 @@
 <script setup>
 import { computed, useId } from 'vue'
 import { timelineDrop } from '@/lib/doodles'
-import { timelineX } from '@/lib/palette'
+import { timelineX, spreadXs, TIMELINE_LEFT, TIMELINE_WIDTH } from '@/lib/palette'
 import { EMOTION_BY_KEY } from '@/lib/emotions'
 
 const props = defineProps({
@@ -42,9 +42,17 @@ const props = defineProps({
 
 const uid = useId()
 
+const TICKS = [0, 6, 12, 18, 24].map((h) => ({
+  label: `${String(h).padStart(2, '0')}:00`,
+  x: Math.round(TIMELINE_LEFT + (h / 24) * TIMELINE_WIDTH),
+}))
+
+// entries เรียงตามเวลาแล้ว จึงเรียง x จากน้อยไปมากอยู่แล้ว ใช้ spreadXs เลื่อนหยดที่ชิดกันเกินไป
+const xs = computed(() => spreadXs(props.entries.map((e) => Math.round(timelineX(e.local_time)))))
+
 const drops = computed(() =>
-  props.entries.map((e) => {
-    const x = Math.round(timelineX(e.local_time)) + 2
+  props.entries.map((e, i) => {
+    const x = xs.value[i]
     const name = EMOTION_BY_KEY[e.emotion].th
     return {
       id: e.id,

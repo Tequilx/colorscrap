@@ -1,12 +1,13 @@
 <template>
   <!-- หน้าขวา: จานสีประจำวัน (SPEC §5.7) -->
   <div class="absolute left-[506px] top-[14px] h-[612px] w-[492px] rounded-[0_6px_6px_0] bg-paper shadow-[inset_18px_0_22px_-16px_rgba(45,43,51,0.35)]">
-    <div class="absolute left-10 top-7 flex w-[412px] items-baseline justify-between">
-      <span class="whitespace-nowrap font-hand text-26 font-semibold" :class="placeholder ? 'text-[#B9B4AC]' : ''">{{ title }}</span>
-      <span v-if="!placeholder && entries.length" class="whitespace-nowrap text-14 text-ink-soft">{{ entries.length }} ภาพ · {{ moodCount }} อารมณ์</span>
-    </div>
+    <!-- หน้า saved: การ์ดทับหน้านี้อยู่ ซ่อนเนื้อหาทั้งหมด เหลือแต่กระดาษ -->
+    <template v-if="!hidden">
+      <div class="absolute left-10 top-7 flex w-[412px] items-baseline justify-between">
+        <span class="whitespace-nowrap font-hand text-26 font-semibold">{{ title }}</span>
+        <span v-if="entries.length" class="whitespace-nowrap text-14 text-ink-soft">{{ entries.length }} ภาพ · {{ moodCount }} อารมณ์</span>
+      </div>
 
-    <template v-if="!placeholder">
       <p v-if="!entries.length" class="absolute left-10 top-[120px] m-0 w-[412px] text-16 leading-[1.7] text-ink-soft">ยังไม่มีสีของวันนี้ ลองระบายสักภาพแล้วสีจะมารวมกันตรงนี้</p>
 
       <template v-else>
@@ -59,8 +60,8 @@ const props = defineProps({
   prevDate: { type: String, default: null },
   nextDate: { type: String, default: null },
   newId: { type: String, default: null },
-  // หน้า saved: การ์ดบังหน้านี้อยู่ แสดงแค่หัวข้อสีจาง
-  placeholder: { type: Boolean, default: false },
+  // หน้า saved: ซ่อนเนื้อหาทั้งหมด (การ์ดทับอยู่)
+  hidden: { type: Boolean, default: false },
 })
 
 defineEmits(['day'])

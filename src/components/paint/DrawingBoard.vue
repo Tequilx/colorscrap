@@ -1,7 +1,8 @@
 <template>
   <!-- กระดานวาดรูป อยู่บนโต๊ะตลอด (WebGL context ไม่หาย): paint = เต็มจอ, book = เหลือแถบซ้าย 92px — SPEC §4.3 -->
   <div
-    class="absolute overflow-hidden transition-[left,top,width,height,opacity] duration-600 ease-desk"
+    class="absolute overflow-hidden bg-board transition-[left,top,width,height,opacity,border-radius] duration-600 ease-desk"
+    :class="app.view === 'book' ? 'rounded-r-xl shadow-[0_4px_12px_rgba(45,43,51,0.12)]' : ''"
     :style="wrapperStyle"
     :inert="!visible"
     :aria-hidden="!visible"
@@ -34,6 +35,17 @@
     </div>
   </div>
 
+  <!-- แถบซ้ายในหน้า book: ขอบกระดานสี board รอบกระดาษ 24px บนล่าง และรอยสีโผล่จากกระดาษ (5-book.dc.html) -->
+  <div class="pointer-events-none absolute left-0 top-[150px] h-[500px] w-[92px] overflow-hidden rounded-r-xl transition-opacity duration-600 ease-desk" :class="app.view === 'book' ? 'opacity-100' : 'opacity-0'" aria-hidden="true">
+    <span class="absolute inset-x-0 top-0 h-6 bg-board"></span>
+    <span class="absolute inset-x-0 bottom-0 h-6 bg-board"></span>
+    <svg width="64" height="452" viewBox="0 0 64 452" class="absolute left-0 top-6">
+      <g class="filter-wc" opacity="0.5">
+        <path :d="BLOB_PATHS.large" transform="translate(-140 120) scale(0.9)" :fill="current.hex" />
+      </g>
+    </svg>
+  </div>
+
   <!-- ทั้งแถบซ้ายในหน้า book เป็นปุ่มเดียว "กลับไประบาย" -->
   <button
     v-if="app.view === 'book'"
@@ -56,10 +68,13 @@ import Tape from '@/components/ui/Tape.vue'
 import Doodle from '@/components/ui/Doodle.vue'
 import { useAppStore } from '@/stores/app'
 import { useEntriesStore } from '@/stores/entries'
+import { EMOTION_BY_KEY } from '@/lib/emotions'
+import { BLOB_PATHS } from '@/lib/doodles'
 
 const app = useAppStore()
 const entries = useEntriesStore()
 const canvasRef = ref(null)
+const current = computed(() => EMOTION_BY_KEY[app.selection.emotion])
 
 const visible = computed(() => app.view === 'paint' || app.view === 'book')
 
