@@ -54,8 +54,8 @@ const OPEN = {
   book: { transform: 'translate(176px, 112px)', opacity: 1 },
   // ช็อตซูมเข้าหน้าซ้าย: ซูม 1.15 เท่า (SPEC §5.4)
   saved: { transform: 'translate(40px, 32px) scale(1.15)', opacity: 1, transformOrigin: 'top left' },
-  // ดูภาพเดี่ยว: หน้าสมุดด้านหลังจางลง
-  photo: { transform: 'translate(176px, 112px)', opacity: 0.3 },
+  // ดูภาพเดี่ยว: อยู่ที่เดิม ชั้นสี desk 85% ของ PhotoView ทับอยู่
+  photo: { transform: 'translate(176px, 112px)', opacity: 1 },
 }
 const OPEN_HIDDEN = { transform: 'translate(176px, 140px) scale(0.9)', opacity: 0 }
 

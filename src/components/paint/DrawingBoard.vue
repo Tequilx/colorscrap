@@ -36,7 +36,7 @@
   </div>
 
   <!-- แถบซ้ายในหน้า book: ขอบกระดานสี board รอบกระดาษ 24px บนล่าง และรอยสีโผล่จากกระดาษ (5-book.dc.html) -->
-  <div class="pointer-events-none absolute left-0 top-[150px] h-[500px] w-[92px] overflow-hidden rounded-r-xl transition-opacity duration-600 ease-desk" :class="app.view === 'book' ? 'opacity-100' : app.view === 'photo' ? 'opacity-30' : 'opacity-0'" aria-hidden="true">
+  <div class="pointer-events-none absolute left-0 top-[150px] h-[500px] w-[92px] overflow-hidden rounded-r-xl transition-opacity duration-600 ease-desk" :class="inStrip ? 'opacity-100' : 'opacity-0'" aria-hidden="true">
     <span class="absolute inset-x-0 top-0 h-6 bg-board"></span>
     <span class="absolute inset-x-0 bottom-0 h-6 bg-board"></span>
     <svg width="64" height="452" viewBox="0 0 64 452" class="absolute left-0 top-6">
@@ -83,7 +83,7 @@ const inStrip = computed(() => app.view === 'book' || app.view === 'photo')
 // wrapper: paint = เต็มจอ | book = แถบซ้าย 92×500 | อื่น ๆ = ซ่อนนอกจอ
 const wrapperStyle = computed(() => {
   if (app.view === 'paint') return { left: '0px', top: '0px', width: '1280px', height: '800px', opacity: 1 }
-  if (inStrip.value) return { left: '0px', top: '150px', width: '92px', height: '500px', opacity: app.view === 'photo' ? 0.3 : 1 }
+  if (inStrip.value) return { left: '0px', top: '150px', width: '92px', height: '500px', opacity: 1 }
   return { left: '-1300px', top: '0px', width: '1280px', height: '800px', opacity: 0 }
 })
 
