@@ -1,0 +1,6 @@
+/* ตัวแปรรันไทม์เท่านั้น ค่าอื่นอยู่ที่ src/lib/tokens.js → tailwind.config.js */
+:root {
+  --cover: #9e2f2a;
+  --cover-spine: #8a2c28;
+  --cover-strap: #7a2b28;
+}
