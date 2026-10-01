@@ -2,7 +2,8 @@
   <!-- หยดสีน้ำภาพนิ่ง: large (วาดบนปก), small (ภาพย่อ/หลุมผสมสี), timeline (หยดบนเส้นเวลา) -->
   <svg :width="width" :height="height" :viewBox="viewBox" aria-hidden="true">
     <g :filter="`url(#${filterId})`">
-      <path :d="d" :fill="color" :fill-opacity="opacity" :stroke="stroke" :stroke-width="stroke ? 2 : 0" />
+      <!-- ขอบสีเดียวกับเนื้อสี อยู่ใน group filter เดียวกัน ให้ขอบเข้มแบบสีน้ำแห้ง -->
+      <path :d="d" :fill="color" :fill-opacity="opacity" :stroke="color" :stroke-opacity="strokeOpacity" :stroke-width="kind === 'timeline' ? 1 : 2" />
     </g>
   </svg>
 </template>
@@ -17,7 +18,7 @@ const props = defineProps({
   width: { type: Number, default: 170 },
   height: { type: Number, default: 120 },
   opacity: { type: Number, default: 0.6 },
-  stroke: { type: String, default: '' },
+  strokeOpacity: { type: Number, default: 0.4 },
 })
 
 const FILTERS = { large: 'wc', small: 'wcm', timeline: 'wct' }

@@ -11,7 +11,7 @@
     stroke-linejoin="round"
     aria-hidden="true"
   >
-    <g :class="{ 'filter-wob': wobble }">
+    <g :class="{ 'filter-wob': avatar }">
       <path :d="d" />
       <circle v-for="(c, i) in circles" :key="i" :cx="c.cx" :cy="c.cy" :r="c.r" />
     </g>
@@ -23,11 +23,9 @@ import { computed } from 'vue'
 import { AVATAR_BY_KEY, ICONS } from '@/lib/doodles'
 
 const props = defineProps({
-  // ชื่อ avatar (cat, plant, ...) หรือไอคอน (back, forward, book, check, plus, settings, smear, drop, restart)
+  // ตัวแทน 8 แบบใส่ filter wob อัตโนมัติ (ตามหน้า hello) ไอคอนไม่ใส่ | ชื่อ avatar (cat, plant, ...) หรือไอคอน (back, forward, book, check, plus, settings, smear, drop, restart)
   name: { type: String, required: true },
   size: { type: Number, default: 24 },
-  // ใส่ filter wob (ห้ามใช้กับของที่ขยับตลอด)
-  wobble: { type: Boolean, default: false },
 })
 
 const avatar = computed(() => AVATAR_BY_KEY[props.name] ?? null)

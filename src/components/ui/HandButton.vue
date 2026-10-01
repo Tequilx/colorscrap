@@ -3,9 +3,11 @@
     :is="href ? 'a' : 'button'"
     :href="href || undefined"
     :type="href ? undefined : 'button'"
+    :disabled="!href && disabled ? true : undefined"
+    :aria-disabled="href && disabled ? 'true' : undefined"
     :aria-pressed="pressed === null ? undefined : String(pressed)"
-    class="relative inline-flex items-center justify-center gap-2.5 whitespace-nowrap no-underline transition-transform duration-450 ease-desk disabled:cursor-not-allowed disabled:opacity-40"
-    :class="[sizes, textColor, tilt ? 'hover:-rotate-[6deg] hover:scale-105' : '']"
+    class="relative inline-flex items-center justify-center gap-2.5 whitespace-nowrap no-underline transition-transform duration-450 ease-desk disabled:cursor-not-allowed disabled:opacity-40 aria-disabled:cursor-not-allowed aria-disabled:opacity-40"
+    :class="[sizes, textColor, tilt && !disabled ? 'hover:-rotate-[6deg] hover:scale-105' : '']"
   >
     <!-- กรอบทรงลายมือเป็น element แยก ใส่ filter wob ที่กรอบเท่านั้น ตัวหนังสือไม่โดน (SPEC §3.5) -->
     <span class="pointer-events-none absolute inset-0 -z-0" :class="[frame, frameFilter ? 'filter-wob' : '']" aria-hidden="true"></span>
@@ -24,6 +26,8 @@ const props = defineProps({
   pressed: { type: Boolean, default: null },
   // hover แล้วหมุน -6° ขยาย 1.05 (ปุ่มอารมณ์)
   tilt: { type: Boolean, default: false },
+  // ปิดใช้งาน: เปลี่ยนเป็นปุ่มขอบจาง (พื้นโปร่ง) opacity 0.4 เคอร์เซอร์ not-allowed
+  disabled: { type: Boolean, default: false },
 })
 
 const sizes = computed(
@@ -35,7 +39,7 @@ const sizes = computed(
     })[props.variant],
 )
 
-const isOn = computed(() => props.variant === 'primary' || props.pressed === true)
+const isOn = computed(() => !props.disabled && (props.variant === 'primary' || props.pressed === true))
 
 const textColor = computed(() => (isOn.value ? 'text-paper' : 'text-ink'))
 

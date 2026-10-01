@@ -11,26 +11,47 @@
         <HandButton variant="secondary"><Doodle name="back" :size="22" /> หน้าแรก</HandButton>
         <HandButton variant="secondary"><Doodle name="book" :size="22" /> เปิดสมุด</HandButton>
         <HandButton variant="primary" disabled>ปิดใช้งาน</HandButton>
+        <HandButton variant="secondary" disabled>ปิดใช้งาน</HandButton>
         <HandButton v-for="l in likes" :key="l" variant="chip" :pressed="chosen.includes(l)" @click="toggle(l)">{{ l }}</HandButton>
       </div>
     </section>
 
     <section class="mb-10">
       <h2 class="mb-3 font-hand text-26 font-semibold">EmotionBlob (8 อารมณ์)</h2>
-      <div class="flex flex-wrap gap-6">
-        <div v-for="e in EMOTIONS" :key="e.key" class="flex flex-col items-center gap-1 font-hand text-19 font-semibold">
+      <p class="m-0 mb-3 text-14 text-ink-soft">คลิกเพื่อเลือก (สถานะเลือกตาม SPEC §5.2: พื้นสีอารมณ์จาง ขอบ ink ยกขึ้น 5px หมุน -1° เงาด้านล่าง ขีดเส้นใต้หยัก)</p>
+      <div role="group" aria-label="เลือกความรู้สึก" class="flex flex-wrap gap-4">
+        <button
+          v-for="e in EMOTIONS"
+          :key="e.key"
+          type="button"
+          :aria-pressed="pickedEmotion === e.key"
+          class="flex h-[150px] w-[190px] cursor-pointer flex-col items-center justify-center gap-0.5 rounded-[18px_22px_16px_20px] border-2 p-0 font-hand text-19 font-semibold text-ink transition-transform duration-450 ease-desk"
+          :class="pickedEmotion === e.key ? 'border-ink -translate-y-[5px] -rotate-1' : 'border-transparent bg-paper'"
+          :style="pickedEmotion === e.key ? { background: e.hex + '2E', boxShadow: `0 8px 0 -2px ${e.hex}80` } : {}"
+          @click="pickedEmotion = e.key"
+        >
           <EmotionBlob :name="e.key" :size="88" />
-          {{ e.th }}
-        </div>
+          <span :class="pickedEmotion === e.key ? 'underline decoration-wavy underline-offset-[6px]' : ''">{{ e.th }}</span>
+        </button>
       </div>
     </section>
 
     <section class="mb-10">
       <h2 class="mb-3 font-hand text-26 font-semibold">Doodle: ตัวแทนและไอคอน</h2>
-      <div class="mb-4 flex flex-wrap gap-4">
-        <span v-for="a in AVATARS" :key="a.key" class="flex h-[60px] w-[60px] items-center justify-center rounded-[16px_18px_14px_20px] bg-paper-deep" :title="a.label">
-          <Doodle :name="a.key" :size="38" wobble />
-        </span>
+      <div role="group" aria-label="เลือกรูปตัวแทน" class="mb-4 flex flex-wrap gap-2">
+        <button
+          v-for="a in AVATARS"
+          :key="a.key"
+          type="button"
+          :aria-pressed="pickedAvatar === a.key"
+          :aria-label="a.label"
+          :title="a.label"
+          class="flex h-[60px] w-[60px] cursor-pointer items-center justify-center rounded-[16px_18px_14px_20px] border-2 p-0 text-ink transition-transform duration-450 ease-desk"
+          :class="pickedAvatar === a.key ? 'border-ink bg-[rgba(241,190,72,.28)] -translate-y-[3px] -rotate-3' : 'border-transparent bg-[#F0EEE9]'"
+          @click="pickedAvatar = a.key"
+        >
+          <Doodle :name="a.key" :size="38" />
+        </button>
       </div>
       <div class="flex flex-wrap gap-4">
         <span v-for="i in iconNames" :key="i" class="flex flex-col items-center gap-1 text-13 text-ink-soft">
@@ -88,5 +109,7 @@ const chosen = ref(['เพลง', 'แมว'])
 const toggle = (l) => {
   chosen.value = chosen.value.includes(l) ? chosen.value.filter((x) => x !== l) : [...chosen.value, l]
 }
+const pickedEmotion = ref('calm')
+const pickedAvatar = ref('cat')
 const iconNames = Object.keys(ICONS)
 </script>
