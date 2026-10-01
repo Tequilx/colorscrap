@@ -47,6 +47,7 @@ export default {
         '.filter-wc': { filter: 'url(#wc)' },
         '.filter-wcm': { filter: 'url(#wcm)' },
         '.filter-wct': { filter: 'url(#wct)' },
+        '.filter-wcs': { filter: 'url(#wcs)' },
       })
     },
   ],
