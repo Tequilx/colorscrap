@@ -33,6 +33,7 @@
         <input v-model.number="warmTune[t.key]" type="range" class="w-[88px]" :min="t.min" :max="t.max" :step="t.step" :data-tune="t.key" />
         <span class="w-9 text-right">{{ warmTune[t.key] }}</span>
       </label>
+      <button type="button" class="my-1 cursor-pointer rounded border border-white/50 bg-white/10 px-1.5 py-0.5 font-mono text-[12px] text-white" @click="resetNote">รีเซ็ตโน้ต</button>
     </div>
   </div>
 </template>
@@ -41,7 +42,7 @@
 import { ref, computed } from 'vue'
 import { useAppStore } from '@/stores/app'
 import { EMOTIONS, EMOTION_BY_KEY, FLUID_PARAMS, INITIAL_SPLATS } from '@/lib/emotions'
-import { warmTune, noteDebug, DEV_PARAMS_EVENT } from '@/lib/devState'
+import { warmTune, noteDebug, DEV_PARAMS_EVENT, DEV_NOTE_RESET_EVENT } from '@/lib/devState'
 
 const app = useAppStore()
 const open = ref(true)
@@ -62,6 +63,8 @@ const WARM_FIELDS = [
   { key: 'size', label: 'ขนาดหยด', min: 0.1, max: 3, step: 0.05 },
   { key: 'strength', label: 'ความเข้ม', min: 0.5, max: 5, step: 0.1 },
   { key: 'samples', label: 'จำนวนลองดู', min: 1, max: 10, step: 1 },
+  { key: 'noteDelay', label: 'เวลาก่อนโน้ตขึ้น (วิ)', min: 3, max: 30, step: 1 },
+  { key: 'noteIdle', label: 'เวลาพักมือ (วิ)', min: 0.5, max: 5, step: 0.5 },
 ]
 
 // แผงแก้ object ในโมดูล emotions.js ตรง ๆ (FluidCanvas อ่านค่าสดจากที่เดียวกัน) แล้วแจ้งให้ตั้ง curl/velDiss ใหม่
@@ -78,6 +81,12 @@ const set = (f, v) => {
 
 // ล้างผ้าใบแล้วหยดสีเริ่มต้นของอารมณ์ที่เลือกใหม่ (ทางเดียวกับปุ่ม "เริ่มใหม่" ไม่ต้องกลับไปหน้า pick)
 const redrop = () => app.clearCanvas()
+
+// เริ่มนับโน้ตของแผ่นปัจจุบันใหม่ ภาพบนผ้าใบอยู่เหมือนเดิม (โน้ตที่ปิดไปแล้วกลับมาถามได้อีก)
+const resetNote = () => {
+  app.warmNote = 'idle'
+  window.dispatchEvent(new Event(DEV_NOTE_RESET_EVENT))
+}
 
 const copy = async () => {
   const e = emotion.value

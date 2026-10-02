@@ -23,7 +23,7 @@ import WebGLFluid from 'webgl-fluid-enhanced'
 import { emotionShades, FLUID_PARAMS, DENSITY_DISSIPATION, INK_CELL, INK_CAP, INITIAL_SPLATS, INTENSITY_FACTOR, SHIFT_TARGETS } from '@/lib/emotions'
 import { PALETTE } from '@/lib/tokens'
 import { dyeSetting, invertedHex } from '@/lib/dye'
-import { warmTune as tune, noteDebug as debug, DEV_PARAMS_EVENT } from '@/lib/devState'
+import { warmTune as tune, noteDebug as debug, DEV_PARAMS_EVENT, DEV_NOTE_RESET_EVENT } from '@/lib/devState'
 
 const props = defineProps({
   emotion: { type: String, required: true },
@@ -60,11 +60,10 @@ const CLEAR_FRAMES = 8
 const WARM_SAMPLE_GAP = 280 // ms ห่างกันระหว่างหยดตัวอย่าง
 const SHIFT_SPEED = 200 // ความเร็วต่ำ (initial = 220 × speed ของอารมณ์)
 const WARM_TAP_SPEED = 60 // หยดที่ตำแหน่งแตะ ความเร็วเท่าหยดอารมณ์
-// โน้ตชวน: ครบเท่านี้นับจาก pointerdown ครั้งแรกของแผ่น + พักมือ (ไม่มี pointerdown และไม่มีปุ่มกดค้าง) เท่านี้ (ms ของเวลาที่ผ้าใบวิ่งอยู่) ถามครั้งเดียวต่อแผ่น
-const NOTE_PAINT_MS = 20000
-const NOTE_IDLE_MS = 2000
+// โน้ตชวน: ครบ tune.noteDelay วินาทีนับจาก pointerdown ครั้งแรกของแผ่น + พักมือ (ไม่มี pointerdown และไม่มีปุ่มกดค้าง) tune.noteIdle วินาที
+// (เวลาที่ผ้าใบวิ่งอยู่ ค่าตั้งต้น 10 / 1.5 อยู่ใน lib/devState.js ปรับสดได้จากแผง ?debug) ถามครั้งเดียวต่อแผ่น
 const NOTE_TICK = 250
-// เร่งเวลาโน้ตตอน dev เพื่อทดสอบ (เร่งทั้ง 20 วินาทีและ 2 วินาที): เปิดหน้าด้วย ?shiftSpeed=10 (ไม่ยุ่งกับ simulation) และ ?debug เปิดแผงปรับค่า (src/dev/DebugPanel.vue)
+// เร่งเวลาโน้ตตอน dev เพื่อทดสอบ (เร่งทั้งเวลาก่อนโน้ตขึ้นและเวลาพักมือ): เปิดหน้าด้วย ?shiftSpeed=10 (ไม่ยุ่งกับ simulation) และ ?debug เปิดแผงปรับค่า (src/dev/DebugPanel.vue)
 const DEBUG = import.meta.env.DEV && new URLSearchParams(location.search).has('debug')
 const NOTE_TIME_SCALE = import.meta.env.DEV ? Number(new URLSearchParams(location.search).get('shiftSpeed')) || 1 : 1
 // prefers-reduced-motion: หยดสีอุ่นตอนกดค้างช้าลงครึ่งหนึ่ง (ห่างขึ้น 2 เท่า)
@@ -264,9 +263,18 @@ const noteTick = () => {
     debug.elapsed = (sheet.elapsed / 1000).toFixed(1) + ' วิ'
     debug.idle = (sheet.idle / 1000).toFixed(1) + ' วิ'
   }
-  if (!sheet.invited && sheet.elapsed >= NOTE_PAINT_MS && sheet.idle >= NOTE_IDLE_MS && props.warmAvailable) {
+  if (!sheet.invited && sheet.elapsed >= tune.noteDelay * 1000 && sheet.idle >= tune.noteIdle * 1000 && props.warmAvailable) {
     sheet.invited = true
     emit('invite')
+  }
+}
+
+// dev: เริ่มนับโน้ตของแผ่นนี้ใหม่โดยไม่ล้างภาพ (นับใหม่ตั้งแต่ pointerdown ถัดไป) แล้วแผงตั้ง app.warmNote กลับเป็น idle
+const resetNote = () => {
+  Object.assign(sheet, { started: false, elapsed: 0, idle: 0, invited: false })
+  if (DEBUG) {
+    debug.elapsed = '-'
+    debug.idle = '-'
   }
 }
 
@@ -410,7 +418,10 @@ const onUp = (e) => {
 onMounted(() => {
   createFluid()
   // แผง dev ปรับ FLUID_PARAMS สด: ตัวแปรเหล่านั้นถูกแก้ตรง ๆ ที่นี่แค่ตั้งค่าให้ไลบรารีใหม่
-  if (DEBUG) window.addEventListener(DEV_PARAMS_EVENT, applyParams)
+  if (DEBUG) {
+    window.addEventListener(DEV_PARAMS_EVENT, applyParams)
+    window.addEventListener(DEV_NOTE_RESET_EVENT, resetNote)
+  }
   noteTimer = setInterval(noteTick, NOTE_TICK)
 })
 
@@ -478,7 +489,10 @@ const capture = (retries = 3) =>
 defineExpose({ clear, capture })
 
 onBeforeUnmount(() => {
-  if (DEBUG) window.removeEventListener(DEV_PARAMS_EVENT, applyParams)
+  if (DEBUG) {
+    window.removeEventListener(DEV_PARAMS_EVENT, applyParams)
+    window.removeEventListener(DEV_NOTE_RESET_EVENT, resetNote)
+  }
   releaseAll()
   stopGravity()
   clearTimers()

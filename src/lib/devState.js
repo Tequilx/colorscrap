@@ -5,6 +5,8 @@ export const WARM_DEFAULTS = {
   size: 0.5, // รัศมีหยดสีอุ่น (splatRadius) เทียบ "เติมหยด" ของ sad ที่ 0.18 × 3 = 0.54
   strength: 1, // ตัวคูณความเข้มสีอุ่น ยังผ่านตัวกันสีสะสม INK_CAP
   samples: 4, // จำนวนหยดตัวอย่างของ "ลองดู"
+  noteDelay: 10, // วินาที: โน้ตชวนขึ้นเมื่อครบเท่านี้นับจาก pointerdown ครั้งแรกของแผ่น
+  noteIdle: 1.5, // วินาที: และพักมือ (ไม่มี pointerdown/ปุ่มกดค้าง) นานเท่านี้
 }
 export const warmTune = reactive({ ...WARM_DEFAULTS })
 
@@ -13,3 +15,5 @@ export const noteDebug = reactive({ elapsed: '-', idle: '-' })
 
 // ชื่อ event ที่แผง dev ส่งให้ FluidCanvas (dev เท่านั้น)
 export const DEV_PARAMS_EVENT = 'colorscrap:params'
+// แผง dev สั่งให้ FluidCanvas เริ่มนับโน้ตของแผ่นปัจจุบันใหม่ (ไม่ล้างภาพ)
+export const DEV_NOTE_RESET_EVENT = 'colorscrap:note-reset'
