@@ -64,6 +64,24 @@ export const useAppStore = defineStore('app', () => {
   const warmTick = ref(0)
   let pickFrom = null // view ที่มาก่อนเข้า pick ใช้ตัดสินว่าเป็น "เปลี่ยนสี" หรือเริ่มระบายใหม่
   const saving = ref(false) // กำลังจับภาพ/ดูดสีตอนบันทึก (กันกดซ้ำ)
+  // ลำดับแอนิเมชันที่กินเวลา (ขั้น 9): ระหว่างนี้ปุ่มที่ทำให้สถานะพังต้องกดไม่ได้ (SPEC §5.4)
+  // savePhase: idle → shrink → book → leaf → drop → tape → card → idle (ตัวขับอยู่ใน runSaveSequence)
+  const savePhase = ref('idle')
+  const leafFlipping = ref(false) // แผ่นแทรกกำลังพลิก
+  const photoFlying = ref(false) // ภาพกำลังบินเข้า/ออกหน้า photo
+  const busy = computed(() => savePhase.value !== 'idle' || leafFlipping.value || photoFlying.value)
+  // ผู้ขับลำดับ (timer/WAAPI) ลงทะเบียนวิธียกเลิกตัวเองไว้ เรียกตอนปุ่ม back ข้ามหน้าหรือออกจากระบบกลางลำดับ
+  const cancellers = new Set()
+  const onCancel = (fn) => {
+    cancellers.add(fn)
+    return () => cancellers.delete(fn)
+  }
+  const cancelSequences = () => {
+    cancellers.forEach((fn) => fn())
+    savePhase.value = 'idle'
+    leafFlipping.value = false
+    photoFlying.value = false
+  }
   // ผ้าใบ (FluidCanvas) ลงทะเบียนตัวเองไว้ที่นี่ ใช้ตัวแปรธรรมดาไม่ใช้ ref เพื่อไม่ให้ Vue ครอบ proxy
   let painter = null
 
@@ -168,7 +186,11 @@ export const useAppStore = defineStore('app', () => {
   }
 
   // สำหรับ useHashView (ปุ่ม back ข้ามตารางได้)
-  const setView = (next) => enter(next)
+  // ข้ามตารางได้ จึงต้องตัดลำดับแอนิเมชันที่ค้างอยู่ก่อน ไม่งั้นค้างครึ่งทาง
+  const setView = (next) => {
+    cancelSequences()
+    enter(next)
+  }
 
   // ตั้งค่าเริ่มต้นตอนโหลดแอป: ยังไม่ล็อกอิน → login, ไม่มีโปรไฟล์ → hello, มีแล้ว → cover
   const boot = (hasProfile, loggedIn = true) => {
@@ -213,6 +235,7 @@ export const useAppStore = defineStore('app', () => {
 
   // ล้างสถานะของผู้ใช้คนก่อนทั้งหมด (ตอนออกจากระบบ/ลบข้อมูล) ให้คนถัดไปเริ่มจากโต๊ะว่าง
   const resetSession = () => {
+    cancelSequences()
     selection.value = { emotion: 'calm', intensity: 1 }
     tool.value = 'smear'
     openDate.value = null
@@ -305,6 +328,12 @@ export const useAppStore = defineStore('app', () => {
     tryWarm,
     pickTool,
     saving,
+    savePhase,
+    leafFlipping,
+    photoFlying,
+    busy,
+    onCancel,
+    cancelSequences,
     registerPainter,
     resetSession,
     go,

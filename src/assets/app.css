@@ -26,13 +26,19 @@
   }
 }
 
-/* ผู้ใช้ปิดการเคลื่อนไหว: ตัดการเลื่อนและหมุน เหลือแค่ fade ไม่เกิน 150ms (SPEC §3.6) */
+/* ผู้ใช้ปิดการเคลื่อนไหว: ตัดการเลื่อนและหมุน เหลือแค่ fade ไม่เกิน 150ms (SPEC §3.6)
+   transition เหลือเฉพาะ opacity/สี จึงไม่มี transform ที่ขยับ (ตำแหน่งที่ซ่อนอยู่ด้วย opacity 0 ต้องไม่ถูกย้ายออกนอกจอ
+   ก่อน fade จบ ดู lib/motion.js reducedMotion ที่คอมโพเนนต์ใช้เลือก placement) */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
   *::after {
+    transition-property: opacity, color, background-color, border-color !important;
     transition-duration: 150ms !important;
+    transition-delay: 0s !important;
     animation-duration: 150ms !important;
+    animation-delay: 0s !important;
+    animation-iteration-count: 1 !important;
     scroll-behavior: auto !important;
   }
 }

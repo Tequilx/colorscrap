@@ -49,3 +49,11 @@ export const FONT_SIZES = {
 }
 
 export const STAGE = { width: 1280, height: 800 }
+
+// เวลาและ easing ของการเคลื่อนไหว (SPEC §3.6) หน่วย ms
+export const MOTION = {
+  swap: 450, // เปลี่ยนสถานะเล็ก ๆ
+  settle: 600, // วัตถุบนโต๊ะเปลี่ยนตำแหน่ง
+  fade: 150, // เพดานของ prefers-reduced-motion
+  ease: 'cubic-bezier(.2,.8,.2,1)',
+}

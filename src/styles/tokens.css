@@ -3,4 +3,5 @@
   --cover: #9e2f2a;
   --cover-spine: #8a2c28;
   --cover-strap: #7a2b28;
+  --motion-scale: 1; /* dev: ?motion=slow ตั้งเป็น 3 (lib/motion.js) */
 }

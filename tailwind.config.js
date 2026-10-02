@@ -1,4 +1,4 @@
-import { PALETTE, EMOTION_COLORS, FONT_SIZES } from './src/lib/tokens.js'
+import { PALETTE, EMOTION_COLORS, FONT_SIZES, MOTION } from './src/lib/tokens.js'
 
 /** @type {import('tailwindcss').Config} */
 export default {
@@ -31,11 +31,12 @@ export default {
         book: '0 22px 44px rgba(45, 43, 51, 0.30)',
       },
       transitionTimingFunction: {
-        desk: 'cubic-bezier(.2,.8,.2,1)',
+        desk: MOTION.ease,
       },
       transitionDuration: {
-        450: '450ms',
-        600: '600ms',
+        // คูณด้วย --motion-scale (ปกติ 1, ?motion=slow ตอน dev = 3) เพื่อดูแอนิเมชันทีละเฟส
+        450: `calc(${MOTION.swap}ms * var(--motion-scale, 1))`,
+        600: `calc(${MOTION.settle}ms * var(--motion-scale, 1))`,
       },
     },
   },
