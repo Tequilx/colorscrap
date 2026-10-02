@@ -31,6 +31,8 @@
       </Transition>
     </template>
   </Stage>
+  <!-- แผงปรับค่าสีน้ำ: dev เท่านั้น เปิดด้วย ?debug (อยู่นอก Stage ไม่โดน scale) -->
+  <component :is="DebugPanel" v-if="DebugPanel" />
 </template>
 
 <script setup>
@@ -75,6 +77,7 @@ watchEffect(() => {
 })
 
 const showKit = import.meta.env.DEV && new URLSearchParams(location.search).has('kit')
+const DebugPanel = import.meta.env.DEV && new URLSearchParams(location.search).has('debug') ? defineAsyncComponent(() => import('@/dev/DebugPanel.vue')) : null
 const Kit = showKit ? defineAsyncComponent(() => import('@/KitGallery.vue')) : null
 </script>
 

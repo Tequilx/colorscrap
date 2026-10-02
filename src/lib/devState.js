@@ -1,0 +1,15 @@
+import { reactive } from 'vue'
+
+// ค่าของหยดสีอุ่น (SPEC §6.4) เป็น reactive เพื่อให้แผง dev (?debug) ปรับสดได้ ไม่เปิดแผง = ใช้ค่าตั้งต้นนี้
+export const WARM_DEFAULTS = {
+  size: 0.5, // รัศมีหยดสีอุ่น (splatRadius) เทียบ "เติมหยด" ของ sad ที่ 0.18 × 3 = 0.54
+  strength: 1, // ตัวคูณความเข้มสีอุ่น ยังผ่านตัวกันสีสะสม INK_CAP
+  samples: 4, // จำนวนหยดตัวอย่างของ "ลองดู"
+}
+export const warmTune = reactive({ ...WARM_DEFAULTS })
+
+// ตัวนับของโน้ตชวน FluidCanvas เขียนเฉพาะตอน ?debug (dev) แผง dev อ่านไปแสดง
+export const noteDebug = reactive({ elapsed: '-', idle: '-' })
+
+// ชื่อ event ที่แผง dev ส่งให้ FluidCanvas (dev เท่านั้น)
+export const DEV_PARAMS_EVENT = 'colorscrap:params'

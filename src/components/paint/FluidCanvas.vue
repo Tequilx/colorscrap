@@ -14,29 +14,16 @@
       @pointercancel="onUp"
       @lostpointercapture="onUp"
     ></div>
-    <!-- dev เท่านั้น: เปิดด้วย ?debug ดูตัวนับของโน้ตชวน (ใช้ Teleport เพราะ Stage ถูก scale) -->
-    <Teleport v-if="DEBUG" to="body">
-      <div data-debug class="fixed bottom-2 left-2 z-50 whitespace-pre rounded bg-black/75 px-2 py-1 font-mono text-[12px] leading-snug text-white">
-        <div>นับตั้งแต่แตะครั้งแรก: {{ debug.elapsed }}</div>
-        <div>พักมือ: {{ debug.idle }}</div>
-        <div>โน้ต: {{ noteLabel }}</div>
-        <!-- ลองปรับหยดสีอุ่นสด ๆ (ค่าเริ่มต้นคือค่าที่ใช้จริง) -->
-        <label v-for="t in TUNE_SLIDERS" :key="t.key" class="flex items-center gap-2">
-          <span class="w-[84px]">{{ t.label }}</span>
-          <input v-model.number="tune[t.key]" type="range" :min="t.min" :max="t.max" :step="t.step" :data-tune="t.key" class="w-[76px]" />
-          <span class="w-8 text-right">{{ tune[t.key] }}</span>
-        </label>
-      </div>
-    </Teleport>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, computed, watch, onMounted, onBeforeUnmount } from 'vue'
+import { ref, watch, onMounted, onBeforeUnmount } from 'vue'
 import WebGLFluid from 'webgl-fluid-enhanced'
 import { emotionShades, FLUID_PARAMS, DENSITY_DISSIPATION, INK_CELL, INK_CAP, INITIAL_SPLATS, INTENSITY_FACTOR, SHIFT_TARGETS } from '@/lib/emotions'
 import { PALETTE } from '@/lib/tokens'
 import { dyeSetting, invertedHex } from '@/lib/dye'
+import { warmTune as tune, noteDebug as debug, DEV_PARAMS_EVENT } from '@/lib/devState'
 
 const props = defineProps({
   emotion: { type: String, required: true },
@@ -53,8 +40,6 @@ const props = defineProps({
   warmTick: { type: Number, default: 0 },
   // อารมณ์ล่าสุดของแผ่นเป็นอารมณ์ลบ (ใช้ตัดสินว่าจะชวนหรือไม่)
   warmAvailable: { type: Boolean, default: false },
-  // สถานะโน้ตชวนของแผ่น (idle/open/done) ใช้แสดงในกล่อง debug เท่านั้น
-  noteState: { type: String, default: 'idle' },
 })
 
 // shifted: ผู้ใช้หยดสีอุ่นเองหยดแรกของแผ่น | invite: ระบายรวมครบและพักมือ ควรโผล่โน้ตชวน (SPEC §6.4)
@@ -71,9 +56,7 @@ const SMEAR_FORCE = 1500
 const CLEAR_FRAMES = 8
 
 // สีอุ่นของอารมณ์ลบ (SPEC §6.4) ผู้ใช้เลือกหยดเอง ไม่มีการหยดอัตโนมัติ
-const WARM_SIZE = 0.7 // รัศมีหยดสีอุ่น (splatRadius) เทียบ "เติมหยด" ของ sad ที่ 0.18 × DROP_RADIUS_SCALE = 0.54
-const WARM_STRENGTH = 2 // ตัวคูณความเข้มสีอุ่น (สีเหลือง/พีชอ่อนอยู่แล้ว ต้องเพิ่มให้เห็นชัดเท่าหยดอารมณ์) ยังผ่านตัวกันสีสะสม INK_CAP
-const WARM_SAMPLES = 3 // จำนวนหยดตัวอย่างของ "ลองดู"
+// ขนาด/ความเข้ม/จำนวนหยดตัวอย่างของสีอุ่นอยู่ใน lib/devState.js (warmTune) ปรับสดได้จากแผง ?debug
 const WARM_SAMPLE_GAP = 280 // ms ห่างกันระหว่างหยดตัวอย่าง
 const SHIFT_SPEED = 200 // ความเร็วต่ำ (initial = 220 × speed ของอารมณ์)
 const WARM_TAP_SPEED = 60 // หยดที่ตำแหน่งแตะ ความเร็วเท่าหยดอารมณ์
@@ -81,7 +64,7 @@ const WARM_TAP_SPEED = 60 // หยดที่ตำแหน่งแตะ �
 const NOTE_PAINT_MS = 20000
 const NOTE_IDLE_MS = 2000
 const NOTE_TICK = 250
-// เร่งเวลาโน้ตตอน dev เพื่อทดสอบ (เร่งทั้ง 20 วินาทีและ 2 วินาที): เปิดหน้าด้วย ?shiftSpeed=10 (ไม่ยุ่งกับ simulation) และ ?debug แสดงกล่องตัวนับ
+// เร่งเวลาโน้ตตอน dev เพื่อทดสอบ (เร่งทั้ง 20 วินาทีและ 2 วินาที): เปิดหน้าด้วย ?shiftSpeed=10 (ไม่ยุ่งกับ simulation) และ ?debug เปิดแผงปรับค่า (src/dev/DebugPanel.vue)
 const DEBUG = import.meta.env.DEV && new URLSearchParams(location.search).has('debug')
 const NOTE_TIME_SCALE = import.meta.env.DEV ? Number(new URLSearchParams(location.search).get('shiftSpeed')) || 1 : 1
 // prefers-reduced-motion: หยดสีอุ่นตอนกดค้างช้าลงครึ่งหนึ่ง (ห่างขึ้น 2 เท่า)
@@ -102,15 +85,6 @@ let noteTimer = null
 // สถานะของแผ่นปัจจุบัน (รีเซ็ตเมื่อล้างผ้าใบ): เวลาที่ระบายรวม เวลาที่พักมือ ชวนไปแล้วหรือยัง จำนวนครั้งที่หยดสีอุ่น (ไล่สีตามนี้)
 const newSheetState = () => ({ started: false, elapsed: 0, idle: 0, invited: false, warmGestures: 0, warmDropped: false })
 let sheet = newSheetState()
-// ค่าที่ปรับสดได้ใน ?debug (ไม่เปิด debug = ใช้ค่าคงที่ข้างบน)
-const tune = reactive({ size: WARM_SIZE, strength: WARM_STRENGTH, samples: WARM_SAMPLES })
-const TUNE_SLIDERS = [
-  { key: 'size', label: 'ขนาดหยด', min: 0.2, max: 1.5, step: 0.05 },
-  { key: 'strength', label: 'ความเข้ม', min: 0.5, max: 5, step: 0.1 },
-  { key: 'samples', label: 'จำนวนลองดู', min: 1, max: 6, step: 1 },
-]
-const debug = reactive({ elapsed: '-', idle: '-' })
-const noteLabel = computed(() => ({ idle: 'รอ', open: 'แสดง', done: 'ปิดแล้ว' })[props.noteState] ?? props.noteState)
 const timers = new Set() // timeout ของหยดเริ่มต้นแบบเป็นจังหวะ
 const pointers = new Map() // pointerId → { x, y, downX, downY, hold, holdStart }
 
@@ -435,6 +409,8 @@ const onUp = (e) => {
 
 onMounted(() => {
   createFluid()
+  // แผง dev ปรับ FLUID_PARAMS สด: ตัวแปรเหล่านั้นถูกแก้ตรง ๆ ที่นี่แค่ตั้งค่าให้ไลบรารีใหม่
+  if (DEBUG) window.addEventListener(DEV_PARAMS_EVENT, applyParams)
   noteTimer = setInterval(noteTick, NOTE_TICK)
 })
 
@@ -502,6 +478,7 @@ const capture = (retries = 3) =>
 defineExpose({ clear, capture })
 
 onBeforeUnmount(() => {
+  if (DEBUG) window.removeEventListener(DEV_PARAMS_EVENT, applyParams)
   releaseAll()
   stopGravity()
   clearTimers()
