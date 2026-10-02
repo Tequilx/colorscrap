@@ -1,21 +1,22 @@
 <template>
   <!-- ดูภาพเดี่ยว (SPEC §5.8): ชั้นสี desk ทึบ 85% ทับทั้งโต๊ะ ภาพลอยขึ้นมาคู่กับการ์ดชาร์ตสีกลางจอ -->
-  <Transition name="photo">
+  <!-- เข้า/ออกด้วย WAAPI (css=false): ภาพบินระหว่างตำแหน่งในสมุดกับกลางโต๊ะ ส่วนฉากหลังและการ์ด fade -->
+  <Transition :css="false" @enter="onEnter" @leave="onLeave" @enter-cancelled="onCancel" @leave-cancelled="onCancel">
     <div v-if="active && entry" class="absolute inset-0" role="dialog" aria-modal="true" aria-label="ดูภาพและชาร์ตสี" @keydown="onTrap">
       <!-- พื้นที่ว่าง: คลิกเพื่อปิด -->
-      <div class="absolute inset-0 bg-desk/85" @click="close"></div>
+      <div data-photo="backdrop" class="absolute inset-0 bg-desk/85" @click="close"></div>
 
       <!-- ภาพกับการ์ดอยู่กึ่งกลางแนวตั้งทั้งคู่ วางคู่กันกลางจอ ห่างกัน 56px -->
       <div class="pointer-events-none absolute inset-0 flex items-center justify-center gap-14">
         <!-- โพลารอยด์ขยาย ~2.2 เท่า (กล่อง 196×193 ขยายเป็น ~431×425) -->
-        <div class="photo-lift relative h-[425px] w-[431px] shrink-0">
-          <div class="pointer-events-auto absolute left-1/2 top-1/2 -ml-[98px] -mt-[96px] w-[196px] origin-center -rotate-2 scale-[2.2]">
-            <Polaroid :caption="caption" :alt="`ภาพสีน้ำ ${emotion.th}`" :src="imageUrl" :colors="entry.colors.slice(0, 2).map((c) => c.hex)" :palette="entry.colors" :tape-rotate="-3" />
+        <div class="relative h-[425px] w-[431px] shrink-0">
+          <div data-photo="polaroid" class="pointer-events-auto absolute left-1/2 top-1/2 -ml-[98px] -mt-[96px] w-[196px] origin-center -rotate-2 scale-[2.2]">
+            <Polaroid :caption="caption" :alt="`ภาพสีน้ำ ${emotion.th}`" :src="shownUrl" :colors="entry.colors.slice(0, 2).map((c) => c.hex)" :palette="entry.colors" :tape-rotate="-3" />
           </div>
         </div>
 
         <!-- การ์ดชาร์ตสี (สไตล์บัตรตัวอย่างสี) -->
-        <div ref="cardRef" class="photo-lift pointer-events-auto box-border w-[460px] shrink-0 rounded-[22px_26px_20px_24px] border-2 border-ink bg-white px-7 pb-6 pt-5 shadow-[0_24px_44px_rgba(45,43,51,0.24)]">
+        <div ref="cardRef" data-photo="card" class="pointer-events-auto box-border w-[460px] shrink-0 rounded-[22px_26px_20px_24px] border-2 border-ink bg-white px-7 pb-6 pt-5 shadow-[0_24px_44px_rgba(45,43,51,0.24)]">
           <div class="flex items-start justify-between gap-3">
             <div class="flex flex-col">
               <h2 class="m-0 font-hand text-26 font-semibold leading-[1.2]">สีในภาพนี้</h2>
@@ -58,6 +59,10 @@ import Doodle from '@/components/ui/Doodle.vue'
 import { EMOTION_BY_KEY, INTENSITY_LABELS, emotionLabel } from '@/lib/emotions'
 import { percentsOf } from '@/lib/palette'
 import { useEntryImage } from '@/lib/useEntryImage'
+import { photoRotation } from '@/lib/photos'
+import { centerInStage, flightTransforms } from '@/lib/flip'
+import { ms, reducedMotion } from '@/lib/motion'
+import { MOTION } from '@/lib/tokens'
 import { useAppStore } from '@/stores/app'
 import { useEntriesStore } from '@/stores/entries'
 
@@ -73,6 +78,23 @@ const emotion = computed(() => EMOTION_BY_KEY[entry.value?.emotion ?? 'calm'])
 const caption = computed(() => (entry.value ? `${entry.value.local_time} · ${emotionLabel(entry.value)}${entry.value.shifted ? ' → อุ่นขึ้น' : ''}` : ''))
 // หน้า photo ใช้ภาพเต็ม สร้าง URL เฉพาะตอนเปิดดู (ปิดแล้วคืนหน่วยความจำ)
 const imageUrl = useEntryImage(() => (active.value ? entry.value : null), 'image')
+// ระหว่างบินใช้ thumb ก่อน (เดียวกับที่เห็นในสมุด) แล้วสลับเป็นภาพเต็มหลังบินจบและ decode เสร็จ ไม่สลับกลางทางให้ decode ไม่ทำให้กระตุก
+const thumbUrl = useEntryImage(() => (active.value ? entry.value : null), 'thumb')
+const fullReady = ref(false)
+const shownUrl = computed(() => (fullReady.value ? imageUrl.value ?? thumbUrl.value : thumbUrl.value ?? imageUrl.value))
+const showFull = async () => {
+  const url = imageUrl.value
+  if (url) {
+    try {
+      const img = new Image()
+      img.src = url
+      await img.decode()
+    } catch {
+      // decode ไม่สำเร็จ: สลับเลยก็ได้ ภาพจะโหลดตามปกติ
+    }
+  }
+  if (active.value) fullReady.value = true
+}
 const pct = computed(() => (entry.value ? percentsOf(entry.value.colors) : []))
 
 // เส้นรอยพู่กันยาวตาม ratio (สีที่มากที่สุดยาวเต็ม)
@@ -83,12 +105,93 @@ const swab = (ratio) => {
 }
 
 // ปิดแล้วกลับไป book ที่แผ่นเดิม (store ไม่รีเซ็ตวัน/แผ่นเมื่อกลับจาก photo)
+// ระหว่างภาพบิน ปิดซ้ำไม่ได้ (สถานะจะซ้อน)
 const close = () => {
-  if (active.value) app.go('book')
+  if (active.value && !app.photoFlying) app.go('book')
 }
 
 const onKey = (e) => {
   if (e.key === 'Escape' && active.value) close()
+}
+
+// --- แอนิเมชันเข้า/ออก (SPEC §5.8) ---
+let running = [] // animation ที่กำลังเล่น ไว้ยกเลิกเมื่อถูกตัดกลางทาง
+const parts = (el) => ({
+  backdrop: el.querySelector('[data-photo="backdrop"]'),
+  polaroid: el.querySelector('[data-photo="polaroid"]'),
+  card: el.querySelector('[data-photo="card"]'),
+})
+const play = (node, frames, options) => {
+  const a = node.animate(frames, { easing: MOTION.ease, ...options })
+  running.push(a)
+  return a.finished
+}
+const onCancel = () => {
+  running.forEach((a) => a.cancel())
+  running = []
+  app.photoFlying = false
+}
+const fade = (from, to) => [{ opacity: from }, { opacity: to }]
+// จุดกึ่งกลางของช่องภาพในสมุดตอนนี้ (ปิด: วัดใหม่กันรีไซส์หน้าต่าง) ไม่มี = บินไม่ได้ ใช้ท่าลอยขึ้นแบบเดิม
+const bookPose = () => {
+  const figure = document.querySelector(`[data-entry-id="${app.photoEntryId}"] figure`)
+  const center = figure && centerInStage(figure)
+  return center ? { ...center, rotate: photoRotation(app.photoEntryId).rotate } : app.photoOrigin
+}
+
+const fly = (el, done, opening) => {
+  app.photoFlying = true
+  running = []
+  const { backdrop, polaroid, card } = parts(el)
+  const settle = ms(MOTION.settle)
+  const swap = ms(MOTION.swap)
+  const calm = reducedMotion.value // reduced-motion: ทั้งหมด fade ≤150ms ไม่บิน ไม่เลื่อน
+  const pose = calm ? null : bookPose()
+  const target = pose && centerInStage(polaroid)
+  const wait = []
+  if (opening) {
+    wait.push(play(backdrop, fade(0, 1), { duration: swap, fill: 'backwards' }))
+    wait.push(play(card, calm ? fade(0, 1) : [{ opacity: 0, transform: 'translateY(24px)' }, { opacity: 1, transform: 'none' }], { duration: swap, delay: calm ? 0 : ms(MOTION.reveal.step), fill: 'backwards' }))
+    if (calm) wait.push(play(polaroid, fade(0, 1), { duration: swap, fill: 'backwards' }))
+    else if (target) wait.push(play(polaroid, flightTransforms(pose, target).map((transform) => ({ transform })), { duration: settle, fill: 'backwards' }))
+    else wait.push(play(polaroid, [{ opacity: 0, transform: 'translateY(48px) rotate(-2deg) scale(1.32)' }, { opacity: 1, transform: 'translateY(0) rotate(-2deg) scale(2.2)' }], { duration: settle, fill: 'backwards' }))
+  } else {
+    wait.push(play(backdrop, fade(1, 0), { duration: swap, fill: 'forwards' }))
+    wait.push(play(card, calm ? fade(1, 0) : [{ opacity: 1, transform: 'none' }, { opacity: 0, transform: 'translateY(24px)' }], { duration: calm ? swap : ms(MOTION.reveal.fade), fill: 'forwards' }))
+    if (calm) wait.push(play(polaroid, fade(1, 0), { duration: swap, fill: 'forwards' }))
+    else if (target) wait.push(play(polaroid, flightTransforms(pose, target).map((transform) => ({ transform })).reverse(), { duration: settle, fill: 'forwards' }))
+    else wait.push(play(polaroid, [{ opacity: 1, transform: 'translateY(0) rotate(-2deg) scale(2.2)' }, { opacity: 0, transform: 'translateY(48px) rotate(-2deg) scale(1.32)' }], { duration: settle, fill: 'forwards' }))
+  }
+  // cancel ทำให้ finished reject: ถือว่าถูกตัดกลางทาง (onCancel เก็บกวาดแล้ว)
+  Promise.all(wait).then(
+    () => {
+      running = []
+      app.photoFlying = false
+      done()
+    },
+    () => {},
+  )
+}
+
+const onEnter = (el, done) => {
+  fullReady.value = false
+  fly(el, () => {
+    done()
+    showFull()
+  }, true)
+}
+
+// ออก: ซ่อนช่องในสมุดไว้จนภาพบินถึง แล้วค่อยเลิกซ่อนพร้อมถอดภาพบิน (เฟรมเดียวกัน) แล้วคืนโฟกัสให้ปุ่มที่เปิด
+const onLeave = (el, done) => {
+  app.photoHiddenId = app.photoEntryId
+  fly(el, () => {
+    app.photoHiddenId = null
+    done()
+    nextTick(() => {
+      opener?.focus?.()
+      opener = null
+    })
+  }, false)
 }
 
 // focus trap: Tab วนอยู่ในการ์ด (ตอนนี้มีปุ่มเดียวคือ "ปิด" จึงวนอยู่ที่ปุ่มนั้น)
@@ -127,35 +230,12 @@ onBeforeUnmount(() => {
   document.removeEventListener('focusin', onFocusIn)
 })
 
-// เปิดแล้วโฟกัสที่ปุ่มปิด ปิดแล้วคืนโฟกัสให้ปุ่มที่เปิดภาพ
+// เปิดแล้วโฟกัสที่ปุ่มปิด (คืนโฟกัสให้ปุ่มที่เปิดภาพทำใน onLeave หลังช่องในสมุดกลับมามองเห็น)
 watch(active, async (on) => {
   if (on) {
     opener = document.activeElement
     await nextTick()
     closeRef.value?.$el?.focus()
-  } else {
-    await nextTick()
-    opener?.focus?.()
-    opener = null
   }
 })
 </script>
-
-<style>
-.photo-enter-active,
-.photo-leave-active {
-  transition: opacity 450ms cubic-bezier(0.2, 0.8, 0.2, 1);
-}
-.photo-enter-active .photo-lift,
-.photo-leave-active .photo-lift {
-  transition: transform 600ms cubic-bezier(0.2, 0.8, 0.2, 1);
-}
-.photo-enter-from,
-.photo-leave-to {
-  opacity: 0;
-}
-.photo-enter-from .photo-lift,
-.photo-leave-to .photo-lift {
-  transform: translateY(48px) scale(0.6);
-}
-</style>

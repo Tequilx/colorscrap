@@ -19,7 +19,7 @@
       :fresh-index="app.freshLeaf && app.freshLeaf.date === date ? app.freshLeaf.index : null"
       :mode="mode"
       @leaf="app.setLeaf"
-      @photo="app.openPhoto"
+      @photo="(p) => app.openPhoto(p.id, p.origin)"
     />
     <DailyPalette
       v-if="date"

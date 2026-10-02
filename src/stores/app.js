@@ -45,6 +45,8 @@ export const useAppStore = defineStore('app', () => {
   const leafIndex = ref(0) // แผ่นที่เปิดอยู่ในวันนั้น
   const lastSavedEntryId = ref(null)
   const photoEntryId = ref(null) // ภาพที่กำลังดูแบบเดี่ยว (view photo)
+  const photoOrigin = ref(null) // { x, y, rotate } ตำแหน่งภาพในสมุดตอนกด (พิกัด stage) ใช้เป็นจุดบินออก
+  const photoHiddenId = ref(null) // ช่องในสมุดที่ซ่อนอยู่ระหว่างภาพบินและตอนดูภาพเดี่ยว (ไม่ให้ซ้อนสองใบ)
   // แผ่นแทรกที่เพิ่งงอกจากการบันทึก (แสดงป้าย "แผ่นใหม่" จนกว่าผู้ใช้จะพลิกดูแผ่นอื่น)
   const freshLeaf = ref(null) // { date, index } | null
   // โหมดแก้ไขโปรไฟล์: เปิด hello จากปุ่มตั้งค่าในหน้า cover
@@ -83,6 +85,7 @@ export const useAppStore = defineStore('app', () => {
     savePhase.value = 'idle'
     leafFlipping.value = false
     photoFlying.value = false
+    photoHiddenId.value = null
   }
   // ผ้าใบ (FluidCanvas) ลงทะเบียนตัวเองไว้ที่นี่ ใช้ตัวแปรธรรมดาไม่ใช้ ref เพื่อไม่ให้ Vue ครอบ proxy
   let painter = null
@@ -216,9 +219,12 @@ export const useAppStore = defineStore('app', () => {
     selection.value = { ...selection.value, intensity }
   }
 
-  const openPhoto = (id) => {
+  const openPhoto = (id, origin = null) => {
+    if (busy.value) return
     photoEntryId.value = id
-    go(VIEWS.photo)
+    photoOrigin.value = origin
+    photoHiddenId.value = id
+    if (!go(VIEWS.photo)) photoHiddenId.value = null
   }
 
   // พลิกแผ่นโดยผู้ใช้ (ล้างป้าย "แผ่นใหม่")
@@ -246,6 +252,7 @@ export const useAppStore = defineStore('app', () => {
     leafIndex.value = 0
     lastSavedEntryId.value = null
     photoEntryId.value = null
+    photoOrigin.value = null
     freshLeaf.value = null
     helloEditing.value = false
     clearTick.value += 1 // ล้างผ้าใบ
@@ -316,6 +323,8 @@ export const useAppStore = defineStore('app', () => {
     leafIndex,
     lastSavedEntryId,
     photoEntryId,
+    photoOrigin,
+    photoHiddenId,
     freshLeaf,
     helloEditing,
     clearTick,

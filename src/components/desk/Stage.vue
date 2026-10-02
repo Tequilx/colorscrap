@@ -4,6 +4,7 @@
     <!-- stage ขนาดคงที่ 1280×800 ย่อ/ขยายทั้งก้อน วางกึ่งกลาง (SPEC §4.2) -->
     <div
       ref="stageRef"
+      data-stage
       class="absolute left-1/2 top-1/2 overflow-hidden"
       :style="{
         width: STAGE.width + 'px',
