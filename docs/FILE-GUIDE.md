@@ -76,15 +76,14 @@ ColorScrap คือสมุดสีน้ำสำหรับระบาย
 
 (จาก cover กดปุ่มตั้งค่าไป hello โหมดแก้ไข แล้วกด "บันทึก" กลับ cover)
 
-cover ──→ pick ──→ paint ──→ saved ──→ book ──→ photo ──→ book
- │         │ ↑       │ │       │  │      │ │
- │         │ └───────┘ │       │  └→ pick (ระบายต่ออีกแผ่น)
- │         └→ cover    │       │          │ └→ cover, paint
- │                     ├→ pick (เปลี่ยนสี)
- │                     ├→ book (ปุ่ม "สมุด")
- │                     └→ cover (ปุ่ม "หน้าแรก")
- ├→ book (เปิดสมุด)
- └→ hello (ตั้งค่า)
+ลูกศรทุกเส้นระหว่างหน้า (ตรงกับ ALLOWED):
+
+  cover ──→ pick      cover ──→ book      cover ──→ hello
+  pick  ──→ paint     pick  ──→ cover
+  paint ──→ saved     paint ──→ pick      paint ──→ book      paint ──→ cover
+  saved ──→ book      saved ──→ pick
+  book  ──→ paint     book  ──→ cover     book  ──→ photo
+  photo ──→ book
 
 เส้นทางหลักที่ผู้ใช้เดินบ่อย:
 login → hello → cover → pick → paint → saved → book → photo → book → cover
