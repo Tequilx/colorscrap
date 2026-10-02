@@ -20,14 +20,14 @@
 <script setup>
 import { ref, watch, onMounted, onBeforeUnmount } from 'vue'
 import WebGLFluid from 'webgl-fluid-enhanced'
-import { emotionShades, FLUID_PARAMS, DENSITY_DISSIPATION, INK_CELL, INK_CAP, INITIAL_SPLATS, INTENSITY_FACTOR, NEGATIVE_EMOTIONS, SHIFT_TARGETS } from '@/lib/emotions'
+import { emotionShades, FLUID_PARAMS, DENSITY_DISSIPATION, INK_CELL, INK_CAP, INITIAL_SPLATS, INTENSITY_FACTOR, SHIFT_TARGETS } from '@/lib/emotions'
 import { PALETTE } from '@/lib/tokens'
 import { dyeSetting, invertedHex } from '@/lib/dye'
 
 const props = defineProps({
   emotion: { type: String, required: true },
   intensity: { type: Number, default: 1 },
-  // เครื่องมือที่เลือก: smear (ปาดสี) | drop (เติมหยด)
+  // เครื่องมือที่เลือก: smear (ปาดสี) | drop (เติมหยด) | warm (สีอุ่น เฉพาะอารมณ์ลบ)
   tool: { type: String, default: 'smear' },
   // false = หยุด loop ของ simulation (ไม่อยู่ในหน้า paint) แต่ยังคง WebGL context ไว้ (SPEC §4.3)
   running: { type: Boolean, default: true },
@@ -35,9 +35,14 @@ const props = defineProps({
   clearTick: { type: Number, default: 0 },
   // เพิ่มค่าเพื่อสั่งหยดสีเริ่มต้นของอารมณ์ที่เลือก (หยดทับของเดิมได้) store เป็นผู้ตัดสินว่าเมื่อไหร่ควรหยด (SPEC §5.3)
   dropTick: { type: Number, default: 0 },
+  // เพิ่มค่าเมื่อกด "ลองดู" ในโน้ตชวน: หยดสีอุ่น 1 หยดที่ขอบกระดาษ
+  warmTick: { type: Number, default: 0 },
+  // อารมณ์ล่าสุดของแผ่นเป็นอารมณ์ลบ (ใช้ตัดสินว่าจะชวนหรือไม่)
+  warmAvailable: { type: Boolean, default: false },
 })
 
-const emit = defineEmits(['shifted'])
+// shifted: ผู้ใช้หยดสีอุ่นเองหยดแรกของแผ่น | invite: ระบายรวมครบและพักมือ ควรโผล่โน้ตชวน (SPEC §6.4)
+const emit = defineEmits(['shifted', 'invite'])
 
 const SIZE = { w: 1112, h: 612 }
 const HOLD_MS = 400 // กดค้างเกินนี้ = หยดต่อเนื่อง (SPEC §6.5)
@@ -49,16 +54,17 @@ const DROP_RADIUS_SCALE = 3 // splatRadius ของ SPEC เล็กเกิ�
 const SMEAR_FORCE = 1500
 const CLEAR_FRAMES = 8
 
-// ปรับโทนอารมณ์ลบ (SPEC §6.4) เวลาทั้งหมดเป็น ms ของ "เวลาที่ผ้าใบวิ่งอยู่จริง" (หยุดนับตอนไม่ได้อยู่หน้า paint / กำลังล้าง)
-const SHIFT_WAIT = 8000 // รอหลังแตะครั้งแรก
-const SHIFT_DURATION = [20000, 40000] // ช่วงที่ค่อย ๆ หยด (สุ่มต่อแผ่น)
-const SHIFT_INTERVAL = [2500, 4000] // ห่างกันต่อหยด
-const SHIFT_RADIUS = 0.5 // รัศมีเมื่อมี ~10 หยดในช่วงปรับ (หยดน้อยกว่านั้นขยายขึ้น มากกว่านั้นลดลง) ให้พื้นที่รวมใกล้เคียงกัน
+// สีอุ่นของอารมณ์ลบ (SPEC §6.4) ผู้ใช้เลือกหยดเอง ไม่มีการหยดอัตโนมัติ
+const SHIFT_RADIUS = 0.5 // รัศมีหยดสีอุ่นเมื่อแตะ
 const SHIFT_SPEED = 200 // ความเร็วต่ำ (initial = 220 × speed ของอารมณ์)
-const SHIFT_TICK = 250
-// เร่งเวลาตอน dev เพื่อทดสอบ: เปิดหน้าด้วย ?shiftSpeed=10 (ผลเฉพาะจังหวะการปรับโทน ไม่ยุ่งกับ simulation)
-const SHIFT_TIME_SCALE = import.meta.env.DEV ? Number(new URLSearchParams(location.search).get('shiftSpeed')) || 1 : 1
-// prefers-reduced-motion: ยังปรับโทนได้ แต่หยดช้าลงครึ่งหนึ่ง (ห่างขึ้น 2 เท่า)
+const WARM_TAP_SPEED = 60 // หยดที่ตำแหน่งแตะ ความเร็วเท่าหยดอารมณ์
+// โน้ตชวน: ระบายรวมครบเท่านี้ + พักมือเท่านี้ (ms ของเวลาที่ผ้าใบวิ่งอยู่) ถามครั้งเดียวต่อแผ่น
+const NOTE_PAINT_MS = 20000
+const NOTE_IDLE_MS = 2000
+const NOTE_TICK = 250
+// เร่งเวลาโน้ตตอน dev เพื่อทดสอบ: เปิดหน้าด้วย ?shiftSpeed=10 (ไม่ยุ่งกับ simulation)
+const NOTE_TIME_SCALE = import.meta.env.DEV ? Number(new URLSearchParams(location.search).get('shiftSpeed')) || 1 : 1
+// prefers-reduced-motion: หยดสีอุ่นตอนกดค้างช้าลงครึ่งหนึ่ง (ห่างขึ้น 2 เท่า)
 const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')
 
 // webgl-fluid-enhanced v0.8 รับ "container" (ไม่ใช่ canvas) แล้วหา <canvas> ข้างในเอง
@@ -72,9 +78,9 @@ let wantDrop = false
 let clearing = false
 let gravityTimer = null
 let gravityStop = null
-let shiftTimer = null
-// สถานะการปรับโทนของแผ่นปัจจุบัน (รีเซ็ตเมื่อล้างผ้าใบ)
-let shift = null // { elapsed, duration, nextIn, dropped } | null = ยังไม่มีใครแตะแผ่นนี้
+let noteTimer = null
+// สถานะของแผ่นปัจจุบัน (รีเซ็ตเมื่อล้างผ้าใบ): เวลาที่ระบายรวม เวลาที่พักมือ ชวนไปแล้วหรือยัง จำนวนครั้งที่หยดสีอุ่น (ไล่สีตามนี้)
+let sheet = { painted: 0, idle: 0, invited: false, warmGestures: 0, warmDropped: false }
 const timers = new Set() // timeout ของหยดเริ่มต้นแบบเป็นจังหวะ
 const pointers = new Map() // pointerId → { x, y, downX, downY, hold, holdStart }
 
@@ -187,18 +193,35 @@ const tryDrop = () => {
   startGravity()
 }
 
-// ---- ปรับโทนอารมณ์ลบ (SPEC §6.4) ----
+// ---- สีอุ่นของอารมณ์ลบ (SPEC §6.4) ----
 
-const startShift = () => {
-  const duration = rand(...SHIFT_DURATION)
-  // จำนวนหยดที่คาดว่าจะเกิดในช่วงนี้ → ปรับขนาดหยดให้พื้นที่สีปลายทางรวมกันใกล้เคียงกันไม่ว่าช่วงจะสั้นหรือยาว
-  const planned = duration / ((SHIFT_INTERVAL[0] + SHIFT_INTERVAL[1]) / 2) / (reducedMotion?.matches ? 2 : 1)
-  const radius = Math.min(0.75, Math.max(0.4, SHIFT_RADIUS * Math.sqrt(10 / planned)))
-  shift = { elapsed: 0, duration, radius, nextIn: 0, dropped: 0 }
+// สีปลายทางของการหยดครั้งนี้: ไล่ตามลำดับใน SHIFT_TARGETS ของอารมณ์ล่าสุด หนึ่งครั้ง (แตะหนึ่งที กดค้างหนึ่งรอบ ลองดูหนึ่งครั้ง) = หนึ่งสี วนกลับเมื่อครบ
+const warmHex = () => {
+  const targets = SHIFT_TARGETS[props.emotion]
+  return targets ? targets[sheet.warmGestures % targets.length] : null
 }
 
-// หยด 1 หยดของสีปลายทางจากขอบกระดาษ พุ่งเข้าด้านในช้า ๆ
-const dropShiftTarget = (hex, radius) => {
+// ชดเชย INTENSITY_FACTOR ที่ useShade คูณให้: สีอุ่นไม่ควรเข้มขึ้นตามความเข้มของอารมณ์เดิม
+const warmStrength = (strength = 1) => strength / INTENSITY_FACTOR[props.intensity]
+
+const markWarmDropped = () => {
+  if (sheet.warmDropped) return
+  sheet.warmDropped = true
+  emit('shifted')
+}
+
+// หยดสีอุ่นที่ตำแหน่งใดก็ได้ (ผู้ใช้แตะ หรือกดค้างเบา ๆ)
+const dropWarmAt = (x, y, hex, strength = 1) => {
+  const a = rand(0, Math.PI * 2)
+  splat(x, y, Math.cos(a) * WARM_TAP_SPEED, Math.sin(a) * WARM_TAP_SPEED, { hex, radius: SHIFT_RADIUS, strength: warmStrength(strength) })
+  markWarmDropped()
+}
+
+// "ลองดู": หยด 1 หยดที่ขอบกระดาษ พุ่งเข้าด้านในช้า ๆ
+const dropWarmAtEdge = () => {
+  const hex = warmHex()
+  if (!hex || !fluid) return
+  sheet.warmGestures++
   const margin = 40
   const side = Math.floor(Math.random() * 4) // บน ขวา ล่าง ซ้าย
   const t = rand(0.1, 0.9)
@@ -209,25 +232,24 @@ const dropShiftTarget = (hex, radius) => {
     [margin, SIZE.h * t, 0],
   ][side] // inward = ทิศเข้าหากลางกระดาษ (แกน y ของไลบรารีชี้ขึ้น)
   const angle = inward + rand(-0.4, 0.4)
-  // ชดเชย INTENSITY_FACTOR ที่ useShade คูณให้: สีปลายทางไม่ควรเข้มขึ้นตามความเข้มของอารมณ์เดิม
-  const strength = 1 / INTENSITY_FACTOR[props.intensity]
-  splat(x, y, Math.cos(angle) * SHIFT_SPEED, Math.sin(angle) * SHIFT_SPEED, { hex, radius, strength })
+  splat(x, y, Math.cos(angle) * SHIFT_SPEED, Math.sin(angle) * SHIFT_SPEED, { hex, radius: SHIFT_RADIUS, strength: warmStrength() })
+  markWarmDropped()
 }
 
-const shiftTick = () => {
-  if (!shift || !fluid || !props.running || clearing) return
-  shift.elapsed += SHIFT_TICK * SHIFT_TIME_SCALE
-  const phase = shift.elapsed - SHIFT_WAIT
-  if (phase < 0 || phase > shift.duration) return
-  // อารมณ์ล่าสุดของแผ่นเป็นตัวตัดสิน: ถ้าเป็นบวกก็ไม่หยด (เวลายังเดินต่อ)
-  if (!NEGATIVE_EMOTIONS.includes(props.emotion)) return
-  shift.nextIn -= SHIFT_TICK * SHIFT_TIME_SCALE
-  if (shift.nextIn > 0) return
-  shift.nextIn = rand(...SHIFT_INTERVAL) * (reducedMotion?.matches ? 2 : 1)
-  // ไล่สีตามลำดับตามความคืบหน้าของช่วงปรับ: สีแรกครึ่งแรก สีสุดท้ายครึ่งหลัง
-  const targets = SHIFT_TARGETS[props.emotion]
-  dropShiftTarget(targets[Math.min(targets.length - 1, Math.floor((phase / shift.duration) * targets.length))], shift.radius)
-  if (++shift.dropped === 1) emit('shifted')
+// ตัวจับเวลาของโน้ตชวน: นับเวลาเฉพาะตอนผ้าใบวิ่งอยู่ ระบายรวมครบ NOTE_PAINT_MS แล้วพักมือ NOTE_IDLE_MS จึงชวน (ครั้งเดียวต่อแผ่น)
+const noteTick = () => {
+  if (!fluid || !props.running || clearing || sheet.invited) return
+  const dt = NOTE_TICK * NOTE_TIME_SCALE
+  if (pointers.size) {
+    sheet.painted += dt
+    sheet.idle = 0
+    return
+  }
+  sheet.idle += dt
+  if (sheet.painted >= NOTE_PAINT_MS && sheet.idle >= NOTE_IDLE_MS && props.warmAvailable) {
+    sheet.invited = true
+    emit('invite')
+  }
 }
 
 const clearTimers = () => {
@@ -277,7 +299,7 @@ const clear = async () => {
   clearing = true
   releaseAll()
   clearTimers()
-  shift = null
+  sheet = { painted: 0, idle: 0, invited: false, warmGestures: 0, warmDropped: false }
   ink.fill(0)
   fluid.start() // no-op ถ้ากำลังวิ่งอยู่ (ถ้าถูกสั่งล้างตอนหยุด loop จะต้องวิ่งก่อนถึงจะล้างได้)
   fluid.setConfig({ densityDissipation: 1000, velocityDissipation: 1000 })
@@ -319,15 +341,20 @@ const releaseAll = () => {
 const onDown = (e) => {
   if (!fluid || !props.running || clearing) return
   inputRef.value.setPointerCapture?.(e.pointerId)
-  if (!shift) startShift() // แตะครั้งแรกของแผ่น เริ่มนับ 8 วินาที
   const { x, y } = toCanvas(e)
   const pointer = { x, y, downX: x, downY: y, hold: null, holdStart: null }
   pointers.set(e.pointerId, pointer)
-  if (props.tool === 'drop') dropAt(x, y)
+  // สีอุ่น: แตะ = หยดสีปลายทางตรงจุดนั้น กดค้าง = หยดเบา ๆ ต่อเนื่องด้วยสีเดียวกัน (ไม่ใช่สีอารมณ์)
+  const warm = props.tool === 'warm' && props.warmAvailable ? warmHex() : null
+  if (warm) {
+    sheet.warmGestures++
+    dropWarmAt(x, y, warm)
+  } else if (props.tool === 'drop') dropAt(x, y)
   // กดค้างเกิน 400ms (เครื่องมือไหนก็ได้) = หยดต่อเนื่องที่ตำแหน่งปัจจุบัน
+  const holdDrop = () => (warm ? dropWarmAt(pointer.x, pointer.y, warm, HOLD_STRENGTH) : dropAt(pointer.x, pointer.y, HOLD_STRENGTH))
   pointer.holdStart = setTimeout(() => {
-    dropAt(pointer.x, pointer.y, HOLD_STRENGTH)
-    pointer.hold = setInterval(() => dropAt(pointer.x, pointer.y, HOLD_STRENGTH), HOLD_INTERVAL)
+    holdDrop()
+    pointer.hold = setInterval(holdDrop, warm && reducedMotion?.matches ? HOLD_INTERVAL * 2 : HOLD_INTERVAL)
   }, HOLD_MS)
 }
 
@@ -359,7 +386,7 @@ const onUp = (e) => {
 
 onMounted(() => {
   createFluid()
-  shiftTimer = setInterval(shiftTick, SHIFT_TICK)
+  noteTimer = setInterval(noteTick, NOTE_TICK)
 })
 
 watch(
@@ -384,6 +411,13 @@ watch(
 )
 
 watch(() => props.clearTick, clear)
+
+watch(
+  () => props.warmTick,
+  () => {
+    if (props.running && !clearing) dropWarmAtEdge()
+  },
+)
 
 watch(
   () => props.dropTick,
@@ -422,7 +456,7 @@ onBeforeUnmount(() => {
   releaseAll()
   stopGravity()
   clearTimers()
-  clearInterval(shiftTimer)
+  clearInterval(noteTimer)
   fluid?.stop()
   fluid = null
 })

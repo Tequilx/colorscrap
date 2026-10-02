@@ -94,3 +94,6 @@ export const SHIFT_TARGETS = {
   anxious: ['#5FA3C8', '#B9D7A4'],
   tired: ['#9CC3D8', '#F7DE99'],
 }
+
+// ไล่สีของไอคอนหยดสีอุ่น: เหลือง (สีสุดท้ายของ sad/tired) → พีช (สีสุดท้ายของ angry)
+export const WARM_GRADIENT = [SHIFT_TARGETS.sad[1], SHIFT_TARGETS.angry[1]]

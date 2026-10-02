@@ -1,20 +1,21 @@
 <template>
   <!-- ถาดเครื่องมือ 620×80 ทับขอบล่างของกระดาษ — SPEC §5.3 -->
-  <div class="absolute left-[330px] top-[690px] box-border flex h-20 w-[620px] items-center gap-2 rounded-[20px_22px_18px_24px] bg-[#C8C2B7] px-3 shadow-[0_6px_14px_rgba(45,43,51,0.18)]">
+  <div class="absolute left-[270px] top-[690px] box-border flex h-20 w-[740px] items-center gap-2 rounded-[20px_22px_18px_24px] bg-[#C8C2B7] px-3 shadow-[0_6px_14px_rgba(45,43,51,0.18)]">
     <div role="group" aria-label="เครื่องมือ" class="flex gap-2">
       <button
-        v-for="t in TOOLS"
+        v-for="t in tools"
         :key="t.key"
         type="button"
         :aria-pressed="t.mode ? app.tool === t.key : undefined"
         class="flex h-[60px] cursor-pointer flex-col items-center justify-center gap-0.5 whitespace-nowrap rounded-[14px] border-2 p-0 font-hand text-14 font-semibold text-ink"
         :class="[
           !t.mode && armed ? 'w-[148px] border-ink bg-paper' : 'w-24',
-          t.mode && app.tool === t.key ? 'border-ink bg-paper' : !t.mode && armed ? '' : 'border-transparent bg-transparent',
+          t.mode && app.tool === t.key ? (t.key === 'warm' ? 'border-ink bg-warm-tint' : 'border-ink bg-paper') : !t.mode && armed ? '' : 'border-transparent bg-transparent',
         ]"
-        @click="t.mode ? (app.tool = t.key) : pressClear()"
+        @click="t.mode ? app.pickTool(t.key) : pressClear()"
       >
-        <Doodle :name="t.mode || !armed ? t.icon : 'check'" :size="24" />
+        <WarmDrop v-if="t.key === 'warm'" :size="24" />
+        <Doodle v-else :name="t.mode || !armed ? t.icon : 'check'" :size="24" />
         {{ t.mode || !armed ? t.label : 'แตะอีกครั้งเพื่อล้าง' }}
       </button>
     </div>
@@ -32,8 +33,9 @@
 </template>
 
 <script setup>
-import { ref, watch, onBeforeUnmount } from 'vue'
+import { ref, computed, watch, onBeforeUnmount } from 'vue'
 import Doodle from '@/components/ui/Doodle.vue'
+import WarmDrop from '@/components/paint/WarmDrop.vue'
 import { useAppStore } from '@/stores/app'
 
 const app = useAppStore()
@@ -65,10 +67,14 @@ watch(
 
 onBeforeUnmount(() => clearTimeout(armTimer))
 
-// ปาดสี/เติมหยดเป็นโหมด ส่วน "เริ่มใหม่" ไม่ใช่โหมด กดแล้วล้างทันที (SPEC §5.3)
+// ปาดสี/เติมหยด/สีอุ่นเป็นโหมด ส่วน "เริ่มใหม่" ไม่ใช่โหมด กดแล้วล้างทันที (SPEC §5.3)
 const TOOLS = [
   { key: 'smear', label: 'ปาดสี', icon: 'smear', mode: true },
   { key: 'drop', label: 'เติมหยด', icon: 'drop', mode: true },
+  { key: 'warm', label: 'สีอุ่น', mode: true }, // เฉพาะอารมณ์ลบ (SPEC §6.4)
   { key: 'clear', label: 'เริ่มใหม่', icon: 'restart', mode: false },
 ]
+
+// "สีอุ่น" โผล่เฉพาะเมื่ออารมณ์ล่าสุดของแผ่นเป็นอารมณ์ลบ
+const tools = computed(() => TOOLS.filter((t) => t.key !== 'warm' || app.warmAvailable))
 </script>
