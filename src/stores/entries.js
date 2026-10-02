@@ -8,6 +8,7 @@ import { useImageUrlsStore } from '@/stores/imageUrls'
 import { useUploadQueueStore } from '@/stores/uploadQueue'
 import { EMOTION_COLORS } from '@/lib/tokens'
 import { emotionShades, SHIFT_TARGETS } from '@/lib/emotions'
+import { uuid } from '@/lib/uuid'
 import { addDays, localDateStr, parseLocalDate, thaiWeekdayShort } from '@/lib/dates'
 import { dominantColorOfDay } from '@/lib/palette'
 import { emotionShades as shadesOf } from '@/lib/emotions'
@@ -141,7 +142,7 @@ export const useEntriesStore = defineStore('entries', () => {
   const adoptLegacy = async () => {
     const uid = auth.user.id
     for (const old of (await loadRecords()).filter(hasLegacy)) {
-      const record = { ...old, id: crypto.randomUUID(), user_id: uid }
+      const record = { ...old, id: uuid(), user_id: uid }
       if (!(await saveRecord(record))) continue
       await deleteRecord(old.id)
       entries.value.push({ ...withBlobs(record), image_path: null, thumb_path: null })
@@ -207,7 +208,7 @@ export const useEntriesStore = defineStore('entries', () => {
     const emotion = emotions.at(-1) // emotion = อารมณ์ล่าสุดของแผ่น, emotions = ตามลำดับที่หยด (SPEC §7.2)
     const shades = shadesOf(emotion)
     const entry = {
-      id: crypto.randomUUID(), // uuid ตั้งแต่ตอนสร้าง ให้ path ใน Storage ล่วงหน้าได้ก่อน insert
+      id: uuid(), // uuid ตั้งแต่ตอนสร้าง ให้ path ใน Storage ล่วงหน้าได้ก่อน insert
       local_date: localDateStr(now),
       local_time: `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`,
       emotion,

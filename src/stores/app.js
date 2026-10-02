@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed, watch } from 'vue'
 import { useEntriesStore } from '@/stores/entries'
+import { useToastStore } from '@/stores/toast'
 import { localDateStr } from '@/lib/dates'
 import { chunk } from '@/lib/palette'
 import { extractColors } from '@/lib/extractColors'
@@ -243,37 +244,41 @@ export const useAppStore = defineStore('app', () => {
   const saveToBook = async () => {
     if (saving.value) return null
     saving.value = true
-    let grabbed
+    // ล็อกกดซ้ำไว้ตลอดจนจบ และปลดเสมอ (finally) ไม่ให้ปุ่มบันทึกค้างเงียบ ๆ ถ้าพลาดกลางทาง
     try {
-      grabbed = await grabPainting()
+      const grabbed = await grabPainting()
+      const entries = useEntriesStore()
+      const today = localDateStr()
+      const emotions = sheetEmotions.value.length ? [...sheetEmotions.value] : [selection.value.emotion]
+      const entry = entries.addEntry({
+        emotions,
+        intensity: selection.value.intensity,
+        shifted: sheetShifted.value,
+        colors: grabbed.colors,
+        images: grabbed.images,
+      })
+      // ตำแหน่งของภาพใหม่ในวัน (เรียงตามเวลา) → แผ่นที่ภาพอยู่
+      const position = entries.entriesOfDay(today).findIndex((e) => e.id === entry.id)
+      const index = Math.floor(position / PHOTOS_PER_LEAF)
+      openDate.value = today
+      leafIndex.value = index
+      // ภาพแรกของแผ่นแทรกใหม่ → ป้าย "แผ่นใหม่" จนกว่าผู้ใช้จะพลิกดูแผ่นอื่น
+      freshLeaf.value = position > 0 && position % PHOTOS_PER_LEAF === 0 ? { date: today, index } : null
+      lastSavedEntryId.value = entry.id
+      clearTick.value += 1 // ผ้าใบเริ่มใหม่สำหรับภาพถัดไป (ว่าง: เข้า paint ครั้งหน้าจะหยดสีเอง)
+      canvasDirty.value = false
+      sheetEmotions.value = []
+      sheetShifted.value = false
+      resetWarmNote()
+      go(VIEWS.saved)
+      return entry
+    } catch (error) {
+      console.error('บันทึกภาพลงสมุดไม่สำเร็จ:', error)
+      useToastStore().show('บันทึกไม่สำเร็จ ลองอีกครั้งนะ')
+      return null
     } finally {
       saving.value = false
     }
-    const entries = useEntriesStore()
-    const today = localDateStr()
-    const emotions = sheetEmotions.value.length ? [...sheetEmotions.value] : [selection.value.emotion]
-    const entry = entries.addEntry({
-      emotions,
-      intensity: selection.value.intensity,
-      shifted: sheetShifted.value,
-      colors: grabbed.colors,
-      images: grabbed.images,
-    })
-    // ตำแหน่งของภาพใหม่ในวัน (เรียงตามเวลา) → แผ่นที่ภาพอยู่
-    const position = entries.entriesOfDay(today).findIndex((e) => e.id === entry.id)
-    const index = Math.floor(position / PHOTOS_PER_LEAF)
-    openDate.value = today
-    leafIndex.value = index
-    // ภาพแรกของแผ่นแทรกใหม่ → ป้าย "แผ่นใหม่" จนกว่าผู้ใช้จะพลิกดูแผ่นอื่น
-    freshLeaf.value = position > 0 && position % PHOTOS_PER_LEAF === 0 ? { date: today, index } : null
-    lastSavedEntryId.value = entry.id
-    clearTick.value += 1 // ผ้าใบเริ่มใหม่สำหรับภาพถัดไป (ว่าง: เข้า paint ครั้งหน้าจะหยดสีเอง)
-    canvasDirty.value = false
-    sheetEmotions.value = []
-    sheetShifted.value = false
-    resetWarmNote()
-    go(VIEWS.saved)
-    return entry
   }
 
   return {
