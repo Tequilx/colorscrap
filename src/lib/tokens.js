@@ -56,4 +56,6 @@ export const MOTION = {
   settle: 600, // วัตถุบนโต๊ะเปลี่ยนตำแหน่ง
   fade: 150, // เพดานของ prefers-reduced-motion
   ease: 'cubic-bezier(.2,.8,.2,1)',
+  // จานสีประจำวันปรากฏทีละส่วนตอนเข้า book (เริ่มหลังสมุดเข้าที่ lead แล้วเรียงห่างกัน step)
+  reveal: { lead: 170, step: 150, seep: 600, rise: 350, fade: 400 },
 }

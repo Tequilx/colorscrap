@@ -63,6 +63,8 @@ export const useAppStore = defineStore('app', () => {
   // เพิ่มเมื่อกด "ลองดู" ให้ผ้าใบหยดสีอุ่น 1 หยดที่ขอบกระดาษ
   const warmTick = ref(0)
   let pickFrom = null // view ที่มาก่อนเข้า pick ใช้ตัดสินว่าเป็น "เปลี่ยนสี" หรือเริ่มระบายใหม่
+  // เพิ่มทุกครั้งที่เข้า book จาก view อื่น (ไม่นับกลับจาก photo) ให้จานสีประจำวันเล่นการปรากฏทีละส่วนใหม่
+  const bookTick = ref(0)
   const saving = ref(false) // กำลังจับภาพ/ดูดสีตอนบันทึก (กันกดซ้ำ)
   // ลำดับแอนิเมชันที่กินเวลา (ขั้น 9): ระหว่างนี้ปุ่มที่ทำให้สถานะพังต้องกดไม่ได้ (SPEC §5.4)
   // savePhase: idle → shrink → book → leaf → drop → tape → card → idle (ตัวขับอยู่ใน runSaveSequence)
@@ -135,6 +137,7 @@ export const useAppStore = defineStore('app', () => {
     const from = view.value
     // กลับจาก saved/photo คงวันและแผ่นเดิมไว้ ไม่รีเซ็ตไปแผ่นล่าสุด
     if (next === VIEWS.book && from !== VIEWS.saved && from !== VIEWS.photo) openBook()
+    if (next === VIEWS.book && from !== VIEWS.photo) bookTick.value += 1
     if (next === VIEWS.pick) pickFrom = from
     // เข้า paint ตอนผ้าใบว่างหรือเพิ่งบันทึก: หยดสีของอารมณ์ที่เลือกทันที (SPEC §5.3)
     // ถ้ามีภาพค้างอยู่ beginPaint / continueSheet / newSheet เป็นผู้ตัดสินแล้ว
@@ -329,6 +332,7 @@ export const useAppStore = defineStore('app', () => {
     tryWarm,
     pickTool,
     saving,
+    bookTick,
     savePhase,
     leafFlipping,
     photoFlying,

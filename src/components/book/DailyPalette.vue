@@ -1,20 +1,23 @@
 <template>
   <!-- หน้าขวา: จานสีประจำวัน (SPEC §5.7) -->
   <div class="absolute left-[506px] top-[14px] h-[612px] w-[492px] rounded-[0_6px_6px_0] bg-paper shadow-[inset_18px_0_22px_-16px_rgba(45,43,51,0.35)]">
-    <!-- หน้า saved: การ์ดทับหน้านี้อยู่ ซ่อนเนื้อหาทั้งหมด เหลือแต่กระดาษ (fade เข้า/ออก ไม่ pop) -->
-    <Transition name="fade">
+    <!-- หน้า saved: การ์ดทับหน้านี้อยู่ ซ่อนเนื้อหาทั้งหมด เหลือแต่กระดาษ -->
+    <!-- ออก: fade, เข้า: ทีละส่วนตาม bookTick (ไม่เล่นซ้ำตอนพลิกแผ่น/เปลี่ยนวัน เพราะ key เปลี่ยนเฉพาะตอนเข้า book) -->
+    <Transition leave-active-class="fade-leave-active" leave-to-class="fade-leave-to">
     <div v-if="!hidden" class="absolute inset-0">
+    <!-- key = bookTick: เข้า book ใหม่แล้วสร้างเนื้อหาใหม่ (แทนที่ทันที ไม่มี fade ซ้อน) เพื่อเล่นการปรากฏทีละส่วนใหม่ -->
+    <div :key="app.bookTick" class="absolute inset-0">
       <div class="absolute left-10 top-7 flex w-[412px] items-baseline justify-between">
         <span class="whitespace-nowrap font-hand text-26 font-semibold">{{ title }}</span>
         <span v-if="entries.length" class="whitespace-nowrap text-14 text-ink-soft">{{ entries.length }} ภาพ · {{ moodCount }} อารมณ์</span>
       </div>
 
-      <p v-if="!entries.length" class="absolute left-10 top-[120px] m-0 w-[412px] text-16 leading-[1.7] text-ink-soft">ยังไม่มีสีของวันนี้ ลองระบายสักภาพแล้วสีจะมารวมกันตรงนี้</p>
+      <p v-if="!entries.length" class="pal-rise absolute left-10 top-[120px] m-0 w-[412px] text-16 leading-[1.7] text-ink-soft" :style="reveal(1, 'rise')">ยังไม่มีสีของวันนี้ ลองระบายสักภาพแล้วสีจะมารวมกันตรงนี้</p>
 
       <template v-else>
         <div class="absolute left-[34px] top-[82px] flex w-[418px] items-center gap-5">
-          <MixingWell :entries="entries" />
-          <div class="flex min-w-0 flex-col gap-1.5">
+          <MixingWell class="pal-seep" :style="reveal(0, 'seep')" :entries="entries" />
+          <div class="pal-rise flex min-w-0 flex-col gap-1.5" :style="reveal(1, 'rise')">
             <span class="text-13 text-ink-soft">{{ isToday ? 'สีของวันนี้' : 'สีของวัน' }}</span>
             <span class="font-hand text-26 font-semibold leading-[1.25]">{{ name.colorPart }}<br />{{ name.periodPart }}</span>
             <svg width="170" height="36" viewBox="0 0 170 36" aria-hidden="true">
@@ -24,12 +27,12 @@
           </div>
         </div>
 
-        <div class="absolute left-10 top-[306px] flex w-[412px] flex-col gap-1">
+        <div class="pal-fade absolute left-10 top-[306px] flex w-[412px] flex-col gap-1" :style="reveal(3, 'fade')">
           <span class="font-hand text-17 font-semibold">ช่วงเวลาของวัน</span>
           <DayTimeline :entries="entries" :new-id="newId" />
         </div>
 
-        <p class="absolute left-10 top-[458px] m-0 w-[412px] text-16 leading-[1.7] text-ink-2">{{ summary }}</p>
+        <p class="pal-rise absolute left-10 top-[458px] m-0 w-[412px] text-16 leading-[1.7] text-ink-2" :style="reveal(2, 'rise')">{{ summary }}</p>
       </template>
 
       <div class="absolute inset-x-10 bottom-[22px] flex items-center justify-between border-t-[1.5px] border-dashed border-line pt-2">
@@ -43,6 +46,7 @@
         <span v-else class="text-14 text-ink-soft">หน้าล่าสุด</span>
       </div>
     </div>
+    </div>
     </Transition>
   </div>
 </template>
@@ -55,6 +59,9 @@ import Doodle from '@/components/ui/Doodle.vue'
 import { dayColor, nameOfDay } from '@/lib/palette'
 import { EMOTION_BY_KEY } from '@/lib/emotions'
 import { localDateStr, parseLocalDate, thaiDateShort } from '@/lib/dates'
+import { useAppStore } from '@/stores/app'
+import { scaled } from '@/lib/motion'
+import { MOTION } from '@/lib/tokens'
 
 const props = defineProps({
   date: { type: String, required: true },
@@ -67,6 +74,15 @@ const props = defineProps({
 })
 
 defineEmits(['day'])
+
+const app = useAppStore()
+
+// ปรากฏทีละส่วน: เริ่มหลังสมุดเข้าที่ (settle + lead) แล้วเรียงห่างกัน step (รวม ~850ms นับจากเริ่มส่วนแรก ไม่เกิน ~1s)
+// ลำดับ 0 หยดสีผสม (ซึมลง) → 1 ชื่อสี → 2 ข้อความสรุป → 3 timeline
+const reveal = (order, kind) => ({
+  '--d': scaled(MOTION.settle + MOTION.reveal.lead + order * MOTION.reveal.step),
+  '--dur': scaled(MOTION.reveal[kind]),
+})
 
 const isToday = computed(() => props.date === localDateStr())
 const title = computed(() => (isToday.value ? 'จานสีของวันนี้' : `จานสีของ ${thaiDateShort(parseLocalDate(props.date))}`))
@@ -109,3 +125,40 @@ const summary = computed(() => {
   return `ส่วนใหญ่${th(main[0])} มีช่วง${th(second[0])}ตอน${dayPart(secondEntry.local_time)}${shiftedNote}`
 })
 </script>
+
+<style>
+/* animation-fill-mode: backwards ให้ซ่อนอยู่ระหว่างรอ delay โดยไม่ต้องมี state และไม่ขวางการกดปุ่ม */
+.pal-seep {
+  animation: pal-seep var(--dur) cubic-bezier(0.2, 0.8, 0.2, 1) var(--d) backwards;
+}
+.pal-rise {
+  animation: pal-rise var(--dur) cubic-bezier(0.2, 0.8, 0.2, 1) var(--d) backwards;
+}
+.pal-fade {
+  animation: pal-fade var(--dur) cubic-bezier(0.2, 0.8, 0.2, 1) var(--d) backwards;
+}
+@keyframes pal-seep {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+}
+@keyframes pal-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+@keyframes pal-fade {
+  from {
+    opacity: 0;
+  }
+}
+/* reduced-motion: ทั้งก้อน fade ครั้งเดียว ≤150ms พร้อมกัน (duration/delay ถูกบีบใน app.css) ตัด scale และการเลื่อน */
+@media (prefers-reduced-motion: reduce) {
+  .pal-seep,
+  .pal-rise {
+    animation-name: pal-fade;
+  }
+}
+</style>

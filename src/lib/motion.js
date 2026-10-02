@@ -18,3 +18,6 @@ if (TIME_SCALE !== 1) document.documentElement.style.setProperty('--motion-scale
 export const ms = (n) => (reducedMotion.value ? Math.min(n, MOTION.fade) : n * TIME_SCALE)
 
 export const sleep = (n) => new Promise((resolve) => setTimeout(resolve, ms(n)))
+
+// ค่าเวลา CSS ที่คูณ --motion-scale (?motion=slow) ใช้กับ var ใน style ของคอมโพเนนต์
+export const scaled = (n) => `calc(${n}ms * var(--motion-scale, 1))`
