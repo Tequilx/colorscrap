@@ -4,6 +4,7 @@ import { loadRecords } from '@/lib/imageStore'
 import { useAuthStore } from '@/stores/auth'
 import { useEntriesStore } from '@/stores/entries'
 import { useToastStore } from '@/stores/toast'
+import { sequenceActive } from '@/lib/motion'
 
 // คิวอัปโหลดภาพ (SPEC §6.6): entry ที่ยังขึ้น Supabase ไม่สำเร็จค้างอยู่ใน IndexedDB (มี user_id ของเจ้าของ)
 // flush() อัปโหลดทุกรายการของผู้ใช้ที่ล็อกอินอยู่ ล้มเหลว → toast ครั้งแรก แล้วลองใหม่เองห่างขึ้นเรื่อย ๆ
@@ -28,6 +29,12 @@ export const useUploadQueueStore = defineStore('uploadQueue', () => {
     if (!listening) {
       listening = true
       window.addEventListener('online', flush)
+    }
+    // กำลังเล่นลำดับแอนิเมชันตอนบันทึก: รอจบก่อนค่อยอัปโหลด (ไม่ให้ encode/เครือข่ายแย่งเฟรม)
+    if (sequenceActive.value) {
+      clearTimeout(timer)
+      timer = setTimeout(flush, 400)
+      return
     }
     if (running) {
       again = true

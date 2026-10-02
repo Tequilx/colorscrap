@@ -2,7 +2,7 @@
   <!-- ภาพโพลารอยด์กว้าง 196px มีเทปและคำบรรยายลายมือ (SPEC §5.5) -->
   <figure class="relative m-0 box-border w-[196px] bg-white px-[9px] pt-[9px] shadow-photo"
     :class="palette.length ? 'pb-[46px]' : 'pb-8'" :style="{ transform: `rotate(${rotate}deg)` }">
-    <Tape class="left-[56px] top-[-11px]" :rotate="tapeRotate" />
+    <Tape v-if="tape" class="left-[56px] top-[-11px]" :rotate="tapeRotate" />
     <!-- ช่องภาพสัดส่วนเท่ากระดาษวาด 1112:612 ภาพจริงจึงไม่ถูกตัดขอบ (178×~98) -->
     <div class="aspect-[1112/612] w-[178px] overflow-hidden bg-paper">
       <!-- ภาพจริงของผู้ใช้: สัดส่วนเดียวกับช่อง -->
@@ -45,5 +45,7 @@ defineProps({
   palette: { type: Array, default: () => [] },
   // ป้าย "ใหม่" ที่มุมขวาล่าง
   badge: { type: String, default: '' },
+  // false = ไม่ใส่เทป (ลำดับบันทึกแปะเทปเองทีหลัง)
+  tape: { type: Boolean, default: true },
 })
 </script>

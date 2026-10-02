@@ -22,7 +22,7 @@
     <span class="mx-1.5 h-11 w-0.5 bg-ink/20" aria-hidden="true"></span>
     <button
       type="button"
-      :disabled="app.saving"
+      :disabled="app.saving || app.busy"
       class="flex min-h-[60px] flex-grow cursor-pointer items-center justify-center gap-2.5 rounded-[16px_20px_14px_22px] border-0 bg-ink font-hand text-19 font-semibold text-paper disabled:cursor-wait disabled:opacity-60"
       @click="app.saveToBook()"
     >

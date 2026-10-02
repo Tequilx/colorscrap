@@ -1,6 +1,6 @@
 <template>
   <!-- การ์ดหลังบันทึก (SPEC §5.4) -->
-  <div class="absolute left-[790px] top-[110px] box-border flex w-[400px] flex-col gap-[18px] rounded-[22px_26px_20px_24px] border-2 border-ink bg-white px-[30px] py-7 shadow-[0_24px_44px_rgba(45,43,51,0.24)]">
+  <div class="absolute left-[790px] top-[110px] box-border flex w-[400px] flex-col gap-[18px] rounded-[22px_26px_20px_24px] border-2 border-ink bg-white px-[30px] py-7 shadow-[0_24px_44px_rgba(45,43,51,0.24)]" :class="app.savePhase === 'idle' ? '' : 'pointer-events-none'">
     <div class="flex items-center gap-3">
       <span class="filter-wob flex h-11 w-11 items-center justify-center rounded-full text-ink" :style="{ background: emotion.hex }">
         <Doodle name="check" :size="24" />

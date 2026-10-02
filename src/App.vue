@@ -8,6 +8,8 @@
       <DrawingBoard />
       <Scrapbook />
       <EmotionPalette />
+      <!-- โพลารอยด์ที่บินตอนบันทึก (SPEC §5.4) -->
+      <SavedFlight v-if="app.saveFlight" :flight="app.saveFlight" />
 
       <!-- ส่วนของแต่ละ view ที่เข้า/ออกด้วย fade -->
       <Transition name="fade">
@@ -23,8 +25,9 @@
       <Transition name="fade">
         <CoverIntro v-if="app.view === 'cover'" class="absolute inset-0" />
       </Transition>
-      <Transition name="fade">
-        <SavedCard v-if="app.view === 'saved'" />
+      <!-- การ์ดโผล่เป็นขั้นสุดท้ายของลำดับบันทึก (savePhase card → idle) -->
+      <Transition name="card">
+        <SavedCard v-if="app.view === 'saved' && (app.savePhase === 'card' || app.savePhase === 'idle')" />
       </Transition>
       <PhotoView />
       <LegacyPrompt />
@@ -57,6 +60,7 @@ import CoverPreview from '@/components/hello/CoverPreview.vue'
 import CoverIntro from '@/components/cover/CoverIntro.vue'
 import DrawingBoard from '@/components/paint/DrawingBoard.vue'
 import SavedCard from '@/components/saved/SavedCard.vue'
+import SavedFlight from '@/components/saved/SavedFlight.vue'
 import PhotoView from '@/components/photo/PhotoView.vue'
 import HandButton from '@/components/ui/HandButton.vue'
 import Doodle from '@/components/ui/Doodle.vue'
@@ -116,6 +120,19 @@ const Kit = showKit ? defineAsyncComponent(() => import('@/KitGallery.vue')) : n
 }
 .fade-enter-from,
 .fade-leave-to {
+  opacity: 0;
+}
+.card-enter-active,
+.card-leave-active {
+  transition:
+    opacity calc(300ms * var(--motion-scale, 1)) cubic-bezier(0.2, 0.8, 0.2, 1),
+    transform calc(300ms * var(--motion-scale, 1)) cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.card-enter-from {
+  opacity: 0;
+  transform: translateY(14px);
+}
+.card-leave-to {
   opacity: 0;
 }
 </style>

@@ -42,3 +42,10 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* reduced-motion: การ์ดหลังบันทึกไม่เลื่อนขึ้น */
+@media (prefers-reduced-motion: reduce) {
+  .card-enter-from {
+    transform: none;
+  }
+}

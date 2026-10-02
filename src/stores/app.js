@@ -1,13 +1,15 @@
 import { defineStore } from 'pinia'
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, markRaw } from 'vue'
 import { useEntriesStore } from '@/stores/entries'
 import { useToastStore } from '@/stores/toast'
 import { localDateStr } from '@/lib/dates'
 import { chunk } from '@/lib/palette'
 import { extractColors } from '@/lib/extractColors'
 import { exportImages } from '@/lib/exportImage'
-import { EMOTION_COLORS } from '@/lib/tokens'
+import { EMOTION_COLORS, MOTION } from '@/lib/tokens'
 import { NEGATIVE_EMOTIONS } from '@/lib/emotions'
+import { reducedMotion, sequenceActive, TIME_SCALE } from '@/lib/motion'
+import { POLAROID, saveSchedule, slotCenter } from '@/lib/saveTimeline'
 
 // สถานะของโต๊ะ (SPEC §4.1) แทนการใช้ router
 export const VIEWS = Object.freeze({
@@ -71,8 +73,11 @@ export const useAppStore = defineStore('app', () => {
   // ลำดับแอนิเมชันที่กินเวลา (ขั้น 9): ระหว่างนี้ปุ่มที่ทำให้สถานะพังต้องกดไม่ได้ (SPEC §5.4)
   // savePhase: idle → shrink → book → leaf → drop → tape → card → idle (ตัวขับอยู่ใน runSaveSequence)
   const savePhase = ref('idle')
+  // ภาพที่กำลังบินตอนบันทึก (SavedFlight): { entry, canvas, target, schedule } | null
+  const saveFlight = ref(null)
   const leafFlipping = ref(false) // แผ่นแทรกกำลังพลิก
   const photoFlying = ref(false) // ภาพกำลังบินเข้า/ออกหน้า photo
+  watch(savePhase, (phase) => (sequenceActive.value = phase !== 'idle'), { flush: 'sync' }) // sync: อัปโหลดที่ตามหลัง addEntry ต้องเห็นค่านี้ทันที
   const busy = computed(() => savePhase.value !== 'idle' || leafFlipping.value || photoFlying.value)
   // ผู้ขับลำดับ (timer/WAAPI) ลงทะเบียนวิธียกเลิกตัวเองไว้ เรียกตอนปุ่ม back ข้ามหน้าหรือออกจากระบบกลางลำดับ
   const cancellers = new Set()
@@ -86,6 +91,7 @@ export const useAppStore = defineStore('app', () => {
     leafFlipping.value = false
     photoFlying.value = false
     photoHiddenId.value = null
+    saveFlight.value = null
   }
   // ผ้าใบ (FluidCanvas) ลงทะเบียนตัวเองไว้ที่นี่ ใช้ตัวแปรธรรมดาไม่ใช้ ref เพื่อไม่ให้ Vue ครอบ proxy
   let painter = null
@@ -185,6 +191,7 @@ export const useAppStore = defineStore('app', () => {
 
   // เปลี่ยนสถานะ ถ้าไม่อยู่ในตารางที่อนุญาตจะเมินและคืน false
   const go = (next) => {
+    if (savePhase.value !== 'idle') return false // กำลังเล่นลำดับบันทึก: ไม่ให้เปลี่ยนหน้าแทรก
     if (next === view.value) return true
     if (!ALLOWED[view.value]?.includes(next)) return false
     enter(next)
@@ -229,13 +236,14 @@ export const useAppStore = defineStore('app', () => {
 
   // พลิกแผ่นโดยผู้ใช้ (ล้างป้าย "แผ่นใหม่")
   const setLeaf = (index) => {
-    if (leafFlipping.value) return // กำลังพลิก: กดซ้ำจะข้ามแผ่น
+    if (leafFlipping.value || savePhase.value !== 'idle') return // กำลังพลิก/บันทึก: กดซ้ำจะข้ามแผ่น
     leafIndex.value = index
     freshLeaf.value = null
   }
 
   // "เริ่มใหม่": ล้างแล้วหยดสีเริ่มต้นของอารมณ์ที่เลือกอยู่ (SPEC §5.3)
   const clearCanvas = () => {
+    if (savePhase.value !== 'idle') return
     clearTick.value += 1
     sheetEmotions.value = []
     sheetShifted.value = false
@@ -270,8 +278,97 @@ export const useAppStore = defineStore('app', () => {
   const grabPainting = async () => {
     const fallback = EMOTION_COLORS[sheetEmotions.value.at(-1) ?? selection.value.emotion]
     const canvas = await painter?.capture()
-    if (!canvas) return { colors: [{ hex: fallback, ratio: 1 }], images: null }
-    return { colors: extractColors(canvas, fallback), images: await exportImages(canvas) }
+    if (!canvas) return { colors: [{ hex: fallback, ratio: 1 }], images: null, canvas: null }
+    // canvas ส่งต่อให้ SavedFlight ใช้เป็นภาพที่หดลงเป็นโพลารอยด์ (ไม่ต้อง decode ภาพใหม่)
+    return { colors: extractColors(canvas, fallback), images: await exportImages(canvas), canvas: markRaw(canvas) }
+  }
+
+  // ลำดับแอนิเมชันหลังบันทึก (SPEC §5.4 ≈1.6s): state/timer อยู่ที่นี่ ตัวภาพบินเล่นเองใน SavedFlight ด้วยตารางเวลาเดียวกัน
+  // ผ้าใบหด → สมุดเข้า (view saved) → (แผ่นแทรกพลิกลงมา) → ภาพลงช่อง → เทปแปะ → การ์ดโผล่ → idle
+  // ต้องจบได้เสมอ: ปุ่ม back/ออกจากระบบกลางทางเรียก cancelSequences → ทำให้สถานะปลายทางครบแล้วหยุด
+  const runSaveSequence = ({ entry, today, index, newLeaf, slot, canvas }) => {
+    const reduced = reducedMotion.value
+    const sch = reduced ? null : saveSchedule({ newLeaf, scale: TIME_SCALE })
+    const timers = []
+    let cleared = false
+    const clearPaper = () => {
+      if (cleared) return
+      cleared = true
+      clearTick.value += 1 // ผ้าใบเริ่มใหม่สำหรับภาพถัดไป (ว่าง: เข้า paint ครั้งหน้าจะหยดสีเอง)
+    }
+    const settleLeaf = () => {
+      leafIndex.value = index
+      freshLeaf.value = newLeaf ? { date: today, index } : null
+    }
+    const finish = () => {
+      timers.forEach(clearTimeout)
+      dispose()
+      clearPaper()
+      settleLeaf()
+      photoHiddenId.value = null
+      saveFlight.value = null
+    }
+    const dispose = onCancel(finish)
+    const at = (t, fn) => timers.push(setTimeout(fn, t))
+
+    openDate.value = today
+    if (view.value !== VIEWS.paint) {
+      // ผู้ใช้ออกจากหน้า paint ระหว่างจับภาพ (เช่นกด back): บันทึกแล้วแต่ไม่พาไปหน้า saved
+      finish()
+      return
+    }
+    if (reduced) {
+      // reduced-motion: ไม่มีภาพบิน ทุกอย่างเปลี่ยนพร้อมกันแล้ว fade (SPEC §3.6)
+      clearPaper()
+      settleLeaf()
+      enter(VIEWS.saved)
+      savePhase.value = 'card'
+      at(MOTION.fade, () => {
+        savePhase.value = 'idle'
+        dispose()
+      })
+      return
+    }
+    // แผ่นแทรกใหม่: ค้างที่แผ่นเดิมที่เต็มอยู่ก่อน แล้วค่อยพลิกไปแผ่นใหม่ตอนเฟส leaf
+    leafIndex.value = newLeaf ? index - 1 : index
+    freshLeaf.value = null
+    photoHiddenId.value = entry.id // ช่องจริงซ่อนจนภาพบินลงถึง (PhotoPage แสดงช่องเส้นประแทน)
+    saveFlight.value = {
+      entry,
+      canvas,
+      target: { ...slotCenter({ slot, insert: index > 0, height: POLAROID.h }) },
+      schedule: sch,
+    }
+    savePhase.value = 'shrink'
+    at(32, clearPaper) // ให้ภาพบินขึ้นจอก่อนค่อยล้างผ้าใบ (ไม่เห็นกะพริบ)
+    at(sch.book[0], () => {
+      enter(VIEWS.saved) // กระดานเลื่อนซ้าย สมุดเลื่อนเข้า
+      savePhase.value = 'book'
+    })
+    if (sch.leaf) {
+      at(sch.leaf[0], () => {
+        settleLeaf()
+        savePhase.value = 'leaf'
+      })
+    }
+    at(sch.drop[0], () => {
+      savePhase.value = 'drop'
+    })
+    at(sch.tape[0], () => {
+      savePhase.value = 'tape'
+    })
+    at(sch.tape[1], () => {
+      // ภาพลงถึงช่องแล้ว: เลิกซ่อนช่องจริงพร้อมถอดภาพบิน (เฟรมเดียวกัน ตำแหน่งตรงกันไม่มี pop)
+      photoHiddenId.value = null
+      saveFlight.value = null
+    })
+    at(sch.card[0], () => {
+      savePhase.value = 'card'
+    })
+    at(sch.total, () => {
+      savePhase.value = 'idle'
+      dispose()
+    })
   }
 
   // บันทึกภาพบนผ้าใบลงสมุด (SPEC §5.3 → §5.4)
@@ -294,17 +391,14 @@ export const useAppStore = defineStore('app', () => {
       // ตำแหน่งของภาพใหม่ในวัน (เรียงตามเวลา) → แผ่นที่ภาพอยู่
       const position = entries.entriesOfDay(today).findIndex((e) => e.id === entry.id)
       const index = Math.floor(position / PHOTOS_PER_LEAF)
-      openDate.value = today
-      leafIndex.value = index
-      // ภาพแรกของแผ่นแทรกใหม่ → ป้าย "แผ่นใหม่" จนกว่าผู้ใช้จะพลิกดูแผ่นอื่น
-      freshLeaf.value = position > 0 && position % PHOTOS_PER_LEAF === 0 ? { date: today, index } : null
+      // ภาพแรกของแผ่นแทรกใหม่ → แผ่นแทรกเลื่อนลงมาแปะก่อนวางภาพ (SPEC §5.6) และมีป้าย "แผ่นใหม่" จนกว่าผู้ใช้จะพลิกดูแผ่นอื่น
+      const newLeaf = position > 0 && position % PHOTOS_PER_LEAF === 0
       lastSavedEntryId.value = entry.id
-      clearTick.value += 1 // ผ้าใบเริ่มใหม่สำหรับภาพถัดไป (ว่าง: เข้า paint ครั้งหน้าจะหยดสีเอง)
       canvasDirty.value = false
       sheetEmotions.value = []
       sheetShifted.value = false
       resetWarmNote()
-      go(VIEWS.saved)
+      runSaveSequence({ entry, today, index, newLeaf, slot: position % PHOTOS_PER_LEAF, canvas: grabbed.canvas })
       return entry
     } catch (error) {
       console.error('บันทึกภาพลงสมุดไม่สำเร็จ:', error)
@@ -343,6 +437,7 @@ export const useAppStore = defineStore('app', () => {
     saving,
     bookTick,
     savePhase,
+    saveFlight,
     leafFlipping,
     photoFlying,
     busy,

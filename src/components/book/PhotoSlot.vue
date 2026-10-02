@@ -12,7 +12,6 @@
       :rotate="rot.rotate"
       :tape-rotate="rot.tape"
       :badge="isNew ? 'ใหม่' : ''"
-      :class="isNew ? '!shadow-[0_26px_34px_rgba(45,43,51,0.32)]' : ''"
     />
   </div>
 </template>

@@ -21,3 +21,6 @@ export const sleep = (n) => new Promise((resolve) => setTimeout(resolve, ms(n)))
 
 // ค่าเวลา CSS ที่คูณ --motion-scale (?motion=slow) ใช้กับ var ใน style ของคอมโพเนนต์
 export const scaled = (n) => `calc(${n}ms * var(--motion-scale, 1))`
+
+// ลำดับแอนิเมชันที่กินเวลากำลังเล่น (store/app ตั้งค่า): งานหนักเบื้องหลัง เช่น อัปโหลดภาพ รอจนจบ ไม่แย่ง main thread (iPad)
+export const sequenceActive = ref(false)
