@@ -5,6 +5,7 @@ import { USE_MOCK } from '@/lib/supabase'
 import { fetchEntries, uploadEntry } from '@/lib/remote'
 import { useAuthStore } from '@/stores/auth'
 import { useImageUrlsStore } from '@/stores/imageUrls'
+import { useUploadQueueStore } from '@/stores/uploadQueue'
 import { EMOTION_COLORS } from '@/lib/tokens'
 import { emotionShades, SHIFT_TARGETS } from '@/lib/emotions'
 import { addDays, localDateStr, parseLocalDate, thaiWeekdayShort } from '@/lib/dates'
@@ -76,6 +77,10 @@ export const useEntriesStore = defineStore('entries', () => {
   const auth = useAuthStore()
   const imageUrls = useImageUrlsStore()
   const entries = ref(USE_MOCK ? buildMock() : [])
+  // ภาพเก่าใน IndexedDB ที่ไม่มีเจ้าของ (ก่อนขั้นที่ 7) และยังไม่ได้ตอบว่าจะย้ายเข้าบัญชีนี้ไหม
+  const legacyCount = ref(0)
+  const askedKey = (uid) => `colorscrap.legacyAsked.${uid}`
+  const hasLegacy = (r) => !r.user_id && r.image && r.thumb
 
   // ต้องส่ง object แบบ plain เข้า IndexedDB (reactive proxy ถูก structured clone ไม่ได้)
   // โหมดจริงใส่ user_id ไว้ ให้ผู้ใช้คนอื่นบนเครื่องเดียวกันไม่เห็น/ไม่ส่งภาพของเจ้าของ
@@ -106,17 +111,51 @@ export const useEntriesStore = defineStore('entries', () => {
     }
     const uid = auth.user.id
     const rows = await fetchEntries()
-    const pending = (await loadRecords()).filter((r) => r.user_id === uid)
+    const records = await loadRecords()
+    const pending = records.filter((r) => r.user_id === uid)
     const done = new Set(rows.map((e) => e.id))
     pending.filter((r) => done.has(r.id)).forEach((r) => deleteRecord(r.id)) // อัปโหลดสำเร็จไปแล้วแต่ยังไม่ได้ลบ record
     entries.value = [...rows, ...pending.filter((r) => !done.has(r.id)).map(withBlobs)]
+    let asked = false
+    try {
+      asked = localStorage.getItem(askedKey(uid)) === '1'
+    } catch {
+      // อ่านไม่ได้ = ถามทุกครั้ง
+    }
+    legacyCount.value = asked ? 0 : records.filter(hasLegacy).length
+    useUploadQueueStore().flush() // ส่งของที่ค้างอยู่ (ไม่รอ)
     await imageUrls.prefetch(rows.map((e) => e.thumb_path))
+  }
+
+  // ตอบว่าไม่ย้าย: จำไว้ต่อบัญชี ไม่ถามซ้ำ (ภาพยังอยู่ในเครื่อง)
+  const skipLegacy = () => {
+    try {
+      localStorage.setItem(askedKey(auth.user.id), '1')
+    } catch {
+      // storage ปิด: ถามใหม่รอบหน้า
+    }
+    legacyCount.value = 0
+  }
+
+  // ย้ายภาพเก่าเข้าบัญชีนี้: ตั้ง id ใหม่ + user_id แล้วให้คิวอัปโหลดเหมือน entry ปกติ
+  const adoptLegacy = async () => {
+    const uid = auth.user.id
+    for (const old of (await loadRecords()).filter(hasLegacy)) {
+      const record = { ...old, id: crypto.randomUUID(), user_id: uid }
+      if (!(await saveRecord(record))) continue
+      await deleteRecord(old.id)
+      entries.value.push({ ...withBlobs(record), image_path: null, thumb_path: null })
+    }
+    skipLegacy() // ย้ายแล้ว ไม่ต้องถามอีก
+    useUploadQueueStore().flush()
   }
 
   const hydrated = USE_MOCK ? load() : Promise.resolve()
 
   // ออกจากระบบ: ลืมข้อมูลของคนก่อนทั้งหมด (ไฟล์ค้างใน IndexedDB ยังอยู่ แต่เป็นของเจ้าของและจะไม่ถูกแสดงให้คนอื่น)
   const reset = () => {
+    legacyCount.value = 0
+    useUploadQueueStore().stop()
     entries.value = USE_MOCK ? buildMock() : []
     imageUrls.clear()
   }
@@ -151,7 +190,7 @@ export const useEntriesStore = defineStore('entries', () => {
   const dates = computed(() => [...new Set(entries.value.map((e) => e.local_date))].sort())
 
   // อัปโหลด entry ที่ยังมี Blob (โหมดจริง) สำเร็จ → จด path, ขอ signed URL ไว้ก่อน แล้วค่อยปล่อย Blob (ภาพไม่กะพริบ) และลบ record ในเครื่อง
-  // ล้มเหลว → โยน error ทิ้งไว้ใน IndexedDB (ขั้นที่ 5 จะลองใหม่อัตโนมัติ)
+  // ล้มเหลว → โยน error ทิ้งไว้ใน IndexedDB ให้คิว (uploadQueue) ลองใหม่เอง
   const upload = async (entry) => {
     const paths = await uploadEntry(entry.user_id ?? auth.user.id, entry)
     await imageUrls.prefetch([paths.thumb_path])
@@ -190,11 +229,9 @@ export const useEntriesStore = defineStore('entries', () => {
     // บันทึกลงเครื่องก่อนเสมอ: โหมดจริงเป็นคิวอัปโหลด (ลบเมื่อสำเร็จ) โหมดจำลองเป็นที่เก็บถาวร
     const record = toRecord(entry)
     const saved = saveRecord(record)
-    if (!USE_MOCK && images) {
-      saved.then(() => upload({ ...record, user_id: record.user_id })).catch((e) => console.error('อัปโหลดภาพไม่สำเร็จ (ยังเก็บไว้ในเครื่อง):', e))
-    }
+    if (!USE_MOCK && images) saved.then(() => useUploadQueueStore().flush())
     return entry
   }
 
-  return { entries, hydrated, load, reset, entriesOfDay, todayCount, lastSevenDays, recentTabs, dates, addEntry }
+  return { entries, hydrated, legacyCount, load, reset, upload, skipLegacy, adoptLegacy, entriesOfDay, todayCount, lastSevenDays, recentTabs, dates, addEntry }
 })

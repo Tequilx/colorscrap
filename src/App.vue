@@ -26,6 +26,8 @@
         <SavedCard v-if="app.view === 'saved'" />
       </Transition>
       <PhotoView />
+      <LegacyPrompt />
+      <Toast />
       <!-- ปุ่มนำทางของหน้า book -->
       <Transition name="fade">
         <div v-if="app.view === 'book'" class="absolute left-[124px] top-7">
@@ -44,6 +46,8 @@ import Stage from '@/components/desk/Stage.vue'
 import SvgDefs from '@/components/desk/SvgDefs.vue'
 import Scrapbook from '@/components/book/Scrapbook.vue'
 import EmotionPalette from '@/components/pick/EmotionPalette.vue'
+import LegacyPrompt from '@/components/auth/LegacyPrompt.vue'
+import Toast from '@/components/ui/Toast.vue'
 import LoginCard from '@/components/auth/LoginCard.vue'
 import HelloSheet from '@/components/hello/HelloSheet.vue'
 import CoverPreview from '@/components/hello/CoverPreview.vue'
