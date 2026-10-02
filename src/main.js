@@ -1,10 +1,24 @@
 import { createApp } from "vue";
 import { createPinia } from "pinia";
 import App from "./App.vue";
+import { useAuthStore } from "@/stores/auth";
+import { useProfileStore } from "@/stores/profile";
 import "./assets/app.css";
 
 const app = createApp(App);
+const pinia = createPinia();
 
-app.use(createPinia());
+app.use(pinia);
 
-app.mount("#app");
+// โหลด session และโปรไฟล์ก่อน mount จะได้ไม่มีหน้าใดวาบก่อนรู้ว่าต้อง login หรือไป hello/cover
+const start = async () => {
+  const auth = useAuthStore();
+  try {
+    await auth.init();
+    if (auth.user) await useProfileStore().loadRemote();
+  } catch (error) {
+    console.error("เริ่มแอปไม่สำเร็จ:", error);
+  }
+  app.mount("#app");
+};
+start();

@@ -9,6 +9,7 @@
       <Doodle name="forward" :size="22" />
     </HandButton>
     <span v-if="!canStart" class="mt-2 text-14 text-ink-soft">ใส่ชื่อก่อนนะ</span>
+    <span v-else-if="profile.saveError" role="alert" class="mt-2 text-14 text-ink-soft">{{ profile.saveError }}</span>
   </div>
 </template>
 
@@ -25,8 +26,7 @@ const profile = useProfileStore()
 // ตาราง profiles บังคับชื่อ 1–20 ตัวอักษร (SPEC §7.2) จึงต้องมีชื่อก่อน
 const canStart = computed(() => profile.shownName.length > 0)
 
-const start = () => {
-  profile.save()
-  app.finishHello()
+const start = async () => {
+  if (await profile.save()) app.finishHello()
 }
 </script>

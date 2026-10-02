@@ -10,6 +10,7 @@ import { NEGATIVE_EMOTIONS } from '@/lib/emotions'
 
 // สถานะของโต๊ะ (SPEC §4.1) แทนการใช้ router
 export const VIEWS = Object.freeze({
+  login: 'login', // เข้าสู่ระบบ (ไม่ใช้ในโหมดจำลอง)
   hello: 'hello',
   cover: 'cover',
   pick: 'pick',
@@ -24,6 +25,7 @@ export const PHOTOS_PER_LEAF = 4
 
 // การเปลี่ยนสถานะที่อนุญาต: จาก → รายการที่ไปได้ (ตามตารางใน SPEC §4.1)
 const ALLOWED = {
+  login: ['hello', 'cover'],
   hello: ['cover'],
   cover: ['pick', 'book', 'hello'],
   pick: ['paint', 'cover'],
@@ -167,9 +169,9 @@ export const useAppStore = defineStore('app', () => {
   // สำหรับ useHashView (ปุ่ม back ข้ามตารางได้)
   const setView = (next) => enter(next)
 
-  // ตั้งค่าเริ่มต้นตอนโหลดแอป: ไม่มีโปรไฟล์ → hello, มีแล้ว → cover
-  const boot = (hasProfile) => {
-    view.value = hasProfile ? VIEWS.cover : VIEWS.hello
+  // ตั้งค่าเริ่มต้นตอนโหลดแอป: ยังไม่ล็อกอิน → login, ไม่มีโปรไฟล์ → hello, มีแล้ว → cover
+  const boot = (hasProfile, loggedIn = true) => {
+    view.value = !loggedIn ? VIEWS.login : hasProfile ? VIEWS.cover : VIEWS.hello
   }
 
   const openSettings = () => {

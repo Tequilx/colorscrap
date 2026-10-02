@@ -11,6 +11,9 @@
 
       <!-- ส่วนของแต่ละ view ที่เข้า/ออกด้วย fade -->
       <Transition name="fade">
+        <LoginCard v-if="app.view === 'login'" />
+      </Transition>
+      <Transition name="fade">
         <div v-if="app.view === 'hello'" class="absolute inset-0">
           <HelloSheet />
           <CoverPreview />
@@ -36,11 +39,12 @@
 </template>
 
 <script setup>
-import { watchEffect, defineAsyncComponent, onBeforeUnmount } from 'vue'
+import { watch, watchEffect, defineAsyncComponent, onBeforeUnmount } from 'vue'
 import Stage from '@/components/desk/Stage.vue'
 import SvgDefs from '@/components/desk/SvgDefs.vue'
 import Scrapbook from '@/components/book/Scrapbook.vue'
 import EmotionPalette from '@/components/pick/EmotionPalette.vue'
+import LoginCard from '@/components/auth/LoginCard.vue'
 import HelloSheet from '@/components/hello/HelloSheet.vue'
 import CoverPreview from '@/components/hello/CoverPreview.vue'
 import CoverIntro from '@/components/cover/CoverIntro.vue'
@@ -51,13 +55,26 @@ import HandButton from '@/components/ui/HandButton.vue'
 import Doodle from '@/components/ui/Doodle.vue'
 import { useAppStore } from '@/stores/app'
 import { useProfileStore } from '@/stores/profile'
+import { useAuthStore } from '@/stores/auth'
 import { useHashView } from '@/lib/useHashView'
 import { coverSpine, coverStrap } from '@/lib/color'
 
 const app = useAppStore()
 const profile = useProfileStore()
+const auth = useAuthStore()
 
-useHashView(app, profile)
+useHashView(app, profile, auth)
+
+// session หมดอายุหรือออกจากระบบ (โหมดจริง): ล้างข้อมูลของคนก่อนแล้วกลับหน้า login
+watch(
+  () => auth.user,
+  (now, before) => {
+    if (before && !now) {
+      profile.reset()
+      app.setView('login')
+    }
+  },
+)
 
 // ผ้าใบมีภาพที่ยังไม่บันทึก: เตือนก่อนปิดแท็บ/รีเฟรช (เบราว์เซอร์แสดงข้อความมาตรฐานเอง)
 const warnUnsaved = (e) => {
