@@ -1,8 +1,9 @@
 <template>
   <!-- หน้าขวา: จานสีประจำวัน (SPEC §5.7) -->
   <div class="absolute left-[506px] top-[14px] h-[612px] w-[492px] rounded-[0_6px_6px_0] bg-paper shadow-[inset_18px_0_22px_-16px_rgba(45,43,51,0.35)]">
-    <!-- หน้า saved: การ์ดทับหน้านี้อยู่ ซ่อนเนื้อหาทั้งหมด เหลือแต่กระดาษ -->
-    <template v-if="!hidden">
+    <!-- หน้า saved: การ์ดทับหน้านี้อยู่ ซ่อนเนื้อหาทั้งหมด เหลือแต่กระดาษ (fade เข้า/ออก ไม่ pop) -->
+    <Transition name="fade">
+    <div v-if="!hidden" class="absolute inset-0">
       <div class="absolute left-10 top-7 flex w-[412px] items-baseline justify-between">
         <span class="whitespace-nowrap font-hand text-26 font-semibold">{{ title }}</span>
         <span v-if="entries.length" class="whitespace-nowrap text-14 text-ink-soft">{{ entries.length }} ภาพ · {{ moodCount }} อารมณ์</span>
@@ -41,7 +42,8 @@
         </button>
         <span v-else class="text-14 text-ink-soft">หน้าล่าสุด</span>
       </div>
-    </template>
+    </div>
+    </Transition>
   </div>
 </template>
 

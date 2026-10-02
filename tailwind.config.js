@@ -2,6 +2,8 @@ import { PALETTE, EMOTION_COLORS, FONT_SIZES, MOTION } from './src/lib/tokens.js
 
 /** @type {import('tailwindcss').Config} */
 export default {
+  // hover: เฉพาะอุปกรณ์ที่ชี้ได้จริง (iPad แตะแล้ว hover ไม่ค้าง)
+  future: { hoverOnlyWhenSupported: true },
   content: ["./index.html", "./src/**/*.{vue,js}"],
   theme: {
     extend: {

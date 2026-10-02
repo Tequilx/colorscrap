@@ -2,7 +2,7 @@
   <!-- กล่องสีน้ำเลือกอารมณ์ อยู่บนโต๊ะตลอด ซ่อนเมื่อไม่ใช่ view pick (SPEC §4.3, §5.2) -->
   <div
     class="absolute inset-0 transition-[opacity,transform] duration-600 ease-desk"
-    :class="active ? 'opacity-100' : 'pointer-events-none translate-y-6 opacity-0'"
+    :class="active ? 'opacity-100' : 'pointer-events-none translate-y-6 opacity-0 motion-reduce:translate-y-0'"
     :inert="!active"
     :aria-hidden="!active"
   >
@@ -26,8 +26,8 @@
           :key="e.key"
           type="button"
           :aria-pressed="app.selection.emotion === e.key"
-          class="flex h-[150px] cursor-pointer flex-col items-center justify-center gap-0.5 rounded-[18px_22px_16px_20px] border-2 p-0 font-hand text-19 font-semibold text-ink transition-transform duration-450 ease-desk"
-          :class="app.selection.emotion === e.key ? 'border-ink -translate-y-[5px] -rotate-1' : 'border-transparent bg-paper hover:-rotate-[6deg] hover:scale-105'"
+          class="flex h-[150px] cursor-pointer flex-col items-center justify-center gap-0.5 rounded-[18px_22px_16px_20px] border-2 p-0 font-hand text-19 font-semibold text-ink transition-[transform,background-color,border-color,box-shadow] duration-450 ease-desk"
+          :class="app.selection.emotion === e.key ? 'border-ink -translate-y-[5px] -rotate-1' : 'border-transparent bg-paper hover:-rotate-[6deg] hover:scale-105 active:scale-[0.98] motion-reduce:hover:rotate-0 motion-reduce:hover:scale-100'"
           :style="app.selection.emotion === e.key ? { background: e.hex + '2E', boxShadow: `0 8px 0 -2px ${e.hex}80` } : {}"
           @click="app.selectEmotion(e.key)"
         >

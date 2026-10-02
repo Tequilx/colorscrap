@@ -1,8 +1,9 @@
 <template>
   <!-- กระดานวาดรูป อยู่บนโต๊ะตลอด (WebGL context ไม่หาย): paint = เต็มจอ, book = เหลือแถบซ้าย 92px — SPEC §4.3 -->
+  <!-- ขนาดคงที่ 1280×800 เสมอ: เปลี่ยนที่ซ่อน/เต็มจอ/แถบด้วย transform + clip-path (ไม่ animate layout บน iPad) -->
   <div
-    class="absolute overflow-hidden bg-board transition-[left,top,width,height,opacity,border-radius] duration-600 ease-desk"
-    :class="inStrip ? 'rounded-r-xl shadow-[0_4px_12px_rgba(45,43,51,0.12)]' : ''"
+    class="absolute left-0 top-0 h-[800px] w-[1280px] bg-board transition-[transform,clip-path,opacity] duration-600 ease-desk"
+    :class="visible ? '' : 'pointer-events-none'"
     :style="wrapperStyle"
     :inert="!visible"
     :aria-hidden="!visible"
@@ -72,6 +73,7 @@ import { useAppStore } from '@/stores/app'
 import { useEntriesStore } from '@/stores/entries'
 import { EMOTION_BY_KEY } from '@/lib/emotions'
 import { BLOB_PATHS } from '@/lib/doodles'
+import { reducedMotion } from '@/lib/motion'
 
 const app = useAppStore()
 const entries = useEntriesStore()
@@ -83,15 +85,20 @@ const visible = computed(() => app.view === 'paint' || app.view === 'book')
 // แถบซ้ายของหน้า book (จางลงตอนดูภาพเดี่ยว)
 const inStrip = computed(() => app.view === 'book' || app.view === 'photo')
 
-// wrapper: paint = เต็มจอ | book = แถบซ้าย 92×500 | อื่น ๆ = ซ่อนนอกจอ
+// ช่องมองของ wrapper: ทุกสถานะใช้รูป inset(บน ขวา ล่าง ซ้าย round …) เหมือนกัน เพื่อให้ interpolate ได้
+const FULL_CLIP = 'inset(0px 0px 0px 0px round 0px 0px 0px 0px)'
+// แถบซ้ายของ book: x 0–92, y 150–650 มุมขวาโค้ง 12px
+const STRIP_CLIP = 'inset(150px 1188px 150px 0px round 0px 12px 12px 0px)'
+
+// wrapper: paint = เต็มจอ | book = แถบซ้าย 92×500 | อื่น ๆ = เลื่อนซ้ายออกนอกจอ (reduced-motion: อยู่ที่เดิมแล้ว fade ด้วย opacity)
 const wrapperStyle = computed(() => {
-  if (app.view === 'paint') return { left: '0px', top: '0px', width: '1280px', height: '800px', opacity: 1 }
-  if (inStrip.value) return { left: '0px', top: '150px', width: '92px', height: '500px', opacity: 1 }
-  return { left: '-1300px', top: '0px', width: '1280px', height: '800px', opacity: 0 }
+  if (app.view === 'paint') return { transform: 'translateX(0px)', clipPath: FULL_CLIP, opacity: 1 }
+  if (inStrip.value) return { transform: 'translateX(0px)', clipPath: STRIP_CLIP, opacity: 1 }
+  return { transform: reducedMotion.value ? 'translateX(0px)' : 'translateX(-1300px)', clipPath: FULL_CLIP, opacity: 0 }
 })
 
-// ใน book: ขอบขวาของกระดาษ (x=1196) ไปอยู่ที่ x=64 และเลื่อนขึ้น 150 ให้แถบแสดงช่วงกลางกระดาษ
-const layerTransform = computed(() => (inStrip.value ? 'translate(-1132px, -150px)' : 'translate(0, 0)'))
+// ใน book: ขอบขวาของกระดาษ (x=1196) ไปอยู่ที่ x=64 (ช่องมองของ clip-path ตัด y 150–650 ให้แล้ว)
+const layerTransform = computed(() => (inStrip.value ? 'translate(-1132px, 0px)' : 'translate(0px, 0px)'))
 
 defineExpose({ canvasRef })
 </script>

@@ -33,6 +33,7 @@ import OpenBook from '@/components/book/OpenBook.vue'
 import { useAppStore } from '@/stores/app'
 import { useProfileStore } from '@/stores/profile'
 import { useEntriesStore } from '@/stores/entries'
+import { reducedMotion } from '@/lib/motion'
 
 const app = useAppStore()
 const profile = useProfileStore()
@@ -59,8 +60,11 @@ const OPEN = {
 }
 const OPEN_HIDDEN = { transform: 'translate(176px, 140px) scale(0.9)', opacity: 0 }
 
-const closedPlacement = computed(() => CLOSED[view.value] ?? CLOSED_HIDDEN)
-const openPlacement = computed(() => ({ transformOrigin: 'top left', ...(OPEN[view.value] ?? OPEN_HIDDEN) }))
+// reduced-motion: ที่ซ่อนอยู่ไม่ย้ายตำแหน่ง แค่จางด้วย opacity (ไม่งั้นย้ายออกนอกจอก่อน fade จบ)
+const closedHidden = computed(() => (reducedMotion.value ? { ...CLOSED.cover, opacity: 0 } : CLOSED_HIDDEN))
+const openHidden = computed(() => (reducedMotion.value ? { ...OPEN.book, opacity: 0 } : OPEN_HIDDEN))
+const closedPlacement = computed(() => CLOSED[view.value] ?? closedHidden.value)
+const openPlacement = computed(() => ({ transformOrigin: 'top left', ...(OPEN[view.value] ?? openHidden.value) }))
 const closedVisible = computed(() => view.value in CLOSED)
 const openVisible = computed(() => view.value in OPEN)
 // กดได้เฉพาะตอน book/saved (ตอน photo จางลงและโฟกัสอยู่ที่ภาพ)
