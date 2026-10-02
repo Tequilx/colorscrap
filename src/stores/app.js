@@ -220,6 +220,7 @@ export const useAppStore = defineStore('app', () => {
 
   // พลิกแผ่นโดยผู้ใช้ (ล้างป้าย "แผ่นใหม่")
   const setLeaf = (index) => {
+    if (leafFlipping.value) return // กำลังพลิก: กดซ้ำจะข้ามแผ่น
     leafIndex.value = index
     freshLeaf.value = null
   }
