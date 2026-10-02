@@ -16,10 +16,16 @@
     ></div>
     <!-- dev เท่านั้น: เปิดด้วย ?debug ดูตัวนับของโน้ตชวน (ใช้ Teleport เพราะ Stage ถูก scale) -->
     <Teleport v-if="DEBUG" to="body">
-      <div data-debug class="pointer-events-none fixed bottom-2 left-2 z-50 whitespace-pre rounded bg-black/75 px-2 py-1 font-mono text-[12px] leading-snug text-white">
+      <div data-debug class="fixed bottom-2 left-2 z-50 whitespace-pre rounded bg-black/75 px-2 py-1 font-mono text-[12px] leading-snug text-white">
         <div>นับตั้งแต่แตะครั้งแรก: {{ debug.elapsed }}</div>
         <div>พักมือ: {{ debug.idle }}</div>
         <div>โน้ต: {{ noteLabel }}</div>
+        <!-- ลองปรับหยดสีอุ่นสด ๆ (ค่าเริ่มต้นคือค่าที่ใช้จริง) -->
+        <label v-for="t in TUNE_SLIDERS" :key="t.key" class="flex items-center gap-2">
+          <span class="w-[84px]">{{ t.label }}</span>
+          <input v-model.number="tune[t.key]" type="range" :min="t.min" :max="t.max" :step="t.step" :data-tune="t.key" class="w-[76px]" />
+          <span class="w-8 text-right">{{ tune[t.key] }}</span>
+        </label>
       </div>
     </Teleport>
   </div>
@@ -65,7 +71,10 @@ const SMEAR_FORCE = 1500
 const CLEAR_FRAMES = 8
 
 // สีอุ่นของอารมณ์ลบ (SPEC §6.4) ผู้ใช้เลือกหยดเอง ไม่มีการหยดอัตโนมัติ
-const SHIFT_RADIUS = 0.5 // รัศมีหยดสีอุ่นเมื่อแตะ
+const WARM_SIZE = 0.7 // รัศมีหยดสีอุ่น (splatRadius) เทียบ "เติมหยด" ของ sad ที่ 0.18 × DROP_RADIUS_SCALE = 0.54
+const WARM_STRENGTH = 2 // ตัวคูณความเข้มสีอุ่น (สีเหลือง/พีชอ่อนอยู่แล้ว ต้องเพิ่มให้เห็นชัดเท่าหยดอารมณ์) ยังผ่านตัวกันสีสะสม INK_CAP
+const WARM_SAMPLES = 3 // จำนวนหยดตัวอย่างของ "ลองดู"
+const WARM_SAMPLE_GAP = 280 // ms ห่างกันระหว่างหยดตัวอย่าง
 const SHIFT_SPEED = 200 // ความเร็วต่ำ (initial = 220 × speed ของอารมณ์)
 const WARM_TAP_SPEED = 60 // หยดที่ตำแหน่งแตะ ความเร็วเท่าหยดอารมณ์
 // โน้ตชวน: ครบเท่านี้นับจาก pointerdown ครั้งแรกของแผ่น + พักมือ (ไม่มี pointerdown และไม่มีปุ่มกดค้าง) เท่านี้ (ms ของเวลาที่ผ้าใบวิ่งอยู่) ถามครั้งเดียวต่อแผ่น
@@ -93,6 +102,13 @@ let noteTimer = null
 // สถานะของแผ่นปัจจุบัน (รีเซ็ตเมื่อล้างผ้าใบ): เวลาที่ระบายรวม เวลาที่พักมือ ชวนไปแล้วหรือยัง จำนวนครั้งที่หยดสีอุ่น (ไล่สีตามนี้)
 const newSheetState = () => ({ started: false, elapsed: 0, idle: 0, invited: false, warmGestures: 0, warmDropped: false })
 let sheet = newSheetState()
+// ค่าที่ปรับสดได้ใน ?debug (ไม่เปิด debug = ใช้ค่าคงที่ข้างบน)
+const tune = reactive({ size: WARM_SIZE, strength: WARM_STRENGTH, samples: WARM_SAMPLES })
+const TUNE_SLIDERS = [
+  { key: 'size', label: 'ขนาดหยด', min: 0.2, max: 1.5, step: 0.05 },
+  { key: 'strength', label: 'ความเข้ม', min: 0.5, max: 5, step: 0.1 },
+  { key: 'samples', label: 'จำนวนลองดู', min: 1, max: 6, step: 1 },
+]
 const debug = reactive({ elapsed: '-', idle: '-' })
 const noteLabel = computed(() => ({ idle: 'รอ', open: 'แสดง', done: 'ปิดแล้ว' })[props.noteState] ?? props.noteState)
 const timers = new Set() // timeout ของหยดเริ่มต้นแบบเป็นจังหวะ
@@ -215,8 +231,8 @@ const warmHex = () => {
   return targets ? targets[sheet.warmGestures % targets.length] : null
 }
 
-// ชดเชย INTENSITY_FACTOR ที่ useShade คูณให้: สีอุ่นไม่ควรเข้มขึ้นตามความเข้มของอารมณ์เดิม
-const warmStrength = (strength = 1) => strength / INTENSITY_FACTOR[props.intensity]
+// ความเข้มสีอุ่นตามความเข้มของอารมณ์เดิมเหมือนเครื่องมือ "เติมหยด" (useShade คูณ INTENSITY_FACTOR ให้เอง)
+const warmStrength = (strength = 1) => strength * tune.strength
 
 const markWarmDropped = () => {
   if (sheet.warmDropped) return
@@ -227,27 +243,39 @@ const markWarmDropped = () => {
 // หยดสีอุ่นที่ตำแหน่งใดก็ได้ (ผู้ใช้แตะ หรือกดค้างเบา ๆ)
 const dropWarmAt = (x, y, hex, strength = 1) => {
   const a = rand(0, Math.PI * 2)
-  splat(x, y, Math.cos(a) * WARM_TAP_SPEED, Math.sin(a) * WARM_TAP_SPEED, { hex, radius: SHIFT_RADIUS, strength: warmStrength(strength) })
+  splat(x, y, Math.cos(a) * WARM_TAP_SPEED, Math.sin(a) * WARM_TAP_SPEED, { hex, radius: tune.size, strength: warmStrength(strength) })
   markWarmDropped()
 }
 
-// "ลองดู": หยด 1 หยดที่ขอบกระดาษ พุ่งเข้าด้านในช้า ๆ
-const dropWarmAtEdge = () => {
-  const hex = warmHex()
-  if (!hex || !fluid) return
-  sheet.warmGestures++
+// "ลองดู": หยดตัวอย่าง tune.samples หยดเรียงตามขอบกระดาษ (ห่างกันตามเส้นรอบกระดาษ เริ่มจากด้านสุ่ม) ไล่สีตาม SHIFT_TARGETS พุ่งเข้าด้านในช้า ๆ
+const dropWarmSamples = () => {
+  const targets = SHIFT_TARGETS[props.emotion]
+  if (!targets || !fluid) return
   const margin = 40
-  const side = Math.floor(Math.random() * 4) // บน ขวา ล่าง ซ้าย
-  const t = rand(0.1, 0.9)
-  const [x, y, inward] = [
-    [SIZE.w * t, margin, Math.PI / 2],
-    [SIZE.w - margin, SIZE.h * t, Math.PI],
-    [SIZE.w * t, SIZE.h - margin, -Math.PI / 2],
-    [margin, SIZE.h * t, 0],
-  ][side] // inward = ทิศเข้าหากลางกระดาษ (แกน y ของไลบรารีชี้ขึ้น)
-  const angle = inward + rand(-0.4, 0.4)
-  splat(x, y, Math.cos(angle) * SHIFT_SPEED, Math.sin(angle) * SHIFT_SPEED, { hex, radius: SHIFT_RADIUS, strength: warmStrength() })
-  markWarmDropped()
+  const n = Math.round(tune.samples)
+  const perimeter = 2 * (SIZE.w + SIZE.h - 4 * margin)
+  const start = rand(0, perimeter)
+  const base = sheet.warmGestures
+  sheet.warmGestures += n
+  for (let i = 0; i < n; i++) {
+    const t = setTimeout(() => {
+      timers.delete(t)
+      if (!fluid) return
+      // ตำแหน่งบนเส้นรอบกระดาษ (วนตามเข็มจากมุมบนซ้าย) แล้วแปลงเป็นขอบกับทิศเข้ากลาง (แกน y ของไลบรารีชี้ขึ้น)
+      let d = (start + (i * perimeter) / n) % perimeter
+      const w = SIZE.w - 2 * margin
+      const h = SIZE.h - 2 * margin
+      let x, y, inward
+      if (d < w) [x, y, inward] = [margin + d, margin, Math.PI / 2]
+      else if ((d -= w) < h) [x, y, inward] = [SIZE.w - margin, margin + d, Math.PI]
+      else if ((d -= h) < w) [x, y, inward] = [SIZE.w - margin - d, SIZE.h - margin, -Math.PI / 2]
+      else [x, y, inward] = [margin, SIZE.h - margin - (d - w), 0]
+      const angle = inward + rand(-0.3, 0.3)
+      splat(x, y, Math.cos(angle) * SHIFT_SPEED, Math.sin(angle) * SHIFT_SPEED, { hex: targets[(base + i) % targets.length], radius: tune.size, strength: warmStrength() })
+      markWarmDropped()
+    }, i * WARM_SAMPLE_GAP)
+    timers.add(t)
+  }
 }
 
 // ตัวจับเวลาของโน้ตชวน: นับเฉพาะตอนผ้าใบวิ่งอยู่ (ออกจากหน้า paint = หยุด กลับมานับต่อ)
@@ -436,7 +464,7 @@ watch(() => props.clearTick, clear)
 watch(
   () => props.warmTick,
   () => {
-    if (props.running && !clearing) dropWarmAtEdge()
+    if (props.running && !clearing) dropWarmSamples()
   },
 )
 
