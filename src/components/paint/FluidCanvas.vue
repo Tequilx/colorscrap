@@ -20,7 +20,7 @@
 <script setup>
 import { ref, watch, onMounted, onBeforeUnmount } from 'vue'
 import WebGLFluid from 'webgl-fluid-enhanced'
-import { emotionShades, FLUID_PARAMS, DISSIPATION_SCALE, INITIAL_SPLATS, INTENSITY_FACTOR, NEGATIVE_EMOTIONS, SHIFT_TARGETS } from '@/lib/emotions'
+import { emotionShades, FLUID_PARAMS, DENSITY_DISSIPATION, INK_CELL, INK_CAP, INITIAL_SPLATS, INTENSITY_FACTOR, NEGATIVE_EMOTIONS, SHIFT_TARGETS } from '@/lib/emotions'
 import { PALETTE } from '@/lib/tokens'
 import { dyeSetting, invertedHex } from '@/lib/dye'
 
@@ -53,8 +53,8 @@ const CLEAR_FRAMES = 8
 const SHIFT_WAIT = 8000 // รอหลังแตะครั้งแรก
 const SHIFT_DURATION = [20000, 40000] // ช่วงที่ค่อย ๆ หยด (สุ่มต่อแผ่น)
 const SHIFT_INTERVAL = [2500, 4000] // ห่างกันต่อหยด
-const SHIFT_RADIUS = 0.25 // หยดเล็กกว่าหยดอารมณ์ (initial = radius × 3 ≈ 0.3–0.7)
-const SHIFT_SPEED = 160 // ความเร็วต่ำ (initial = 220 × speed ของอารมณ์)
+const SHIFT_RADIUS = 0.5 // รัศมีเมื่อมี ~10 หยดในช่วงปรับ (หยดน้อยกว่านั้นขยายขึ้น มากกว่านั้นลดลง) ให้พื้นที่รวมใกล้เคียงกัน
+const SHIFT_SPEED = 200 // ความเร็วต่ำ (initial = 220 × speed ของอารมณ์)
 const SHIFT_TICK = 250
 // เร่งเวลาตอน dev เพื่อทดสอบ: เปิดหน้าด้วย ?shiftSpeed=10 (ผลเฉพาะจังหวะการปรับโทน ไม่ยุ่งกับ simulation)
 const SHIFT_TIME_SCALE = import.meta.env.DEV ? Number(new URLSearchParams(location.search).get('shiftSpeed')) || 1 : 1
@@ -71,6 +71,7 @@ let fluid = null
 let wantDrop = false
 let clearing = false
 let gravityTimer = null
+let gravityStop = null
 let shiftTimer = null
 // สถานะการปรับโทนของแผ่นปัจจุบัน (รีเซ็ตเมื่อล้างผ้าใบ)
 let shift = null // { elapsed, duration, nextIn, dropped } | null = ยังไม่มีใครแตะแผ่นนี้
@@ -86,6 +87,16 @@ const pickShade = () => {
   return list[Math.floor(Math.random() * list.length)]
 }
 
+// ปริมาณสีที่ลงแล้วต่อช่อง (รีเซ็ตเมื่อล้างผ้าใบ) ใช้ลดแรงของหยดที่ซ้ำที่เดิมไม่ให้สะสมจนดำ
+const inkCols = Math.ceil(SIZE.w / INK_CELL)
+let ink = new Float32Array(inkCols * Math.ceil(SIZE.h / INK_CELL))
+const takeInk = (x, y, strength) => {
+  const i = Math.min(ink.length - 1, Math.floor(y / INK_CELL) * inkCols + Math.floor(x / INK_CELL))
+  const eff = strength * Math.max(0, 1 - ink[i] / INK_CAP)
+  ink[i] += eff
+  return eff
+}
+
 // ตั้งสีของหยดถัดไป: ไลบรารีสุ่มจาก colorPalette (hue/saturation) และใช้ brightness เป็นความเข้ม
 const useShade = (hex, strength = 1) => {
   const dye = dyeSetting(hex, params().brightness * INTENSITY_FACTOR[props.intensity] * strength)
@@ -94,12 +105,12 @@ const useShade = (hex, strength = 1) => {
 }
 
 // พิกัด css px บนกระดาษ (0..SIZE) → ไลบรารี (x เป็น px จริง ×dpr, y เป็น css px และกลับแกนเอง)
-const splat = (x, y, dx, dy, { hex, radius, noColor, strength } = {}) => {
+const splat = (x, y, dx, dy, { hex, radius, noColor, strength = 1 } = {}) => {
   if (!fluid) return
   fluid.setConfig({ splatRadius: radius })
   if (noColor) {
     fluid.splatAtLocation(x * (window.devicePixelRatio || 1), y, dx, dy, '#000000') // สี 0 = ใส่แรงอย่างเดียว
-  } else if (useShade(hex ?? pickShade(), strength)) {
+  } else if (useShade(hex ?? pickShade(), takeInk(x, y, strength))) {
     fluid.splatAtLocation(x * (window.devicePixelRatio || 1), y, dx, dy)
   }
 }
@@ -111,8 +122,8 @@ const applyParams = () => {
   const p = params()
   fluid.setConfig({
     curl: p.curl,
-    densityDissipation: p.dissipation * DISSIPATION_SCALE * (props.intensity === 2 ? 0.8 : 1),
-    velocityDissipation: 1.2,
+    densityDissipation: DENSITY_DISSIPATION,
+    velocityDissipation: p.velDiss,
   })
 }
 
@@ -152,17 +163,20 @@ const dropInitial = () => {
   }
 }
 
-// แรงถ่วงของ sad: ปาดลงเบา ๆ แบบไม่เติมสี เป็นระยะ
+// แรงถ่วงของ sad: ปาดลงเบา ๆ แบบไม่เติมสี เป็นระยะ เฉพาะช่วงหลังหยดเริ่มต้น (ไม่งั้นผ้าใบไม่มีวันนิ่ง)
+const GRAVITY_MS = 4000
 const startGravity = () => {
   stopGravity()
   if (params().pattern !== 'fall') return
   gravityTimer = setInterval(() => {
     splat(rand(0, SIZE.w), rand(0, SIZE.h * 0.7), 0, -220, { radius: 0.3, noColor: true })
   }, 700)
+  gravityStop = setTimeout(stopGravity, GRAVITY_MS)
 }
 const stopGravity = () => {
   clearInterval(gravityTimer)
-  gravityTimer = null
+  clearTimeout(gravityStop)
+  gravityTimer = gravityStop = null
 }
 
 // หยดสีเริ่มต้นของอารมณ์ที่เลือกลงบนผ้าใบ (ทับของเดิมได้) ทำเมื่อผ้าใบวิ่งอยู่และไม่ได้กำลังล้าง
@@ -176,12 +190,16 @@ const tryDrop = () => {
 // ---- ปรับโทนอารมณ์ลบ (SPEC §6.4) ----
 
 const startShift = () => {
-  shift = { elapsed: 0, duration: rand(...SHIFT_DURATION), nextIn: 0, dropped: 0 }
+  const duration = rand(...SHIFT_DURATION)
+  // จำนวนหยดที่คาดว่าจะเกิดในช่วงนี้ → ปรับขนาดหยดให้พื้นที่สีปลายทางรวมกันใกล้เคียงกันไม่ว่าช่วงจะสั้นหรือยาว
+  const planned = duration / ((SHIFT_INTERVAL[0] + SHIFT_INTERVAL[1]) / 2) / (reducedMotion?.matches ? 2 : 1)
+  const radius = Math.min(0.75, Math.max(0.4, SHIFT_RADIUS * Math.sqrt(10 / planned)))
+  shift = { elapsed: 0, duration, radius, nextIn: 0, dropped: 0 }
 }
 
 // หยด 1 หยดของสีปลายทางจากขอบกระดาษ พุ่งเข้าด้านในช้า ๆ
-const dropShiftTarget = (hex) => {
-  const margin = 12
+const dropShiftTarget = (hex, radius) => {
+  const margin = 40
   const side = Math.floor(Math.random() * 4) // บน ขวา ล่าง ซ้าย
   const t = rand(0.1, 0.9)
   const [x, y, inward] = [
@@ -193,7 +211,7 @@ const dropShiftTarget = (hex) => {
   const angle = inward + rand(-0.4, 0.4)
   // ชดเชย INTENSITY_FACTOR ที่ useShade คูณให้: สีปลายทางไม่ควรเข้มขึ้นตามความเข้มของอารมณ์เดิม
   const strength = 1 / INTENSITY_FACTOR[props.intensity]
-  splat(x, y, Math.cos(angle) * SHIFT_SPEED, Math.sin(angle) * SHIFT_SPEED, { hex, radius: SHIFT_RADIUS, strength })
+  splat(x, y, Math.cos(angle) * SHIFT_SPEED, Math.sin(angle) * SHIFT_SPEED, { hex, radius, strength })
 }
 
 const shiftTick = () => {
@@ -208,7 +226,7 @@ const shiftTick = () => {
   shift.nextIn = rand(...SHIFT_INTERVAL) * (reducedMotion?.matches ? 2 : 1)
   // ไล่สีตามลำดับตามความคืบหน้าของช่วงปรับ: สีแรกครึ่งแรก สีสุดท้ายครึ่งหลัง
   const targets = SHIFT_TARGETS[props.emotion]
-  dropShiftTarget(targets[Math.min(targets.length - 1, Math.floor((phase / shift.duration) * targets.length))])
+  dropShiftTarget(targets[Math.min(targets.length - 1, Math.floor((phase / shift.duration) * targets.length))], shift.radius)
   if (++shift.dropped === 1) emit('shifted')
 }
 
@@ -239,8 +257,7 @@ const createFluid = () => {
     })
     applyParams()
     fluid.start()
-    if (props.running) startGravity()
-    else fluid.stop()
+    if (!props.running) fluid.stop()
   } catch (error) {
     // เครื่องที่ไม่มี WebGL: แอปส่วนอื่นยังใช้ได้
     console.error('เริ่มผ้าใบไม่สำเร็จ:', error)
@@ -261,6 +278,7 @@ const clear = async () => {
   releaseAll()
   clearTimers()
   shift = null
+  ink.fill(0)
   fluid.start() // no-op ถ้ากำลังวิ่งอยู่ (ถ้าถูกสั่งล้างตอนหยุด loop จะต้องวิ่งก่อนถึงจะล้างได้)
   fluid.setConfig({ densityDissipation: 1000, velocityDissipation: 1000 })
   await nextFrames(CLEAR_FRAMES)
@@ -348,7 +366,6 @@ watch(
   () => [props.emotion, props.intensity],
   applyParams,
 )
-watch(() => props.emotion, startGravity)
 
 watch(
   () => props.running,
@@ -356,7 +373,6 @@ watch(
     if (!fluid) return
     if (running) {
       fluid.start()
-      startGravity()
       tryDrop()
     } else {
       releaseAll()
