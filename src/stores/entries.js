@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed, markRaw } from 'vue'
 import { saveRecord, loadRecords, deleteRecord } from '@/lib/imageStore'
 import { USE_MOCK } from '@/lib/supabase'
-import { fetchEntries, uploadEntry } from '@/lib/remote'
+import { fetchEntries, uploadEntry, deleteAllData } from '@/lib/remote'
 import { useAuthStore } from '@/stores/auth'
 import { useImageUrlsStore } from '@/stores/imageUrls'
 import { useUploadQueueStore } from '@/stores/uploadQueue'
@@ -233,5 +233,13 @@ export const useEntriesStore = defineStore('entries', () => {
     return entry
   }
 
-  return { entries, hydrated, legacyCount, load, reset, upload, skipLegacy, adoptLegacy, entriesOfDay, todayCount, lastSevenDays, recentTabs, dates, addEntry }
+  // ลบข้อมูลทั้งหมดของผู้ใช้ที่ล็อกอิน (ไฟล์ + แถว + ของค้างในเครื่อง) โยน error ถ้าฝั่ง Supabase ลบไม่สำเร็จ
+  const deleteEverything = async () => {
+    const uid = auth.user.id
+    useUploadQueueStore().stop()
+    await deleteAllData(uid)
+    for (const r of (await loadRecords()).filter((r) => r.user_id === uid)) await deleteRecord(r.id)
+  }
+
+  return { entries, hydrated, deleteEverything, legacyCount, load, reset, upload, skipLegacy, adoptLegacy, entriesOfDay, todayCount, lastSevenDays, recentTabs, dates, addEntry }
 })

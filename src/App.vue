@@ -17,6 +17,7 @@
         <div v-if="app.view === 'hello'" class="absolute inset-0">
           <HelloSheet />
           <CoverPreview />
+          <AccountActions v-if="app.helloEditing && !USE_MOCK" />
         </div>
       </Transition>
       <Transition name="fade">
@@ -50,6 +51,8 @@ import LegacyPrompt from '@/components/auth/LegacyPrompt.vue'
 import Toast from '@/components/ui/Toast.vue'
 import LoginCard from '@/components/auth/LoginCard.vue'
 import HelloSheet from '@/components/hello/HelloSheet.vue'
+import AccountActions from '@/components/hello/AccountActions.vue'
+import { USE_MOCK } from '@/lib/supabase'
 import CoverPreview from '@/components/hello/CoverPreview.vue'
 import CoverIntro from '@/components/cover/CoverIntro.vue'
 import DrawingBoard from '@/components/paint/DrawingBoard.vue'
@@ -76,6 +79,7 @@ watch(
   () => auth.user,
   (now, before) => {
     if (before && !now) {
+      app.resetSession()
       profile.reset()
       entries.reset()
       app.setView('login')

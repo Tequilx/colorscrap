@@ -210,6 +210,23 @@ export const useAppStore = defineStore('app', () => {
     dropOnSheet()
   }
 
+  // ล้างสถานะของผู้ใช้คนก่อนทั้งหมด (ตอนออกจากระบบ/ลบข้อมูล) ให้คนถัดไปเริ่มจากโต๊ะว่าง
+  const resetSession = () => {
+    selection.value = { emotion: 'calm', intensity: 1 }
+    tool.value = 'smear'
+    openDate.value = null
+    leafIndex.value = 0
+    lastSavedEntryId.value = null
+    photoEntryId.value = null
+    freshLeaf.value = null
+    helloEditing.value = false
+    clearTick.value += 1 // ล้างผ้าใบ
+    canvasDirty.value = false
+    sheetEmotions.value = []
+    sheetShifted.value = false
+    resetWarmNote()
+  }
+
   const registerPainter = (instance) => {
     painter = instance
   }
@@ -284,6 +301,7 @@ export const useAppStore = defineStore('app', () => {
     pickTool,
     saving,
     registerPainter,
+    resetSession,
     go,
     setView,
     boot,

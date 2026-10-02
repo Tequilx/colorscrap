@@ -87,3 +87,21 @@ export const signPaths = async (paths, ttl) => {
   if (error) throw error
   return data.filter((d) => d.signedUrl && !d.error)
 }
+
+// ---- ลบข้อมูลทั้งหมดของผู้ใช้ ----
+// ลบไฟล์ทั้งโฟลเดอร์ {userId}/ ใน bucket (รวมไฟล์กำพร้าที่ไม่มีแถวอ้างถึง) → แถว entries → แถว profiles
+// บัญชีผู้ใช้ใน auth ยังอยู่ (ลบเองต้องใช้ service role ซึ่งห้ามอยู่ในแอป)
+export const deleteAllData = async (userId) => {
+  const bucket = supabase.storage.from(BUCKET)
+  for (;;) {
+    const { data, error } = await bucket.list(userId, { limit: 100 })
+    if (error) throw error
+    if (!data.length) break
+    const { error: removeError } = await bucket.remove(data.map((f) => `${userId}/${f.name}`))
+    if (removeError) throw removeError
+  }
+  const entries = await supabase.from('entries').delete().eq('user_id', userId)
+  if (entries.error) throw entries.error
+  const profile = await supabase.from('profiles').delete().eq('id', userId)
+  if (profile.error) throw profile.error
+}
