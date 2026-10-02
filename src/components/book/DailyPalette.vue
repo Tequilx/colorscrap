@@ -71,7 +71,7 @@ const title = computed(() => (isToday.value ? 'จานสีของวัน
 const shortLabel = (d) => thaiDateShort(parseLocalDate(d))
 
 const mix = computed(() => mixColors(props.entries) ?? '#8E8A93')
-const name = computed(() => nameOfDay(mix.value, props.entries.at(-1)?.local_time ?? '12:00'))
+const name = computed(() => nameOfDay(mix.value, props.entries.at(-1)?.local_time ?? '12:00', props.entries))
 
 const counts = computed(() => {
   const map = new Map()

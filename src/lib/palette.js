@@ -1,6 +1,4 @@
 // อัลกอริทึมจานสี (SPEC §8)
-// หมายเหตุ: mixColors / nameOfDay ในไฟล์นี้เป็น "ตัวแทนชั่วคราว" สำหรับช่วง C (เฉลี่ย RGB และตั้งชื่อแบบง่าย)
-// ขั้นที่ 8 จะเขียนใหม่ตาม §8.1–8.2 (ผสม HSL, ตัวขยาย, กลุ่มสีรอง) พร้อม unit test
 import { hexToRgb, rgbToHex } from '@/lib/color'
 
 // น้ำหนักต่อภาพ (SPEC §8.1)
@@ -61,33 +59,63 @@ export const dominantColorOfDay = (entries) => {
   }).hex
 }
 
-// ตัวแทนชั่วคราว: เฉลี่ย RGB ถ่วงน้ำหนัก
-export const mixColors = (entries) => {
-  const groups = colorWeightsOfDay(entries)
-  if (!groups.length) return null
-  const total = groups.reduce((s, g) => s + g.weight, 0)
-  const rgb = [0, 1, 2].map((i) => groups.reduce((s, g) => s + hexToRgb(g.hex)[i] * g.weight, 0) / total)
-  return rgbToHex(rgb)
-}
-
-const hueOf = (hex) => {
+// HSL ของสี: h 0..360, s/l 0..1 (hue ของสีเทาล้วนเป็น 0)
+const toHsl = (hex) => {
   const [r, g, b] = hexToRgb(hex).map((v) => v / 255)
   const max = Math.max(r, g, b)
   const min = Math.min(r, g, b)
   const d = max - min
-  if (d === 0) return { h: 0, s: 0 }
+  const l = (max + min) / 2
+  if (d === 0) return { h: 0, s: 0, l }
   let h
   if (max === r) h = ((g - b) / d) % 6
   else if (max === g) h = (b - r) / d + 2
   else h = (r - g) / d + 4
-  const l = (max + min) / 2
-  return { h: (h * 60 + 360) % 360, s: d / (1 - Math.abs(2 * l - 1)) }
+  return { h: (h * 60 + 360) % 360, s: d / (1 - Math.abs(2 * l - 1)), l }
+}
+
+const fromHsl = (h, s, l) => {
+  const c = (1 - Math.abs(2 * l - 1)) * s
+  const f = (n) => {
+    const k = (n + h / 30) % 12
+    return l - (c / 2) * Math.max(-1, Math.min(k - 3, 9 - k, 1))
+  }
+  return rgbToHex([f(0), f(8), f(4)].map((v) => v * 255))
+}
+
+// สีที่ saturation ไม่เกินนี้ไม่นับตอนหา hue (SPEC §8.1)
+const HUE_MIN_SAT = 0.15
+
+// น้ำหนัก ratio × w ของทุกสีในทุกภาพ ไม่รวมสีใกล้กัน (ใช้กับสูตรผสมและกลุ่มสีรอง)
+const flatColors = (entries) =>
+  entries.flatMap((e) => e.colors.map((c) => ({ ...c, weight: c.ratio * entryWeight(e), time: e.local_time })))
+
+// สีผสมของวัน (SPEC §8.1): ผสมใน HSL, hue เป็น circular mean ถ่วงน้ำหนัก, s/l เป็นค่าเฉลี่ยถ่วงน้ำหนัก
+export const mixColors = (entries) => {
+  const list = flatColors(entries)
+  const total = list.reduce((sum, c) => sum + c.weight, 0)
+  if (!total) return null
+  let sumS = 0
+  let sumL = 0
+  let x = 0
+  let y = 0
+  for (const c of list) {
+    const { h, s, l } = toHsl(c.hex)
+    sumS += s * c.weight
+    sumL += l * c.weight
+    if (s > HUE_MIN_SAT) {
+      x += Math.cos((h * Math.PI) / 180) * c.weight
+      y += Math.sin((h * Math.PI) / 180) * c.weight
+    }
+  }
+  const hue = x === 0 && y === 0 ? 0 : ((Math.atan2(y, x) * 180) / Math.PI + 360) % 360
+  return fromHsl(hue, sumS / total, sumL / total)
 }
 
 // กลุ่มสีจาก hue (SPEC §8.2 ข้อ 1)
 export const hueGroup = (hex) => {
-  const { h, s } = hueOf(hex)
-  if (s < 0.15) return 'เทา'
+  const { h, s } = toHsl(hex)
+  if (s < HUE_MIN_SAT) return 'เทา'
   if (h >= 345 || h < 15) return 'แดง'
   if (h < 40) return 'ส้ม'
   if (h < 65) return 'เหลือง'
@@ -98,7 +126,7 @@ export const hueGroup = (hex) => {
   return 'ชมพู'
 }
 
-// ช่วงเวลาตามเวลาของภาพล่าสุด (SPEC §8.2 ข้อ 3)
+// ช่วงเวลาตามเวลาของภาพล่าสุด (SPEC §8.2 ข้อ 3) ครอบคลุม 00:00–24:00
 export const periodOf = (time) => {
   const h = Number(time.slice(0, 2))
   if (h >= 5 && h < 11) return 'ยามเช้า'
@@ -109,12 +137,41 @@ export const periodOf = (time) => {
   return 'กลางดึก'
 }
 
-// ตัวแทนชั่วคราว: กลุ่มสี + หม่น (ถ้า saturation ต่ำ) + ช่วงเวลา แบ่งเป็น 2 ส่วนสำหรับตัดบรรทัด
-export const nameOfDay = (mixHex, lastTime) => {
-  const { s } = hueOf(mixHex)
-  const group = hueGroup(mixHex)
-  const colorPart = group + (group !== 'เทา' && s < 0.33 ? 'หม่น' : '')
-  const periodPart = periodOf(lastTime)
+// กลุ่มสีรอง (SPEC §8.2 ข้อ 2): รวมน้ำหนักต่อกลุ่ม ไม่นับกลุ่มของสีหลักและ "เทา" เสมอกันใช้กลุ่มของภาพล่าสุด
+const secondaryGroup = (mainGroup, entries) => {
+  const groups = new Map() // กลุ่ม → { weight, time }
+  for (const c of flatColors(entries)) {
+    const g = hueGroup(c.hex)
+    if (g === mainGroup || g === 'เทา') continue
+    const cur = groups.get(g) ?? { weight: 0, time: '' }
+    cur.weight += c.weight
+    if (c.time >= cur.time) cur.time = c.time
+    groups.set(g, cur)
+  }
+  let best = null
+  for (const [g, v] of groups) {
+    if (!best || v.weight > best.weight + 1e-9 || (Math.abs(v.weight - best.weight) <= 1e-9 && v.time >= best.time)) best = { g, ...v }
+  }
+  return best?.g ?? null
+}
+
+// ตัวขยาย: ใช้ข้อแรกที่ตรง (SPEC §8.2 ข้อ 2)
+const modifierOf = (hex, entries) => {
+  const { s, l } = toHsl(hex)
+  const second = secondaryGroup(hueGroup(hex), entries)
+  if (second) return 'อม' + second
+  if (s >= HUE_MIN_SAT && s < 0.33) return 'หม่น'
+  if ((s >= 0.33 && s < 0.45) || l < 0.5) return 'ครึ้ม'
+  if (l > 0.72) return 'อ่อน'
+  if (s > 0.6) return 'สด'
+  return ''
+}
+
+// ชื่อสีของวัน: กลุ่มสี + ตัวขยาย + ช่วงเวลา (SPEC §8.2) แบ่ง 2 ส่วนสำหรับตัดบรรทัด
+// entries (ภาพของวัน) ใช้หากลุ่มสีรอง ถ้าไม่ส่งมาจะไม่มี "อม..."
+export const nameOfDay = (mixHex, lastLocalTime, entries = []) => {
+  const colorPart = hueGroup(mixHex) + modifierOf(mixHex, entries)
+  const periodPart = periodOf(lastLocalTime)
   return { colorPart, periodPart, full: colorPart + periodPart }
 }
 

@@ -23,7 +23,7 @@
     </div>
 
     <div class="flex flex-col gap-2.5 border-t-[1.5px] border-dashed border-line pt-4">
-      <span class="font-hand text-17 font-semibold">{{ before.length ? 'สีของวันนี้เปลี่ยนไปนิดหนึ่ง' : 'สีแรกของวันนี้' }}</span>
+      <span class="font-hand text-17 font-semibold">{{ !before.length ? 'สีแรกของวันนี้' : unchanged ? 'สีของวันนี้ยังคงเดิม' : 'สีของวันนี้เปลี่ยนไปนิดหนึ่ง' }}</span>
       <!-- หยดสีตกลงหลุมผสมสี มีวงคลื่นกระจาย -->
       <!-- หลุมผสมสีย่อลง (80%) ให้การ์ดที่มีหัวข้อสีในภาพนี้เพิ่มยังสูงไม่เกินพื้นที่ -->
       <svg width="272" height="125" viewBox="0 0 340 156" class="self-center" role="img" :aria-label="`หยดสี${emotion.th}กำลังตกลงในหลุมผสมสีของวันนี้`">
@@ -43,7 +43,7 @@
       </svg>
       <!-- สีก่อนและหลังบันทึก -->
       <div class="flex items-center gap-2.5">
-        <template v-if="before.length">
+        <template v-if="before.length && !unchanged">
           <div class="flex flex-grow flex-col items-center gap-0.5">
             <svg width="120" height="34" viewBox="0 0 170 36" aria-hidden="true"><g class="filter-wct"><path d="M14 20 C54 12 110 26 156 16" fill="none" :stroke="beforeMix" stroke-width="20" stroke-linecap="round" /></g></svg>
             <span class="font-hand text-15 text-ink-soft">{{ beforeName }}</span>
@@ -89,8 +89,10 @@ const before = computed(() => day.value.filter((e) => e.id !== entry.value.id))
 
 const beforeMix = computed(() => mixColors(before.value) ?? '#8E8A93')
 const afterMix = computed(() => mixColors(day.value) ?? '#8E8A93')
-const beforeName = computed(() => nameOfDay(beforeMix.value, before.value.at(-1)?.local_time ?? '12:00').full)
-const afterName = computed(() => nameOfDay(afterMix.value, entry.value.local_time).full)
+const beforeName = computed(() => nameOfDay(beforeMix.value, before.value.at(-1)?.local_time ?? '12:00', before.value).full)
+const afterName = computed(() => nameOfDay(afterMix.value, entry.value.local_time, day.value).full)
+// ชื่อสีก่อนและหลังบันทึกเหมือนกัน (สีเปลี่ยนน้อยมาก) แสดงว่ายังคงเดิมแทนลูกศร
+const unchanged = computed(() => before.value.length > 0 && beforeName.value === afterName.value)
 
 // หยดในหลุมเล็ก (รัศมี 44): ตำแหน่งตายตัว 3 จุด ตามสีที่หนักที่สุดของวัน
 const groups = computed(() => colorWeightsOfDay(day.value).slice(0, 3))
