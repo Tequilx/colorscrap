@@ -183,6 +183,9 @@ export const dayColor = (entries) => {
   return { mix, name: nameOfDay(mix, lastTime, entries) }
 }
 
+// เทียบชื่อสีเฉพาะส่วนสี (กลุ่มสี + ตัวขยาย) ไม่นับช่วงเวลา ใช้ตัดสินว่า "สีของวันนี้ยังคงเดิม" (a, b = ผลของ dayColor)
+export const sameColorName = (a, b) => Boolean(a && b) && a.name.colorPart === b.name.colorPart
+
 // เส้นเวลา 00:00–24:00 ในกรอบ SVG กว้าง 412: เว้นขอบซ้ายขวา 18 ให้หยดและป้ายเวลาไม่ถูกตัด (SPEC §8.3)
 export const TIMELINE_LEFT = 18
 export const TIMELINE_WIDTH = 376

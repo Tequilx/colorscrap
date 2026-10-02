@@ -71,7 +71,7 @@ import Doodle from '@/components/ui/Doodle.vue'
 import WatercolorBlob from '@/components/ui/WatercolorBlob.vue'
 import { BLOB_PATHS } from '@/lib/doodles'
 import { EMOTION_BY_KEY, INTENSITY_LABELS, emotionLabel } from '@/lib/emotions'
-import { colorWeightsOfDay, dayColor, hueGroup, percentsOf } from '@/lib/palette'
+import { colorWeightsOfDay, dayColor, hueGroup, percentsOf, sameColorName } from '@/lib/palette'
 import { useAppStore } from '@/stores/app'
 import { useEntriesStore } from '@/stores/entries'
 
@@ -93,8 +93,8 @@ const beforeMix = computed(() => beforeColor.value?.mix ?? '#8E8A93')
 const afterMix = computed(() => afterColor.value?.mix ?? '#8E8A93')
 const beforeName = computed(() => beforeColor.value?.name.full ?? '')
 const afterName = computed(() => afterColor.value?.name.full ?? '')
-// ชื่อสีก่อนและหลังบันทึกเหมือนกัน (สีเปลี่ยนน้อยมาก) แสดงว่ายังคงเดิมแทนลูกศร
-const unchanged = computed(() => before.value.length > 0 && beforeName.value === afterName.value)
+// ส่วนสีของชื่อ (กลุ่มสี + ตัวขยาย) ก่อนและหลังบันทึกเหมือนกัน ไม่นับช่วงเวลา แสดงว่ายังคงเดิมแทนลูกศร
+const unchanged = computed(() => before.value.length > 0 && sameColorName(beforeColor.value, afterColor.value))
 
 // หยดในหลุมเล็ก (รัศมี 44): ตำแหน่งตายตัว 3 จุด ตามสีที่หนักที่สุดของวัน
 const groups = computed(() => colorWeightsOfDay(day.value).slice(0, 3))

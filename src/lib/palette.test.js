@@ -9,6 +9,7 @@ import {
   percentsOf,
   periodOf,
   rankedColors,
+  sameColorName,
   spreadXs,
   timelineX,
 } from '@/lib/palette'
@@ -175,5 +176,22 @@ describe('ชื่อกับสีผสมที่แสดงเป็น�
   })
   it('ไม่มีภาพ = null', () => {
     expect(dayColor([])).toBeNull()
+  })
+})
+
+describe('sameColorName (การ์ด saved: เทียบเฉพาะส่วนสี ไม่นับช่วงเวลา)', () => {
+  const morning = [e('09:00', CALM)]
+  it('สีเดิมแต่ข้ามช่วงเวลา (เช้า → เที่ยงวัน) = ส่วนสีเหมือนกัน', () => {
+    const before = dayColor(morning)
+    const after = dayColor([...morning, e('13:00', CALM)])
+    expect(before.name.periodPart).not.toBe(after.name.periodPart)
+    expect(before.name.full).not.toBe(after.name.full)
+    expect(sameColorName(before, after)).toBe(true)
+  })
+  it('สีเปลี่ยนกลุ่มหรือตัวขยาย = ไม่เหมือน', () => {
+    expect(sameColorName(dayColor(morning), dayColor([...morning, e('10:00', HAPPY), e('10:30', HAPPY)]))).toBe(false)
+  })
+  it('ไม่มีภาพก่อนหน้า = ไม่เหมือน', () => {
+    expect(sameColorName(dayColor([]), dayColor(morning))).toBe(false)
   })
 })
