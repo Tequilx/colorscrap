@@ -156,6 +156,7 @@ AI ใช้ช่วยพัฒนาเท่านั้น ไม่มี 
 ```js
 // src/stores/app.js
 export const VIEWS = Object.freeze({
+  login: 'login', // เข้าสู่ระบบ (§7.1) ไม่ใช้ในโหมดจำลอง
   hello: 'hello', cover: 'cover', pick: 'pick',
   paint: 'paint', saved: 'saved', book: 'book',
   photo: 'photo', // ดูภาพเดี่ยว (§5.8)
@@ -173,6 +174,10 @@ export const VIEWS = Object.freeze({
 
 | จาก | การกระทำ | ไป |
 |---|---|---|
+| (โหลดแอป) | ยังไม่ได้เข้าสู่ระบบ (โหมดจริง) | `login` |
+| `login` | เข้าสู่ระบบ/สมัครสำเร็จ แต่ยังไม่มีแถวใน `profiles` | `hello` |
+| `login` | เข้าสู่ระบบสำเร็จ และมีโปรไฟล์แล้ว | `cover` |
+| `hello` (โหมดแก้ไข) | กด "ออกจากระบบ" หรือ session หมดอายุ | `login` |
 | (โหลดแอป) | ยังไม่มีแถวใน `profiles` | `hello` |
 | (โหลดแอป) | มีโปรไฟล์แล้ว | `cover` |
 | `hello` | กด "เริ่มใช้สมุด" | `cover` |
@@ -603,19 +608,21 @@ vec3 col = mix(paper, paper * pigment, 1.0 - exp(-density * ABSORB));
   4. นับ pixel ของภาพย่อ: ข้าม pixel ที่เป็นกระดาษ ที่เหลือจัดเข้าสีในจานที่ใกล้ที่สุด แล้วคิด `ratio = จำนวน pixel ของสี / จำนวน pixel ที่ไม่ใช่กระดาษ`
   5. เก็บสูงสุด 5 สี เรียงจากมากไปน้อย เป็น `colors = [{ hex, ratio }]` โดย `ratio` รวมกันได้ 1 (ถ้าไม่มี pixel ที่ไม่ใช่กระดาษเลย ให้ใช้สีอารมณ์ ratio 1)
 - อัปโหลดขึ้น Storage ทั้งสองไฟล์ แล้วจึง insert แถวใน `entries`
-- **ช่วงก่อนขั้นที่ 7 (ยังไม่มี Supabase):** ภาพเต็ม ภาพย่อ และ entries ที่ผู้ใช้บันทึกเก็บใน IndexedDB ของเบราว์เซอร์ (database `colorscrap`, store `entries`, keyPath `id`, เก็บ Blob ในแถวเดียวกับข้อมูล) โหลดกลับตอนเปิดแอป รีเฟรชแล้วยังอยู่ (`src/lib/imageStore.js`) entry จาก mock ไม่เก็บและไม่มีภาพ จึงแสดงหยดสีจำลอง ขั้นที่ 7 จะย้ายภาพไป **Supabase Storage** (`image_path`, `thumb_path` ตาม §7.2) และ entries ไปตาราง `entries` แล้ว IndexedDB เหลือหน้าที่เดียวคือคิวอัปโหลดซ้ำด้านล่าง
+- **ช่วงก่อนขั้นที่ 7 (ยังไม่มี Supabase):** ภาพเต็ม ภาพย่อ และ entries ที่ผู้ใช้บันทึกเก็บใน IndexedDB ของเบราว์เซอร์ (database `colorscrap`, store `entries`, keyPath `id`, เก็บ Blob ในแถวเดียวกับข้อมูล) โหลดกลับตอนเปิดแอป รีเฟรชแล้วยังอยู่ (`src/lib/imageStore.js`) entry จาก mock ไม่เก็บและไม่มีภาพ จึงแสดงหยดสีจำลอง ในโหมดจริง (ขั้นที่ 7) ภาพไป **Supabase Storage** (`image_path`, `thumb_path` ตาม §7.2) และ entries ไปตาราง `entries` IndexedDB เหลือหน้าที่เดียวคือคิวอัปโหลดซ้ำด้านล่าง (record มี `user_id` ของเจ้าของ ผู้ใช้อื่นบนเครื่องเดียวกันไม่เห็น) ส่วน record เก่าที่ไม่มี `user_id` จะถามผู้ใช้ก่อนย้ายเข้าบัญชีเสมอ
 - **การแสดงภาพจริง:** โพลารอยด์ในสมุดและหน้า `saved` ใช้ภาพย่อ หน้า `photo` (§5.8) ใช้ภาพเต็ม ใส่ในกรอบเดิมด้วย `object-fit: cover` ถ้า entry ไม่มีภาพให้แสดงหยดสีจำลองเหมือนเดิม object URL สร้างตอนแสดงและ `revokeObjectURL` เมื่อถอด component หรือเปลี่ยนภาพ
-- **ถ้าอัปโหลดไม่สำเร็จ:** เก็บ Blob ไว้ใน IndexedDB แล้วลองใหม่อัตโนมัติ พร้อมแสดง toast "ยังบันทึกไม่ได้ จะลองใหม่ให้อีกครั้ง"
+- **ถ้าอัปโหลดไม่สำเร็จ:** เก็บ Blob ไว้ใน IndexedDB แล้วลองใหม่อัตโนมัติ (5 → 15 → 60 วินาที → ทุก 5 นาที และเมื่อเน็ตกลับมา) พร้อมแสดง toast "ยังบันทึกไม่ได้ จะลองใหม่ให้อีกครั้ง"
 
 ---
 
 ## 7. ข้อมูล (Supabase)
 
 ### 7.1 Auth
-- ใช้ Supabase Auth แบบอีเมล (magic link หรือรหัสผ่าน ให้ทีมเลือก)
-- หน้าเข้าสู่ระบบยังไม่ได้ออกแบบ ให้ทำเป็นการ์ดกระดาษบนโต๊ะในสไตล์เดียวกับ `hello`
-  - มีช่องอีเมลแบบเส้นประ
-  - มีปุ่มหลัก "ส่งลิงก์เข้าสมุด"
+- ใช้ Supabase Auth แบบ **อีเมล + รหัสผ่าน** (ปิดการยืนยันอีเมลไว้) key ใน `VITE_SUPABASE_ANON_KEY` เป็น publishable key (`sb_publishable_...`) ห้ามใส่ secret/service_role ในแอป
+- หน้าเข้าสู่ระบบ (`LoginCard.vue`) เป็นการ์ดกระดาษบนโต๊ะสไตล์เดียวกับ `hello` มีทั้งเข้าสู่ระบบและสมัครในการ์ดเดียว (สลับด้วยลิงก์ด้านล่าง)
+  - ช่องอีเมลและรหัสผ่านแบบเส้นประ
+  - ปุ่มหลัก "เข้าสมุด" / "สร้างสมุดใหม่" และข้อความ error ภาษาไทย
+- หน้าตั้งค่า (`hello` โหมดแก้ไข) มี "ออกจากระบบ" และ "ลบข้อมูลทั้งหมด" (กดซ้ำใน 3 วินาทีเพื่อยืนยัน; ลบไฟล์ แถว `entries` และ `profiles` ของผู้ใช้ ส่วนบัญชีใน Auth ลบจากแอปไม่ได้) ออกจากระบบแล้วล้างสถานะของผู้ใช้เดิมทั้งหมด เพราะเครื่องเดียวใช้หลายคนผลัดกัน
+- `VITE_USE_MOCK` ไม่ตั้งหรือเป็นค่าอื่นนอกจาก `false` = โหมดจำลอง (ไม่ต่อ Supabase ไม่มีหน้า login)
 
 ### 7.2 Schema
 
@@ -646,8 +653,8 @@ create table public.entries (
   intensity smallint not null check (intensity between 0 and 2),
   colors jsonb not null,               -- [{"hex":"#5FA3C8","ratio":0.42}, ...] สีที่ดูดจากภาพ (ratio รวม 1)
   shifted boolean not null default false,
-  image_path text not null,            -- paintings/{user_id}/{id}.webp
-  thumb_path text not null             -- paintings/{user_id}/{id}_thumb.webp
+  image_path text not null,            -- {user_id}/{id}.{ext} ใน bucket paintings (ext ตามชนิดไฟล์จริง: webp, jpg, png)
+  thumb_path text not null             -- {user_id}/{id}_thumb.{ext}
 );
 create index entries_user_date on public.entries (user_id, local_date, local_time);
 
@@ -662,6 +669,7 @@ create policy "own entries" on public.entries
 
 **Storage**
 - สร้าง bucket `paintings` แบบ **private**
+- รับ `image/webp`, `image/jpeg`, `image/png` (Safari รุ่นเก่าถอยไป JPEG); path เก็บตามนามสกุลจริงใน `image_path`/`thumb_path` แอปอ่านภาพจาก path ในแถวเสมอ
 - policy: อนุญาตเฉพาะ path ที่ `(storage.foldername(name))[1] = auth.uid()::text`
 - ตอนแสดงภาพในแอป ใช้ `createSignedUrl` อายุ 1 ชั่วโมง และ cache ไว้ใน store
 
