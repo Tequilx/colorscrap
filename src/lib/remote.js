@@ -1,5 +1,5 @@
 // ติดต่อ Supabase (ตาราง profiles / entries / Storage) ใช้เฉพาะเมื่อไม่ใช่โหมดจำลอง (SPEC §7)
-import { supabase } from '@/lib/supabase'
+import { supabase, BUCKET } from '@/lib/supabase'
 
 // คืน { displayName, avatar, coverColor, likes } หรือ null ถ้ายังไม่มีแถว (ผู้ใช้ใหม่ → ไปหน้า hello)
 export const fetchProfile = async (userId) => {
@@ -18,4 +18,72 @@ export const upsertProfile = async (userId, p) => {
     likes: p.likes,
   })
   if (error) throw error
+}
+
+// ---- entries + ภาพ (SPEC §6.6, §7.2) ----
+const ENTRY_COLUMNS = 'id, local_date, local_time, emotion, emotions, intensity, colors, shifted, image_path, thumb_path'
+
+// แถวจาก DB → entry ในแอป (local_time เป็น HH:MM:SS ตัดเหลือ HH:MM; ยังไม่มี Blob = ใช้ signed URL จาก path)
+const fromRow = (r) => ({
+  id: r.id,
+  local_date: r.local_date,
+  local_time: r.local_time.slice(0, 5),
+  emotion: r.emotion,
+  emotions: r.emotions,
+  intensity: r.intensity,
+  shifted: r.shifted,
+  colors: r.colors,
+  image: null,
+  thumb: null,
+  image_path: r.image_path,
+  thumb_path: r.thumb_path,
+})
+
+export const fetchEntries = async () => {
+  const { data, error } = await supabase.from('entries').select(ENTRY_COLUMNS).order('local_date').order('local_time')
+  if (error) throw error
+  return data.map(fromRow)
+}
+
+// นามสกุลตามชนิดไฟล์จริง (Safari รุ่นเก่าถอยไป JPEG, ดู exportImage.js) ชนิดอื่นที่ bucket ไม่รับ = ไม่อัปโหลด
+const EXT = { 'image/webp': 'webp', 'image/jpeg': 'jpg', 'image/png': 'png' }
+const extOf = (blob) => {
+  const ext = EXT[blob?.type]
+  if (!ext) throw new Error(`ชนิดไฟล์ภาพไม่รองรับ: ${blob?.type}`)
+  return ext
+}
+
+const upload = async (path, blob) => {
+  const { error } = await supabase.storage.from(BUCKET).upload(path, blob, { contentType: blob.type, upsert: true })
+  if (error) throw error
+}
+
+// อัปโหลดภาพเต็ม → ภาพย่อ → insert แถว (ลำดับตาม SPEC §6.6) ทำซ้ำได้ปลอดภัย: path คงที่ + upsert, แถวซ้ำ (23505) ถือว่าสำเร็จ
+// entry ต้องมี image/thumb เป็น Blob คืน { image_path, thumb_path } ตามนามสกุลจริง
+export const uploadEntry = async (userId, entry) => {
+  const image_path = `${userId}/${entry.id}.${extOf(entry.image)}`
+  const thumb_path = `${userId}/${entry.id}_thumb.${extOf(entry.thumb)}`
+  await upload(image_path, entry.image)
+  await upload(thumb_path, entry.thumb)
+  const { error } = await supabase.from('entries').insert({
+    id: entry.id,
+    local_date: entry.local_date,
+    local_time: entry.local_time,
+    emotion: entry.emotion,
+    emotions: [...entry.emotions],
+    intensity: entry.intensity,
+    colors: entry.colors.map((c) => ({ hex: c.hex, ratio: c.ratio })),
+    shifted: entry.shifted,
+    image_path,
+    thumb_path,
+  })
+  if (error && error.code !== '23505') throw error
+  return { image_path, thumb_path }
+}
+
+// signed URL อายุ ttl วินาที คืน [{ path, signedUrl }] เฉพาะที่ได้
+export const signPaths = async (paths, ttl) => {
+  const { data, error } = await supabase.storage.from(BUCKET).createSignedUrls(paths, ttl)
+  if (error) throw error
+  return data.filter((d) => d.signedUrl && !d.error)
 }

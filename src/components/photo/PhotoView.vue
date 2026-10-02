@@ -57,7 +57,7 @@ import HandButton from '@/components/ui/HandButton.vue'
 import Doodle from '@/components/ui/Doodle.vue'
 import { EMOTION_BY_KEY, INTENSITY_LABELS, emotionLabel } from '@/lib/emotions'
 import { percentsOf } from '@/lib/palette'
-import { useBlobUrl } from '@/lib/useBlobUrl'
+import { useEntryImage } from '@/lib/useEntryImage'
 import { useAppStore } from '@/stores/app'
 import { useEntriesStore } from '@/stores/entries'
 
@@ -72,7 +72,7 @@ const entry = computed(() => entries.entries.find((e) => e.id === app.photoEntry
 const emotion = computed(() => EMOTION_BY_KEY[entry.value?.emotion ?? 'calm'])
 const caption = computed(() => (entry.value ? `${entry.value.local_time} · ${emotionLabel(entry.value)}${entry.value.shifted ? ' → อุ่นขึ้น' : ''}` : ''))
 // หน้า photo ใช้ภาพเต็ม สร้าง URL เฉพาะตอนเปิดดู (ปิดแล้วคืนหน่วยความจำ)
-const imageUrl = useBlobUrl(() => (active.value ? entry.value?.image : null))
+const imageUrl = useEntryImage(() => (active.value ? entry.value : null), 'image')
 const pct = computed(() => (entry.value ? percentsOf(entry.value.colors) : []))
 
 // เส้นรอยพู่กันยาวตาม ratio (สีที่มากที่สุดยาวเต็ม)

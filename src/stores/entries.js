@@ -1,6 +1,10 @@
 import { defineStore } from 'pinia'
 import { ref, computed, markRaw } from 'vue'
-import { saveRecord, loadRecords } from '@/lib/imageStore'
+import { saveRecord, loadRecords, deleteRecord } from '@/lib/imageStore'
+import { USE_MOCK } from '@/lib/supabase'
+import { fetchEntries, uploadEntry } from '@/lib/remote'
+import { useAuthStore } from '@/stores/auth'
+import { useImageUrlsStore } from '@/stores/imageUrls'
 import { EMOTION_COLORS } from '@/lib/tokens'
 import { emotionShades, SHIFT_TARGETS } from '@/lib/emotions'
 import { addDays, localDateStr, parseLocalDate, thaiWeekdayShort } from '@/lib/dates'
@@ -44,9 +48,6 @@ const MOCK = [
   [6, '14:20', 'angry', 2, true],
 ]
 
-// VITE_USE_MOCK=false → ไม่มีภาพจำลอง ใช้เฉพาะ entries จริงจาก IndexedDB (ตั้งใน .env / .env.production)
-const USE_MOCK = import.meta.env.VITE_USE_MOCK !== 'false'
-
 const pad2 = (n) => String(n).padStart(2, '0')
 
 // ภาพของวันนี้ต้องมีเวลาไม่เกินเวลาปัจจุบัน ภาพที่บันทึกใหม่จะได้อยู่ท้ายแผ่นเสมอ
@@ -72,30 +73,53 @@ const buildMock = () => {
 }
 
 export const useEntriesStore = defineStore('entries', () => {
+  const auth = useAuthStore()
+  const imageUrls = useImageUrlsStore()
   const entries = ref(USE_MOCK ? buildMock() : [])
 
-  // ชั่วคราวจนถึงขั้นที่ 7: entries ที่ผู้ใช้บันทึกอยู่ใน IndexedDB (mock ไม่เก็บ เพราะสร้างใหม่ทุกครั้งตามวันที่ปัจจุบัน)
   // ต้องส่ง object แบบ plain เข้า IndexedDB (reactive proxy ถูก structured clone ไม่ได้)
-  const persist = (entry) =>
-    saveRecord({
-      id: entry.id,
-      local_date: entry.local_date,
-      local_time: entry.local_time,
-      emotion: entry.emotion,
-      emotions: [...entry.emotions],
-      intensity: entry.intensity,
-      shifted: entry.shifted,
-      colors: entry.colors.map((c) => ({ hex: c.hex, ratio: c.ratio })),
-      image: entry.image,
-      thumb: entry.thumb,
-    })
-
-  const hydrated = loadRecords().then((records) => {
-    records.forEach((r) => {
-      if (entries.value.some((e) => e.id === r.id)) return
-      entries.value.push({ ...r, image: r.image ? markRaw(r.image) : null, thumb: r.thumb ? markRaw(r.thumb) : null })
-    })
+  // โหมดจริงใส่ user_id ไว้ ให้ผู้ใช้คนอื่นบนเครื่องเดียวกันไม่เห็น/ไม่ส่งภาพของเจ้าของ
+  const toRecord = (entry) => ({
+    id: entry.id,
+    user_id: auth.user?.id,
+    local_date: entry.local_date,
+    local_time: entry.local_time,
+    emotion: entry.emotion,
+    emotions: [...entry.emotions],
+    intensity: entry.intensity,
+    shifted: entry.shifted,
+    colors: entry.colors.map((c) => ({ hex: c.hex, ratio: c.ratio })),
+    image: entry.image,
+    thumb: entry.thumb,
   })
+
+  const withBlobs = (r) => ({ ...r, image: r.image ? markRaw(r.image) : null, thumb: r.thumb ? markRaw(r.thumb) : null })
+
+  // โหมดจำลอง: entries ที่บันทึกไว้ใน IndexedDB (ไม่มี user_id) mock ไม่เก็บ เพราะสร้างใหม่ทุกครั้งตามวันที่ปัจจุบัน
+  // โหมดจริง: ดึงจากตาราง entries + ภาพย่อ (signed URL ทีเดียวทั้งชุด) แล้วเติม entry ของผู้ใช้นี้ที่ยังค้างในเครื่องไม่ได้อัปโหลด
+  const load = async () => {
+    if (USE_MOCK) {
+      ;(await loadRecords()).forEach((r) => {
+        if (!r.user_id && !entries.value.some((e) => e.id === r.id)) entries.value.push(withBlobs(r))
+      })
+      return
+    }
+    const uid = auth.user.id
+    const rows = await fetchEntries()
+    const pending = (await loadRecords()).filter((r) => r.user_id === uid)
+    const done = new Set(rows.map((e) => e.id))
+    pending.filter((r) => done.has(r.id)).forEach((r) => deleteRecord(r.id)) // อัปโหลดสำเร็จไปแล้วแต่ยังไม่ได้ลบ record
+    entries.value = [...rows, ...pending.filter((r) => !done.has(r.id)).map(withBlobs)]
+    await imageUrls.prefetch(rows.map((e) => e.thumb_path))
+  }
+
+  const hydrated = USE_MOCK ? load() : Promise.resolve()
+
+  // ออกจากระบบ: ลืมข้อมูลของคนก่อนทั้งหมด (ไฟล์ค้างใน IndexedDB ยังอยู่ แต่เป็นของเจ้าของและจะไม่ถูกแสดงให้คนอื่น)
+  const reset = () => {
+    entries.value = USE_MOCK ? buildMock() : []
+    imageUrls.clear()
+  }
 
   const entriesOfDay = (date) =>
     entries.value.filter((e) => e.local_date === date).sort((a, b) => a.local_time.localeCompare(b.local_time))
@@ -126,24 +150,36 @@ export const useEntriesStore = defineStore('entries', () => {
   // วันที่ที่มีบันทึก เรียงเก่า → ใหม่
   const dates = computed(() => [...new Set(entries.value.map((e) => e.local_date))].sort())
 
-  // บันทึกภาพใหม่ลงสมุด (จำลอง; ขั้นที่ 7 จะส่งขึ้น Supabase)
+  // อัปโหลด entry ที่ยังมี Blob (โหมดจริง) สำเร็จ → จด path, ขอ signed URL ไว้ก่อน แล้วค่อยปล่อย Blob (ภาพไม่กะพริบ) และลบ record ในเครื่อง
+  // ล้มเหลว → โยน error ทิ้งไว้ใน IndexedDB (ขั้นที่ 5 จะลองใหม่อัตโนมัติ)
+  const upload = async (entry) => {
+    const paths = await uploadEntry(entry.user_id ?? auth.user.id, entry)
+    await imageUrls.prefetch([paths.thumb_path])
+    const live = entries.value.find((e) => e.id === entry.id)
+    if (live) Object.assign(live, paths, { image: null, thumb: null })
+    await deleteRecord(entry.id)
+  }
+
+  // บันทึกภาพใหม่ลงสมุด
   // colors: สีที่ดูดจากภาพจริง (SPEC §6.6) ถ้าไม่มีใช้สีอารมณ์
-  // images: { image, thumb } Blob จากผ้าใบ เก็บเป็น object URL ชั่วคราว (ขั้นที่ 7 เปลี่ยนเป็นอัปโหลดแล้วเก็บ image_path/thumb_path)
+  // images: { image, thumb } Blob จากผ้าใบ โหมดจริงเก็บลง IndexedDB ก่อนแล้วอัปโหลด (เห็นในสมุดทันที ไม่รอเครือข่าย)
   const addEntry = ({ emotions, intensity, shifted = false, colors, images = null }) => {
     const now = new Date()
     const emotion = emotions.at(-1) // emotion = อารมณ์ล่าสุดของแผ่น, emotions = ตามลำดับที่หยด (SPEC §7.2)
     const shades = shadesOf(emotion)
     const entry = {
-      id: `local-${now.getTime()}`,
+      id: crypto.randomUUID(), // uuid ตั้งแต่ตอนสร้าง ให้ path ใน Storage ล่วงหน้าได้ก่อน insert
       local_date: localDateStr(now),
       local_time: `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`,
       emotion,
       emotions,
       intensity,
       shifted,
-      // Blob ภาพเต็มและ thumb (markRaw ไม่ให้ Vue ครอบ proxy) mock ไม่มีภาพ = null → แสดงหยดสีจำลอง
+      // Blob ภาพเต็มและ thumb (markRaw ไม่ให้ Vue ครอบ proxy) ไม่มีภาพ = null → แสดงหยดสีจำลอง
       image: images ? markRaw(images.image) : null,
       thumb: images ? markRaw(images.thumb) : null,
+      image_path: null,
+      thumb_path: null,
       colors: colors ?? [
         { hex: shades.base, ratio: 0.55 },
         { hex: shades.light, ratio: 0.25 },
@@ -151,9 +187,14 @@ export const useEntriesStore = defineStore('entries', () => {
       ],
     }
     entries.value.push(entry)
-    persist(entry)
+    // บันทึกลงเครื่องก่อนเสมอ: โหมดจริงเป็นคิวอัปโหลด (ลบเมื่อสำเร็จ) โหมดจำลองเป็นที่เก็บถาวร
+    const record = toRecord(entry)
+    const saved = saveRecord(record)
+    if (!USE_MOCK && images) {
+      saved.then(() => upload({ ...record, user_id: record.user_id })).catch((e) => console.error('อัปโหลดภาพไม่สำเร็จ (ยังเก็บไว้ในเครื่อง):', e))
+    }
     return entry
   }
 
-  return { entries, hydrated, entriesOfDay, todayCount, lastSevenDays, recentTabs, dates, addEntry }
+  return { entries, hydrated, load, reset, entriesOfDay, todayCount, lastSevenDays, recentTabs, dates, addEntry }
 })

@@ -1,5 +1,6 @@
-// เก็บภาพที่ผู้ใช้ระบายและ entries ไว้ใน IndexedDB ชั่วคราว (เขียนเองสั้น ๆ ไม่ใช้ไลบรารี)
-// ขั้นที่ 7 จะย้ายภาพไป Supabase Storage และ entries ไปตาราง entries (SPEC §6.6, §7.2) ไฟล์นี้เหลือแค่คิว retry ตอนอัปโหลดไม่สำเร็จ
+// IndexedDB ของเครื่อง (เขียนเองสั้น ๆ ไม่ใช้ไลบรารี)
+// โหมดจริง: เก็บเฉพาะ entry ที่ยังอัปโหลดขึ้น Supabase ไม่สำเร็จ (มี user_id ของเจ้าของ) ลบเมื่อสำเร็จ (SPEC §6.6)
+// โหมดจำลอง: เก็บ entries ที่บันทึกไว้ถาวรเหมือนช่วงก่อนขั้นที่ 7 (ไม่มี user_id) record แบบนี้ในโหมดจริงคือภาพเก่าที่เสนอให้ย้ายขึ้น
 // ทุกฟังก์ชันไม่โยน error: ถ้า IndexedDB ใช้ไม่ได้ (private mode, โควตาเต็ม) แอปยังทำงานต่อได้แต่ข้อมูลหายเมื่อรีเฟรช
 const DB_NAME = 'colorscrap'
 const STORE = 'entries'
@@ -44,5 +45,15 @@ export const loadRecords = async () => {
   } catch (error) {
     console.error('อ่านจาก IndexedDB ไม่สำเร็จ:', error)
     return []
+  }
+}
+
+export const deleteRecord = async (id) => {
+  try {
+    await run('readwrite', (store) => store.delete(id))
+    return true
+  } catch (error) {
+    console.error('ลบจาก IndexedDB ไม่สำเร็จ:', error)
+    return false
   }
 }

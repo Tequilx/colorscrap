@@ -59,10 +59,12 @@ import HandButton from '@/components/ui/HandButton.vue'
 import { useAppStore } from '@/stores/app'
 import { useAuthStore } from '@/stores/auth'
 import { useProfileStore } from '@/stores/profile'
+import { useEntriesStore } from '@/stores/entries'
 
 const app = useAppStore()
 const auth = useAuthStore()
 const profile = useProfileStore()
+const entries = useEntriesStore()
 
 const signingUp = ref(false)
 const email = ref('')
@@ -87,7 +89,7 @@ const submit = async () => {
       error.value = message
       return
     }
-    await profile.loadRemote()
+    await Promise.all([profile.loadRemote(), entries.load()])
     password.value = ''
     // ยังไม่มีโปรไฟล์ (สมัครใหม่) → hello, มีแล้ว → cover
     app.go(profile.exists ? 'cover' : 'hello')

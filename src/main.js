@@ -3,6 +3,7 @@ import { createPinia } from "pinia";
 import App from "./App.vue";
 import { useAuthStore } from "@/stores/auth";
 import { useProfileStore } from "@/stores/profile";
+import { useEntriesStore } from "@/stores/entries";
 import "./assets/app.css";
 
 const app = createApp(App);
@@ -15,7 +16,7 @@ const start = async () => {
   const auth = useAuthStore();
   try {
     await auth.init();
-    if (auth.user) await useProfileStore().loadRemote();
+    if (auth.user) await Promise.all([useProfileStore().loadRemote(), useEntriesStore().load()]);
   } catch (error) {
     console.error("เริ่มแอปไม่สำเร็จ:", error);
   }

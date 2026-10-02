@@ -22,7 +22,7 @@ import { computed } from 'vue'
 import Polaroid from '@/components/ui/Polaroid.vue'
 import { EMOTION_BY_KEY, emotionLabel } from '@/lib/emotions'
 import { photoRotation } from '@/lib/photos'
-import { useBlobUrl } from '@/lib/useBlobUrl'
+import { useEntryImage } from '@/lib/useEntryImage'
 
 const props = defineProps({
   entry: { type: Object, required: true },
@@ -35,7 +35,7 @@ defineEmits(['open'])
 
 const emotion = computed(() => EMOTION_BY_KEY[props.entry.emotion])
 // โพลารอยด์ในสมุดใช้ thumb (ไม่มี = mock แสดงหยดสีจำลอง)
-const thumbUrl = useBlobUrl(() => props.entry.thumb)
+const thumbUrl = useEntryImage(() => props.entry, 'thumb')
 const rot = computed(() => photoRotation(props.entry.id))
 // "{HH:mm} · {อารมณ์}" และต่อท้าย " → อุ่นขึ้น" ถ้าถูกปรับโทน (SPEC §5.5)
 const caption = computed(() => `${props.entry.local_time} · ${emotionLabel(props.entry)}${props.entry.shifted ? ' → อุ่นขึ้น' : ''}`)

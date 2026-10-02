@@ -56,12 +56,14 @@ import Doodle from '@/components/ui/Doodle.vue'
 import { useAppStore } from '@/stores/app'
 import { useProfileStore } from '@/stores/profile'
 import { useAuthStore } from '@/stores/auth'
+import { useEntriesStore } from '@/stores/entries'
 import { useHashView } from '@/lib/useHashView'
 import { coverSpine, coverStrap } from '@/lib/color'
 
 const app = useAppStore()
 const profile = useProfileStore()
 const auth = useAuthStore()
+const entries = useEntriesStore()
 
 useHashView(app, profile, auth)
 
@@ -71,6 +73,7 @@ watch(
   (now, before) => {
     if (before && !now) {
       profile.reset()
+      entries.reset()
       app.setView('login')
     }
   },
