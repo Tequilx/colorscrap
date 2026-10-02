@@ -273,6 +273,7 @@ export const useAppStore = defineStore('app', () => {
     sheetEmotions,
     sheetShifted,
     warmAvailable,
+    warmNote,
     warmNoteOpen,
     warmTick,
     offerWarmNote,

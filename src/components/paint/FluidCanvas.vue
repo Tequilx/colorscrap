@@ -14,11 +14,19 @@
       @pointercancel="onUp"
       @lostpointercapture="onUp"
     ></div>
+    <!-- dev เท่านั้น: เปิดด้วย ?debug ดูตัวนับของโน้ตชวน (ใช้ Teleport เพราะ Stage ถูก scale) -->
+    <Teleport v-if="DEBUG" to="body">
+      <div data-debug class="pointer-events-none fixed bottom-2 left-2 z-50 whitespace-pre rounded bg-black/75 px-2 py-1 font-mono text-[12px] leading-snug text-white">
+        <div>นับตั้งแต่แตะครั้งแรก: {{ debug.elapsed }}</div>
+        <div>พักมือ: {{ debug.idle }}</div>
+        <div>โน้ต: {{ noteLabel }}</div>
+      </div>
+    </Teleport>
   </div>
 </template>
 
 <script setup>
-import { ref, watch, onMounted, onBeforeUnmount } from 'vue'
+import { ref, reactive, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import WebGLFluid from 'webgl-fluid-enhanced'
 import { emotionShades, FLUID_PARAMS, DENSITY_DISSIPATION, INK_CELL, INK_CAP, INITIAL_SPLATS, INTENSITY_FACTOR, SHIFT_TARGETS } from '@/lib/emotions'
 import { PALETTE } from '@/lib/tokens'
@@ -39,6 +47,8 @@ const props = defineProps({
   warmTick: { type: Number, default: 0 },
   // อารมณ์ล่าสุดของแผ่นเป็นอารมณ์ลบ (ใช้ตัดสินว่าจะชวนหรือไม่)
   warmAvailable: { type: Boolean, default: false },
+  // สถานะโน้ตชวนของแผ่น (idle/open/done) ใช้แสดงในกล่อง debug เท่านั้น
+  noteState: { type: String, default: 'idle' },
 })
 
 // shifted: ผู้ใช้หยดสีอุ่นเองหยดแรกของแผ่น | invite: ระบายรวมครบและพักมือ ควรโผล่โน้ตชวน (SPEC §6.4)
@@ -58,11 +68,12 @@ const CLEAR_FRAMES = 8
 const SHIFT_RADIUS = 0.5 // รัศมีหยดสีอุ่นเมื่อแตะ
 const SHIFT_SPEED = 200 // ความเร็วต่ำ (initial = 220 × speed ของอารมณ์)
 const WARM_TAP_SPEED = 60 // หยดที่ตำแหน่งแตะ ความเร็วเท่าหยดอารมณ์
-// โน้ตชวน: ระบายรวมครบเท่านี้ + พักมือเท่านี้ (ms ของเวลาที่ผ้าใบวิ่งอยู่) ถามครั้งเดียวต่อแผ่น
+// โน้ตชวน: ครบเท่านี้นับจาก pointerdown ครั้งแรกของแผ่น + พักมือ (ไม่มี pointerdown และไม่มีปุ่มกดค้าง) เท่านี้ (ms ของเวลาที่ผ้าใบวิ่งอยู่) ถามครั้งเดียวต่อแผ่น
 const NOTE_PAINT_MS = 20000
 const NOTE_IDLE_MS = 2000
 const NOTE_TICK = 250
-// เร่งเวลาโน้ตตอน dev เพื่อทดสอบ: เปิดหน้าด้วย ?shiftSpeed=10 (ไม่ยุ่งกับ simulation)
+// เร่งเวลาโน้ตตอน dev เพื่อทดสอบ (เร่งทั้ง 20 วินาทีและ 2 วินาที): เปิดหน้าด้วย ?shiftSpeed=10 (ไม่ยุ่งกับ simulation) และ ?debug แสดงกล่องตัวนับ
+const DEBUG = import.meta.env.DEV && new URLSearchParams(location.search).has('debug')
 const NOTE_TIME_SCALE = import.meta.env.DEV ? Number(new URLSearchParams(location.search).get('shiftSpeed')) || 1 : 1
 // prefers-reduced-motion: หยดสีอุ่นตอนกดค้างช้าลงครึ่งหนึ่ง (ห่างขึ้น 2 เท่า)
 const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')
@@ -80,7 +91,10 @@ let gravityTimer = null
 let gravityStop = null
 let noteTimer = null
 // สถานะของแผ่นปัจจุบัน (รีเซ็ตเมื่อล้างผ้าใบ): เวลาที่ระบายรวม เวลาที่พักมือ ชวนไปแล้วหรือยัง จำนวนครั้งที่หยดสีอุ่น (ไล่สีตามนี้)
-let sheet = { painted: 0, idle: 0, invited: false, warmGestures: 0, warmDropped: false }
+const newSheetState = () => ({ started: false, elapsed: 0, idle: 0, invited: false, warmGestures: 0, warmDropped: false })
+let sheet = newSheetState()
+const debug = reactive({ elapsed: '-', idle: '-' })
+const noteLabel = computed(() => ({ idle: 'รอ', open: 'แสดง', done: 'ปิดแล้ว' })[props.noteState] ?? props.noteState)
 const timers = new Set() // timeout ของหยดเริ่มต้นแบบเป็นจังหวะ
 const pointers = new Map() // pointerId → { x, y, downX, downY, hold, holdStart }
 
@@ -236,17 +250,19 @@ const dropWarmAtEdge = () => {
   markWarmDropped()
 }
 
-// ตัวจับเวลาของโน้ตชวน: นับเวลาเฉพาะตอนผ้าใบวิ่งอยู่ ระบายรวมครบ NOTE_PAINT_MS แล้วพักมือ NOTE_IDLE_MS จึงชวน (ครั้งเดียวต่อแผ่น)
+// ตัวจับเวลาของโน้ตชวน: นับเฉพาะตอนผ้าใบวิ่งอยู่ (ออกจากหน้า paint = หยุด กลับมานับต่อ)
+// elapsed = เวลาตั้งแต่ pointerdown ครั้งแรกของแผ่น (ไม่ต้องกดค้างตลอด) idle = เวลาที่ไม่มี pointerdown และไม่มี pointer กดค้าง
+// pointermove ที่ไม่ได้กด (hover) ไม่ถูกนับ เพราะ onMove ข้าม pointer ที่ไม่อยู่ใน pointers
 const noteTick = () => {
-  if (!fluid || !props.running || clearing || sheet.invited) return
+  if (!fluid || !props.running || clearing || !sheet.started) return
   const dt = NOTE_TICK * NOTE_TIME_SCALE
-  if (pointers.size) {
-    sheet.painted += dt
-    sheet.idle = 0
-    return
+  sheet.elapsed += dt
+  sheet.idle = pointers.size ? 0 : sheet.idle + dt
+  if (DEBUG) {
+    debug.elapsed = (sheet.elapsed / 1000).toFixed(1) + ' วิ'
+    debug.idle = (sheet.idle / 1000).toFixed(1) + ' วิ'
   }
-  sheet.idle += dt
-  if (sheet.painted >= NOTE_PAINT_MS && sheet.idle >= NOTE_IDLE_MS && props.warmAvailable) {
+  if (!sheet.invited && sheet.elapsed >= NOTE_PAINT_MS && sheet.idle >= NOTE_IDLE_MS && props.warmAvailable) {
     sheet.invited = true
     emit('invite')
   }
@@ -296,10 +312,11 @@ const nextFrames = (n) =>
 // ไลบรารีไม่มีคำสั่งล้าง: ตั้ง dissipation สูงมากไม่กี่เฟรมให้ dye และ velocity เหลือ 0 แล้วคืนค่า (ไม่สร้างตัวใหม่ จึงไม่รั่ว FBO)
 const clear = async () => {
   if (!fluid || clearing) return
+  debug.elapsed = debug.idle = '-'
   clearing = true
   releaseAll()
   clearTimers()
-  sheet = { painted: 0, idle: 0, invited: false, warmGestures: 0, warmDropped: false }
+  sheet = newSheetState()
   ink.fill(0)
   fluid.start() // no-op ถ้ากำลังวิ่งอยู่ (ถ้าถูกสั่งล้างตอนหยุด loop จะต้องวิ่งก่อนถึงจะล้างได้)
   fluid.setConfig({ densityDissipation: 1000, velocityDissipation: 1000 })
@@ -341,6 +358,8 @@ const releaseAll = () => {
 const onDown = (e) => {
   if (!fluid || !props.running || clearing) return
   inputRef.value.setPointerCapture?.(e.pointerId)
+  sheet.started = true
+  sheet.idle = 0
   const { x, y } = toCanvas(e)
   const pointer = { x, y, downX: x, downY: y, hold: null, holdStart: null }
   pointers.set(e.pointerId, pointer)
@@ -361,6 +380,8 @@ const onDown = (e) => {
 const onMove = (e) => {
   const pointer = pointers.get(e.pointerId)
   if (!pointer || !fluid || clearing) return
+  // เมาส์ที่ปล่อยปุ่มไปแล้วแต่ไม่ได้รับ pointerup (เช่น ปล่อยนอกหน้าต่าง) ต้องไม่ค้างเป็น "กดอยู่" ไม่งั้นตัวนับพักมือไม่เดิน
+  if (e.pointerType === 'mouse' && e.buttons === 0) return onUp(e)
   const { x, y } = toCanvas(e)
   const dx = x - pointer.x
   const dy = y - pointer.y
