@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `npm install` — install deps (Node `^22.18.0 || >=24.12.0`)
 - `npm run dev` — Vite dev server with HMR (includes vue-devtools plugin). UI kit gallery (dev only) at `/?kit`
 - `npm run build` / `npm run preview` — production build / serve it
-- `npm test` — Vitest (`vitest run`): `src/lib/*.test.js` (`palette`, `extractColors`). Pure-function tests only, no component tests; `@` alias works via vite.config.js
+- `npm test` — Vitest (`vitest run`): `src/lib/*.test.js` (`palette`, `extractColors`, `uuid`, `flip`, `saveTimeline`). Pure-function tests only, no component tests; `@` alias works via vite.config.js
 
 No linter is configured.
 

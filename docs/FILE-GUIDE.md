@@ -16,6 +16,71 @@
 
 ---
 
+## 0. Tech stack (เทคโนโลยีที่ใช้)
+
+ข้อมูลจาก [package.json](../package.json) (คอลัมน์ "ช่วงที่กำหนด") และเวอร์ชันที่ติดตั้งอยู่จริงใน `node_modules` ณ วันที่เขียน (คอลัมน์ "ติดตั้งจริง") ส่วน license อ่านจากไฟล์ `LICENSE`/`package.json` ของแต่ละไลบรารีและหน้า license ของฟอนต์ **โปรเจกต์เขียนด้วย JavaScript ล้วน ไม่มี TypeScript** (ตรวจแล้วไม่มีไฟล์ `.ts` และไม่มี `typescript` ใน package.json) และไม่มีตัวตรวจสไตล์โค้ด (linter)
+
+### 0.1 Frontend (ส่วนที่ทำงานในเบราว์เซอร์)
+
+| ชื่อ | เวอร์ชัน (ช่วงที่กำหนด → ติดตั้งจริง) | ใช้ทำอะไรในแอปนี้ | ไฟล์หลักที่ใช้ |
+|---|---|---|---|
+| Vue 3 | ^3.5.42 → 3.5.43 | สร้างหน้าจอทั้งหมดแบบ component (เขียนแบบ `<script setup>`) | `src/main.js`, `src/App.vue`, ทุกไฟล์ `.vue` |
+| Pinia | ^4.0.3 → 4.0.3 | เก็บสถานะกลาง (หน้าปัจจุบัน ภาพทั้งหมด โปรไฟล์ ล็อกอิน ข้อความ toast) | `src/stores/*.js` |
+| Tailwind CSS 3 | ^3.4.19 → 3.4.19 | จัดสไตล์ด้วยชื่อ class (`bg-desk`, `font-hand`) โดยอ่านสี/ฟอนต์/เวลาจาก `tokens.js` | `tailwind.config.js`, `src/lib/tokens.js`, `src/assets/app.css` |
+| PostCSS + Autoprefixer | ^8.5.28 → 8.5.28 / ^10.6.1 → 10.6.1 | ตัวประมวลผล CSS ที่ Tailwind ทำงานบนนั้น และเติมโค้ดให้ใช้ได้หลายเบราว์เซอร์ | `postcss.config.js` |
+| webgl-fluid-enhanced | ^0.8.0 → 0.8.0 | **ผ้าใบสีน้ำไหล** (จำลองน้ำด้วย WebGL) แอปควบคุมผ่านการตั้งค่าและการหยดสี | `src/components/paint/FluidCanvas.vue`, `src/lib/dye.js`, `src/lib/emotions.js` |
+| colorthief | ^3.5.0 → 3.5.0 | **ดูดสีเด่น** จากภาพที่ระบายตอนบันทึก (`getPaletteSync`) | `src/lib/extractColors.js` |
+| ฟอนต์ Mali | ผ่าน Google Fonts | ตัวหนังสือลายมือ (หัวข้อ ปุ่ม คำบรรยาย) class `font-hand` | `index.html`, `tailwind.config.js` |
+| ฟอนต์ IBM Plex Sans Thai Looped | ผ่าน Google Fonts | ตัวหนังสือเนื้อหา class `font-body` | `index.html`, `tailwind.config.js` |
+
+**ความสามารถของเบราว์เซอร์ที่ใช้โดยตรง (ไม่ใช่ไลบรารี ไม่ต้องติดตั้ง):** WebGL (ผ้าใบ), Canvas 2D (จับภาพ ย่อภาพ ดูดสี), Pointer Events (รับนิ้ว/เมาส์), Web Animations API และ CSS transitions (แอนิเมชันบิน/เลื่อน — `<Transition>` ของ Vue ใช้ร่วมด้วย ไม่มีไลบรารีแอนิเมชัน), IndexedDB (เก็บภาพในเครื่อง), localStorage (โปรไฟล์ในโหมด mock), `matchMedia` (ตรวจ "ลดการเคลื่อนไหว")
+
+### 0.2 Backend (Supabase — บริการภายนอกที่แอปเรียกใช้ ไม่ได้ฝังอยู่ในโค้ด)
+
+| ชื่อ | เวอร์ชัน | ใช้ทำอะไรในแอปนี้ | ไฟล์หลักที่ใช้ |
+|---|---|---|---|
+| ไลบรารี `@supabase/supabase-js` | ^2.117.2 → 2.117.2 | ตัวเชื่อมจากแอปไปยัง Supabase (ใช้เฉพาะเมื่อไม่ใช่โหมด mock) | `src/lib/supabase.js`, `src/lib/remote.js` |
+| Supabase Auth | – | ล็อกอิน/สมัครด้วยอีเมล+รหัสผ่าน (ปิดการยืนยันอีเมล) | `src/stores/auth.js`, `src/components/auth/LoginCard.vue` |
+| Supabase Postgres (ฐานข้อมูล) | – | ตาราง `profiles` (โปรไฟล์) และ `entries` (ภาพแต่ละภาพ: วัน เวลา อารมณ์ ความเข้ม สีที่ดูดได้) พร้อมกฎให้แต่ละคนเห็น/แก้เฉพาะแถวของตัวเอง (Row Level Security = RLS) | `supabase/schema.sql`, `src/lib/remote.js`, `src/stores/entries.js`, `src/stores/profile.js` |
+| Supabase Storage (ที่เก็บไฟล์) | – | ที่เก็บภาพ (bucket `paintings` แบบส่วนตัว รับ webp/jpeg/png) เปิดดูผ่านลิงก์ชั่วคราวอายุ 1 ชั่วโมง | `supabase/schema.sql`, `src/lib/remote.js`, `src/stores/imageUrls.js`, `src/stores/uploadQueue.js` |
+
+โหมด mock (ค่าตั้งต้นตอนพัฒนา) **ไม่ใช้ Supabase เลย** ดูหัวข้อ 5
+
+### 0.3 เครื่องมือพัฒนา (ไม่ติดไปกับแอปที่ผู้ใช้เปิด ยกเว้นผลลัพธ์ที่ build)
+
+| ชื่อ | เวอร์ชัน (ช่วงที่กำหนด → ติดตั้งจริง) | ใช้ทำอะไร | ไฟล์หลักที่ใช้ |
+|---|---|---|---|
+| Node.js + npm | engines `^22.18.0 \|\| >=24.12.0` (เครื่องนี้ v25.5.0) | รันเครื่องมือทั้งหมด | `package.json` |
+| Vite | ^8.2.2 → 8.3.1 | เซิร์ฟเวอร์ตอนพัฒนา (`npm run dev`) และตัว build (`npm run build`) | `vite.config.js` |
+| @vitejs/plugin-vue | ^6.0.8 → 6.0.9 | ให้ Vite เข้าใจไฟล์ `.vue` | `vite.config.js` |
+| vite-plugin-vue-devtools | ^8.2.1 → 8.2.1 | แผงตรวจสถานะ Vue ตอน dev (ปุ่มลอยมุมล่างของหน้า) | `vite.config.js` |
+| Vitest | ^4.1.11 → 4.1.11 | รันชุดทดสอบอัตโนมัติ (`npm test`) | `src/lib/*.test.js` |
+| git + GitHub | – | เก็บประวัติงาน (repo private `Tequilx/colorscrap`) | `.gitignore` |
+| VS Code + ส่วนเสริม Vue (Volar) | – | ตัวแก้โค้ด (แนะนำ) | `.vscode/extensions.json`, `jsconfig.json` |
+| Claude Code | – | ผู้ช่วยแก้โค้ดตามคำสั่งภาษาไทย | `CLAUDE.md` |
+
+### 0.4 License สำหรับหน้า credits
+
+> สรุปคือทุกไลบรารีหลักเป็น **MIT** ซึ่งอนุญาตให้ใช้ แก้ไข และแจกจ่ายได้ โดยต้องเก็บข้อความ copyright และ license ไว้ ส่วนฟอนต์เป็น **SIL Open Font License 1.1 (OFL)** ใช้ในงานเชิงพาณิชย์และฝังในเว็บได้ ห้ามขายตัวไฟล์ฟอนต์เดี่ยว ๆ ฟอนต์ของโปรเจกต์นี้โหลดจาก Google Fonts ตอนเปิดแอป ไม่ได้แจกจ่ายไฟล์ฟอนต์เอง จึงแค่ให้เครดิตไว้ก็พอ (นี่คือการสรุปเบื้องต้น ไม่ใช่คำปรึกษากฎหมาย)
+
+| ส่วนประกอบ | License | เจ้าของลิขสิทธิ์ที่ระบุ | ที่มา |
+|---|---|---|---|
+| webgl-fluid-enhanced 0.8.0 (ผ้าใบน้ำไหล) | MIT | © 2023–ปัจจุบัน Michael Brusegard | ไฟล์ `LICENSE` ในแพ็กเกจ; README ระบุว่าพัฒนาต่อจาก PavelDoGreat/WebGL-Fluid-Simulation |
+| WebGL-Fluid-Simulation (โค้ดต้นทางของตัวด้านบน) | MIT | © 2017 Pavel Dobryakov | https://github.com/PavelDoGreat/WebGL-Fluid-Simulation (ควรใส่เครดิตด้วย เพราะแอปใช้ผลงานต่อยอดจากโค้ดนี้) |
+| colorthief 3.5.0 (ดูดสี) | MIT | © 2015 Lokesh Dhakar | ไฟล์ `LICENSE` ในแพ็กเกจ |
+| Vue 3.5.43 | MIT | © 2018–ปัจจุบัน Yuxi (Evan) You | ไฟล์ `LICENSE` ในแพ็กเกจ |
+| Pinia 4.0.3 | MIT | © 2019–ปัจจุบัน Eduardo San Martin Morote | ไฟล์ `LICENSE` ในแพ็กเกจ |
+| Tailwind CSS 3.4.19 | MIT | © Tailwind Labs, Inc. | ไฟล์ `LICENSE` ในแพ็กเกจ |
+| PostCSS 8.5.28, Autoprefixer 10.6.1 | MIT | © 2013 Andrey Sitnik | ไฟล์ `LICENSE` ในแพ็กเกจ |
+| @supabase/supabase-js 2.117.2 | MIT | © 2020 Supabase | ไฟล์ `LICENSE` ในแพ็กเกจ |
+| Vite 8.3.1, @vitejs/plugin-vue, vite-plugin-vue-devtools, Vitest 4.1.11 | MIT | ผู้พัฒนาแต่ละโปรเจกต์ (เครื่องมือพัฒนา ไม่ได้อยู่ในแอปที่ผู้ใช้เปิด จึงไม่จำเป็นต้องใส่ใน credits) | ช่อง `license` ใน `package.json` ของแพ็กเกจ |
+| ฟอนต์ Mali | SIL OFL 1.1 | © 2018 The Mali Project Authors (https://github.com/cadsondemak/Mali) | ไฟล์ OFL.txt ของ google/fonts |
+| ฟอนต์ IBM Plex Sans Thai Looped | SIL OFL 1.1 | © 2017 IBM Corp. (Reserved Font Name "Plex") | ไฟล์ OFL.txt ของ google/fonts |
+
+หมายเหตุ: ตัวบริการ Supabase เป็นบริการภายนอก ใช้ตามเงื่อนไขการใช้งานของ Supabase (ไม่ใช่ license ของไลบรารีที่ฝังในแอป) · ชื่อ "Itim" ที่ปรากฏเป็นฟอนต์สำรองใน `tailwind.config.js` **ไม่ได้ถูกโหลดจาก `index.html`** (ใช้เฉพาะถ้าเครื่องผู้ใช้มีอยู่แล้ว) จึงไม่ต้องใส่ใน credits · รูปตัวแทน ไอคอน หยดสีน้ำ และผิวกระดาษเป็นงานที่เขียนด้วยโค้ดในโปรเจกต์เอง (`src/lib/doodles.js`, `Stage.vue`) ตัวอย่างข้อความ credits: *"สีน้ำไหลด้วย webgl-fluid-enhanced (MIT, Michael Brusegard) ซึ่งพัฒนาต่อจาก WebGL-Fluid-Simulation (MIT, Pavel Dobryakov) · ดูดสีด้วย ColorThief (MIT, Lokesh Dhakar) · ฟอนต์ Mali และ IBM Plex Sans Thai Looped (SIL OFL 1.1)"*
+
+---
+
 ## 1. ภาพรวม: แอปทำงานยังไง
 
 ColorScrap คือสมุดสีน้ำสำหรับระบายความรู้สึก มีโต๊ะใบเดียว (หน้าจอขนาด 1280×800 ที่ย่อขยายตามหน้าต่าง) และวัตถุบนโต๊ะเลื่อนไปมา ไม่มีการเปลี่ยนหน้าเว็บจริง ๆ

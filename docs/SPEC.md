@@ -33,13 +33,13 @@ AI ใช้ช่วยพัฒนาเท่านั้น ไม่มี 
 | ส่วน | เลือกใช้ |
 |---|---|
 | Framework | Vue 3 + Vite, JavaScript (ไม่ใช้ TypeScript), `<script setup>` |
-| Styling | Tailwind CSS 3 (design tokens อยู่ใน `tailwind.config.js`) |
+| Styling | Tailwind CSS 3 (design tokens อยู่ที่ `src/lib/tokens.js` ที่เดียว แล้ว `tailwind.config.js` นำเข้าไปใช้) |
 | สกัดสีจากภาพ | `colorthief` v3 (npm, `getPaletteSync`) ใช้ตอนบันทึกภาพ (§6.6) |
 | State | Pinia |
 | Backend | Supabase (Auth, Postgres, Storage) |
-| ผ้าใบ | WebGL fluid simulation ดัดแปลงจาก PavelDoGreat/WebGL-Fluid-Simulation |
+| ผ้าใบ | ไลบรารี npm `webgl-fluid-enhanced` v0.8 (MIT, พัฒนาต่อจาก PavelDoGreat/WebGL-Fluid-Simulation) ผ่าน `components/paint/FluidCanvas.vue` |
 | ฟอนต์ | Google Fonts: Mali (หัวข้อและลายมือ), IBM Plex Sans Thai Looped (เนื้อหา) |
-| Animation | CSS transitions ร่วมกับ `<Transition>` ของ Vue ไม่ต้องใช้ไลบรารีเพิ่ม |
+| Animation | CSS transitions, `<Transition>` ของ Vue และ Web Animations API (ภาพบินตอนบันทึกและหน้า photo) ไม่ต้องใช้ไลบรารีเพิ่ม |
 
 ---
 
@@ -236,7 +236,7 @@ src/
   lib/doodles.js               // path ตัวแทน ไอคอน หยดสีน้ำ
   lib/extractColors.js         // ดูดสีจากภาพที่ผู้ใช้วาด (§6.6)
   lib/palette.js               // mixColors, nameOfDay, timelineX
-  lib/fluid/                   // โค้ด fluid ที่ port มา + ตัวปรับสีน้ำ
+  lib/fluid/                   // (ยังไม่มี) ตอนนี้ใช้ไลบรารี webgl-fluid-enhanced ผ่าน components/paint/FluidCanvas.vue; ถ้า port เองในขั้น 5b จึงสร้างโฟลเดอร์นี้
   components/desk/Stage.vue
   components/desk/SvgDefs.vue
   components/ui/HandButton.vue
@@ -511,14 +511,8 @@ src/
 ## 6. ผ้าใบสีน้ำ (`FluidCanvas`)
 
 ### 6.1 ฐานโค้ด
-- Port จาก WebGL-Fluid-Simulation มาเป็นโมดูลใน `src/lib/fluid/`
-- ส่วนควบคุมจากภายนอกที่ต้องมี:
-  - `init(canvas)`
-  - `splat(x, y, dx, dy, color)`
-  - `setConfig(partial)`
-  - `pause()` และ `resume()`
-  - `clear()`
-  - `exportImage(): Promise<Blob>`
+- ใช้ไลบรารี npm `webgl-fluid-enhanced` v0.8 (พัฒนาต่อจาก WebGL-Fluid-Simulation) ผ่าน `components/paint/FluidCanvas.vue` ยัง **ไม่ได้ port เป็นโมดูลเอง** (ถ้าทำ คือทางเลือกขั้น 5b ที่ `src/lib/fluid/`)
+- API ที่ไลบรารีเปิดให้ใช้จริง: `start()`, `stop()`, `setConfig(partial)`, `multipleSplats(n)`, `splatAtLocation(x, y, dx, dy, color?)` (ไม่มี `init`, `pause/resume`, `clear` หรือ `exportImage`) FluidCanvas จึงทำเอง: รับ pointer เอง, ล้างผ้าใบด้วยการตั้ง dissipation สูงมาก ~8 เฟรม, หยุด/เริ่ม loop ด้วย `stop()`/`start()`, และจับภาพด้วย `capture()` แล้วส่งออกด้วย `lib/exportImage.js` (§6.6)
 - ปิด bloom, sunrays และ shading แบบเรืองแสงทั้งหมด
 
 ### 6.2 ให้ดูเป็นสีน้ำบนกระดาษ ไม่ใช่แสงเรืองบนพื้นดำ
@@ -794,7 +788,7 @@ path ทั้งหมดอยู่ใน §11
 
 ### 9.2 รอให้เจ้าของโปรเจกต์วาดมือมาแทน
 - ส่งมาเป็น SVG เส้นสีดำ ใช้ `stroke="currentColor"` และ `fill="none"` แปรงเดียว ขนาดเส้นเดียว
-- วางไว้ที่ `src/assets/hand/{name}.svg` แล้วโหลดเป็น component ผ่าน `vite-svg-loader`
+- วางไว้ที่ `src/assets/hand/{name}.svg` แล้วโหลดเป็น component ผ่าน `vite-svg-loader` (ยังไม่ได้ติดตั้งแพ็กเกจนี้ และยังไม่มีโฟลเดอร์ `src/assets/hand/` ต้องเพิ่มเมื่อมีไฟล์จริง)
 
 **รายการที่จะวาด**
 - หยดสีปุ่มอารมณ์: รูปร่าง 1 แบบ และใบหน้า 8 แบบ
