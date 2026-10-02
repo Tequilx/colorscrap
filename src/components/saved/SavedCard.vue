@@ -71,7 +71,7 @@ import Doodle from '@/components/ui/Doodle.vue'
 import WatercolorBlob from '@/components/ui/WatercolorBlob.vue'
 import { BLOB_PATHS } from '@/lib/doodles'
 import { EMOTION_BY_KEY, INTENSITY_LABELS, emotionLabel } from '@/lib/emotions'
-import { colorWeightsOfDay, hueGroup, mixColors, nameOfDay, percentsOf } from '@/lib/palette'
+import { colorWeightsOfDay, dayColor, hueGroup, percentsOf } from '@/lib/palette'
 import { useAppStore } from '@/stores/app'
 import { useEntriesStore } from '@/stores/entries'
 
@@ -87,10 +87,12 @@ const blobSize = (ratio) => Math.round(28 + 32 * Math.sqrt(ratio / Math.max(...e
 const day = computed(() => entriesStore.entriesOfDay(entry.value.local_date))
 const before = computed(() => day.value.filter((e) => e.id !== entry.value.id))
 
-const beforeMix = computed(() => mixColors(before.value) ?? '#8E8A93')
-const afterMix = computed(() => mixColors(day.value) ?? '#8E8A93')
-const beforeName = computed(() => nameOfDay(beforeMix.value, before.value.at(-1)?.local_time ?? '12:00', before.value).full)
-const afterName = computed(() => nameOfDay(afterMix.value, entry.value.local_time, day.value).full)
+const beforeColor = computed(() => dayColor(before.value))
+const afterColor = computed(() => dayColor(day.value))
+const beforeMix = computed(() => beforeColor.value?.mix ?? '#8E8A93')
+const afterMix = computed(() => afterColor.value?.mix ?? '#8E8A93')
+const beforeName = computed(() => beforeColor.value?.name.full ?? '')
+const afterName = computed(() => afterColor.value?.name.full ?? '')
 // ชื่อสีก่อนและหลังบันทึกเหมือนกัน (สีเปลี่ยนน้อยมาก) แสดงว่ายังคงเดิมแทนลูกศร
 const unchanged = computed(() => before.value.length > 0 && beforeName.value === afterName.value)
 

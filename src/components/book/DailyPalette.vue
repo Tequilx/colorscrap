@@ -50,7 +50,7 @@ import { computed } from 'vue'
 import MixingWell from '@/components/book/MixingWell.vue'
 import DayTimeline from '@/components/book/DayTimeline.vue'
 import Doodle from '@/components/ui/Doodle.vue'
-import { mixColors, nameOfDay } from '@/lib/palette'
+import { dayColor, nameOfDay } from '@/lib/palette'
 import { EMOTION_BY_KEY } from '@/lib/emotions'
 import { localDateStr, parseLocalDate, thaiDateShort } from '@/lib/dates'
 
@@ -70,8 +70,9 @@ const isToday = computed(() => props.date === localDateStr())
 const title = computed(() => (isToday.value ? 'จานสีของวันนี้' : `จานสีของ ${thaiDateShort(parseLocalDate(props.date))}`))
 const shortLabel = (d) => thaiDateShort(parseLocalDate(d))
 
-const mix = computed(() => mixColors(props.entries) ?? '#8E8A93')
-const name = computed(() => nameOfDay(mix.value, props.entries.at(-1)?.local_time ?? '12:00', props.entries))
+const color = computed(() => dayColor(props.entries))
+const mix = computed(() => color.value?.mix ?? '#8E8A93')
+const name = computed(() => color.value?.name ?? nameOfDay(mix.value, '12:00'))
 
 const counts = computed(() => {
   const map = new Map()

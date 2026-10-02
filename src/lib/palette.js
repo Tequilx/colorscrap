@@ -175,6 +175,14 @@ export const nameOfDay = (mixHex, lastLocalTime, entries = []) => {
   return { colorPart, periodPart, full: colorPart + periodPart }
 }
 
+// สีผสมและชื่อของวัน จากค่าผสมตัวเดียวกัน (ชื่อต้องตรงกับสีที่แสดงเสมอ) ไม่มีภาพ = null
+export const dayColor = (entries) => {
+  const mix = mixColors(entries)
+  if (!mix) return null
+  const lastTime = entries.reduce((t, e) => (e.local_time > t ? e.local_time : t), '')
+  return { mix, name: nameOfDay(mix, lastTime, entries) }
+}
+
 // เส้นเวลา 00:00–24:00 ในกรอบ SVG กว้าง 412: เว้นขอบซ้ายขวา 18 ให้หยดและป้ายเวลาไม่ถูกตัด (SPEC §8.3)
 export const TIMELINE_LEFT = 18
 export const TIMELINE_WIDTH = 376

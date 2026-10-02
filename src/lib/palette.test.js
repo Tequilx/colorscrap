@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   chunk,
+  dayColor,
   dominantColorOfDay,
   hueGroup,
   mixColors,
@@ -148,5 +149,31 @@ describe('chunk', () => {
   it('แบ่งเป็นชุดละ n', () => {
     expect(chunk([1, 2, 3, 4, 5], 2)).toEqual([[1, 2], [3, 4], [5]])
     expect(chunk([], 4)).toEqual([])
+  })
+})
+
+describe('ชื่อกับสีผสมที่แสดงเป็นค่าเดียวกัน', () => {
+  const base = [e('09:00', CALM), e('10:00', CALM), e('18:45', CALM), e('11:05', HAPPY), e('16:30', EXCITED)]
+  const shifted = { local_time: '14:00', intensity: 1, colors: [{ hex: TIRED, ratio: 0.7 }, { hex: '#F7DE99', ratio: 0.3 }] }
+  const single = { local_time: '10:00', intensity: 1, colors: [{ hex: CALM, ratio: 0.6 }, { hex: HAPPY, ratio: 0.4 }] }
+  const sets = [
+    [e('09:12', CALM), e('13:40', TIRED)],
+    [e('09:12', CALM), e('13:40', TIRED), e('15:12', CALM)],
+    [...base, e('14:00', TIRED)],
+    [...base, shifted],
+    [single],
+    [e('08:00', HAPPY), e('21:00', EXCITED)],
+    [e('02:00', TIRED)],
+  ]
+  it.each(sets.map((s, i) => [i, s]))('ชุด %i: กลุ่มสีในชื่อ = กลุ่มของ hue สีผสม', (_, list) => {
+    const { mix, name } = dayColor(list)
+    expect(name.colorPart.startsWith(hueGroup(mix))).toBe(true)
+    expect(name.full).toBe(nameOfDay(mix, last(list), list).full)
+  })
+  it('ภาพเดียว calm 0.6 + happy 0.4 (สีผสม h≈169) ชื่อเป็นกลุ่มเขียว', () => {
+    expect(dayColor([single]).name.full).toBe('เขียวอมฟ้ายามเช้า')
+  })
+  it('ไม่มีภาพ = null', () => {
+    expect(dayColor([])).toBeNull()
   })
 })
