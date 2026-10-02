@@ -78,6 +78,7 @@ ColorScrap คือสมุดสีน้ำสำหรับระบาย
 
 ลูกศรทุกเส้นระหว่างหน้า (ตรงกับ ALLOWED):
 
+  login ──→ hello     login ──→ cover     hello ──→ cover
   cover ──→ pick      cover ──→ book      cover ──→ hello
   pick  ──→ paint     pick  ──→ cover
   paint ──→ saved     paint ──→ pick      paint ──→ book      paint ──→ cover
@@ -86,8 +87,8 @@ ColorScrap คือสมุดสีน้ำสำหรับระบาย
   photo ──→ book
 
 เส้นทางหลักที่ผู้ใช้เดินบ่อย:
-login → hello → cover → pick → paint → saved → book → photo → book → cover
-                         ↑___________________________________|  (วนระบายภาพถัดไป: saved → pick หรือ book → paint)
+login → hello → cover → pick → paint → saved → book → photo → book
+แล้ววนระบายภาพถัดไปได้สองทาง: saved → pick  หรือ  book → paint
 ```
 
 **ตัวอย่างคำสั่งให้ Claude Code แก้การเปลี่ยนหน้า และต้องแก้ที่ไหน**
