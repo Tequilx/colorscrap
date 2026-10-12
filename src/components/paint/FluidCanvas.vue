@@ -20,10 +20,10 @@
 <script setup>
 import { ref, watch, onMounted, onBeforeUnmount } from 'vue'
 import WebGLFluid from 'webgl-fluid-enhanced'
-import { emotionShades, FLUID_PARAMS, DENSITY_DISSIPATION, INK_CELL, INK_CAP, INITIAL_SPLATS, INTENSITY_FACTOR, SHIFT_TARGETS } from '@/lib/emotions'
+import { emotionShades, FLUID_PARAMS, FLUID_GLOBAL, INK_CELL, INITIAL_SPLATS, INTENSITY_FACTOR, SHIFT_TARGETS } from '@/lib/emotions'
 import { PALETTE } from '@/lib/tokens'
 import { dyeSetting, invertedHex } from '@/lib/dye'
-import { warmTune as tune, noteDebug as debug, DEV_PARAMS_EVENT, DEV_NOTE_RESET_EVENT } from '@/lib/devState'
+import { warmTune as tune, noteDebug as debug, fluidInfo, DEV_PARAMS_EVENT, DEV_NOTE_RESET_EVENT } from '@/lib/devState'
 
 const props = defineProps({
   emotion: { type: String, required: true },
@@ -96,14 +96,19 @@ const pickShade = () => {
   return list[Math.floor(Math.random() * list.length)]
 }
 
-// ปริมาณสีที่ลงแล้วต่อช่อง (รีเซ็ตเมื่อล้างผ้าใบ) ใช้ลดแรงของหยดที่ซ้ำที่เดิมไม่ให้สะสมจนดำ
+// ปริมาณสีที่ลงแล้วต่อช่อง (รีเซ็ตเมื่อล้างผ้าใบ) หน่วยเดียวกับ INK_CAP = ค่าสีสูงสุดของช่องสีหนึ่งในบัฟเฟอร์ ให้สีบนผ้าใบไม่เกินเพดาน
+// strength = ความแรงที่ตั้งใจจะลง (1 = หยดเต็ม) คืนความแรงที่ลงได้จริง: ลดลงให้พอดีที่ว่างที่เหลือในช่อง (เต็มแล้ว = 0)
+// ปริมาณสีจริงของหยด = strength × brightness × ตัวคูณความเข้ม × ค่าสีสูงสุดของ dye ของเฉดนั้น (useShade/dyeSetting ใช้สูตรเดียวกัน)
 const inkCols = Math.ceil(SIZE.w / INK_CELL)
 let ink = new Float32Array(inkCols * Math.ceil(SIZE.h / INK_CELL))
-const takeInk = (x, y, strength) => {
+const dyePeak = (hex) => Math.max(...[1, 3, 5].map((i) => 1 - parseInt(hex.slice(i, i + 2), 16) / 255))
+const takeInk = (x, y, strength, hex) => {
   const i = Math.min(ink.length - 1, Math.floor(y / INK_CELL) * inkCols + Math.floor(x / INK_CELL))
-  const eff = strength * Math.max(0, 1 - ink[i] / INK_CAP)
-  ink[i] += eff
-  return eff
+  const unit = params().brightness * INTENSITY_FACTOR[props.intensity] * dyePeak(hex)
+  if (unit <= 0) return 0
+  const give = Math.min(strength * unit, Math.max(0, FLUID_GLOBAL.inkCap - ink[i]))
+  ink[i] += give
+  return give / unit
 }
 
 // ตั้งสีของหยดถัดไป: ไลบรารีสุ่มจาก colorPalette (hue/saturation) และใช้ brightness เป็นความเข้ม
@@ -119,8 +124,12 @@ const splat = (x, y, dx, dy, { hex, radius, noColor, strength = 1 } = {}) => {
   fluid.setConfig({ splatRadius: radius })
   if (noColor) {
     fluid.splatAtLocation(x * (window.devicePixelRatio || 1), y, dx, dy, '#000000') // สี 0 = ใส่แรงอย่างเดียว
-  } else if (useShade(hex ?? pickShade(), takeInk(x, y, strength))) {
-    fluid.splatAtLocation(x * (window.devicePixelRatio || 1), y, dx, dy)
+  } else {
+    const shade = hex ?? pickShade()
+    const given = takeInk(x, y, strength, shade)
+    // ช่องที่สีเต็มเพดานแล้วไม่ควรดันน้ำเต็มแรงอีก (ไม่งั้นแตะจุดเดิมรัว ๆ ปั่นสีเดิมให้กระจายทั่วผ้าใบ) ดันตามสัดส่วนที่ลงสีได้จริง ขั้นต่ำ 10%
+    const push = strength > 0 ? Math.max(0.1, given / strength) : 1
+    if (useShade(shade, given)) fluid.splatAtLocation(x * (window.devicePixelRatio || 1), y, dx * push, dy * push)
   }
 }
 
@@ -131,8 +140,31 @@ const applyParams = () => {
   const p = params()
   fluid.setConfig({
     curl: p.curl,
-    densityDissipation: DENSITY_DISSIPATION,
+    densityDissipation: FLUID_GLOBAL.density,
     velocityDissipation: p.velDiss,
+  })
+  reportInfo()
+}
+
+// ?debug: อ่านค่าที่ไลบรารีใช้งานจริงกลับมา + ชนิด texture ของเครื่องนี้ ให้แผงโชว์ (ตรวจบน iPad)
+// ไลบรารีใช้ half float 16 บิตเสมอ (WebGL2: RGBA16F / WebGL1: OES_texture_half_float) ไม่มีทางถอยเป็น 8 บิต
+const reportInfo = () => {
+  if (!DEBUG || !fluid) return
+  const sim = fluid.simulation
+  if (!sim) return
+  const gl = sim.gl
+  const ext = sim.ext
+  const FORMATS = { 0x881a: 'RGBA16F', 0x8814: 'RGBA32F', 0x1908: 'RGBA' }
+  Object.assign(fluidInfo, {
+    webgl: typeof WebGL2RenderingContext !== 'undefined' && gl instanceof WebGL2RenderingContext ? 'WebGL2' : 'WebGL1',
+    format: FORMATS[ext?.formatRGBA?.internalFormat] ?? String(ext?.formatRGBA?.internalFormat),
+    texType: ext?.halfFloatTexType === gl.HALF_FLOAT ? 'HALF_FLOAT (16 บิต)' : ext?.halfFloatTexType ? 'HALF_FLOAT_OES (16 บิต)' : 'ไม่ใช่ half float',
+    linear: Boolean(ext?.supportLinearFiltering),
+    density: sim.densityDissipation,
+    velocity: sim.velocityDissipation,
+    dyeRes: sim.dyeResolution,
+    simRes: sim.simResolution,
+    canvas: `${sim.canvas?.width}×${sim.canvas?.height}`,
   })
 }
 
@@ -306,6 +338,7 @@ const createFluid = () => {
     applyParams()
     fluid.start()
     if (!props.running) fluid.stop()
+    reportInfo()
   } catch (error) {
     // เครื่องที่ไม่มี WebGL: แอปส่วนอื่นยังใช้ได้
     console.error('เริ่มผ้าใบไม่สำเร็จ:', error)
@@ -350,7 +383,7 @@ const toCanvas = (e) => {
 const dropAt = (x, y, strength = 1) => {
   const p = params()
   const a = rand(0, Math.PI * 2)
-  const m = 60 * p.speed
+  const m = 60 * p.speed * strength // หยดเบา (กดค้าง) ก็ดันน้ำเบา ไม่งั้นกดค้างนาน ๆ ปั่นน้ำจนสีกระจายทั่วผ้าใบ
   splat(x, y, Math.cos(a) * m, Math.sin(a) * m, { radius: p.radius * DROP_RADIUS_SCALE, strength })
 }
 

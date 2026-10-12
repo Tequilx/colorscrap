@@ -22,9 +22,25 @@
         <input type="range" class="w-[88px]" :min="f.min" :max="f.max" :step="f.step" :data-field="f.key" :value="get(f)" @input="set(f, $event.target.valueAsNumber)" />
         <span class="w-9 text-right">{{ get(f) }}</span>
       </label>
-      <div class="my-1 flex gap-1">
+      <div class="my-1 flex flex-wrap gap-1">
         <button type="button" class="cursor-pointer rounded border border-white/50 bg-white/10 px-1.5 py-0.5 font-mono text-[12px] text-white" @click="redrop">หยดสีเริ่มต้นใหม่</button>
         <button type="button" class="cursor-pointer rounded border border-white/50 bg-white/10 px-1.5 py-0.5 font-mono text-[12px] text-white" @click="copy">{{ copied ? 'คัดลอกแล้ว' : 'คัดลอกค่า' }}</button>
+        <button type="button" class="cursor-pointer rounded border border-white/50 bg-white/10 px-1.5 py-0.5 font-mono text-[12px] text-white" @click="resetEmotion">รีเซ็ตเป็นค่าเริ่มต้น</button>
+      </div>
+
+      <div class="mt-1 border-t border-white/30 pt-1 font-bold">ค่ากลาง (ใช้ทุกอารมณ์)</div>
+      <label v-for="g in GLOBAL_FIELDS" :key="g.key" class="flex items-center gap-2">
+        <span class="w-[78px] shrink-0">{{ g.label }}</span>
+        <input type="range" class="w-[88px]" :min="g.min" :max="g.max" :step="g.step" :value="gv(g)" @input="setGlobal(g, $event.target.valueAsNumber)" />
+        <span class="w-9 text-right">{{ gv(g) }}</span>
+      </label>
+      <div class="text-[11px] text-white/70">จางช้า (density) ต้องเป็น 0 พอดีถึงจะไม่จาง ค่าเล็ก ๆ ก็ทำให้สีหายใน ~1 นาที (ดูหมายเหตุใน emotions.js)</div>
+      <button type="button" class="my-1 cursor-pointer rounded border border-white/50 bg-white/10 px-1.5 py-0.5 font-mono text-[12px] text-white" @click="resetGlobal">รีเซ็ตค่ากลาง</button>
+
+      <div class="mt-1 border-t border-white/30 pt-1 font-bold">ตรวจเครื่องนี้ (อ่านจากไลบรารี)</div>
+      <div v-for="row in INFO_ROWS" :key="row.key" class="flex justify-between gap-2">
+        <span class="shrink-0">{{ row.label }}</span>
+        <span class="text-right">{{ fluidInfo[row.key] }}</span>
       </div>
 
       <div class="mt-1 border-t border-white/30 pt-1 font-bold">สีอุ่น (SPEC §6.4)</div>
@@ -41,8 +57,8 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useAppStore } from '@/stores/app'
-import { EMOTIONS, EMOTION_BY_KEY, FLUID_PARAMS, INITIAL_SPLATS } from '@/lib/emotions'
-import { warmTune, noteDebug, DEV_PARAMS_EVENT, DEV_NOTE_RESET_EVENT } from '@/lib/devState'
+import { EMOTIONS, EMOTION_BY_KEY, FLUID_PARAMS, FLUID_GLOBAL, INITIAL_SPLATS, resetEmotionParams, resetFluidGlobal } from '@/lib/emotions'
+import { warmTune, noteDebug, fluidInfo, DEV_PARAMS_EVENT, DEV_NOTE_RESET_EVENT } from '@/lib/devState'
 
 const app = useAppStore()
 const open = ref(true)
@@ -58,6 +74,22 @@ const FIELDS = [
   { key: 'velDiss', label: 'velDiss', min: 0, max: 2, step: 0.05 },
   { key: 'radius', label: 'ขนาดหยด', min: 0.02, max: 0.6, step: 0.01 },
   { key: 'brightness', label: 'ความเข้ม', min: 0.5, max: 4, step: 0.1 },
+]
+// ค่ากลางของผ้าใบ (FLUID_GLOBAL ใน emotions.js)
+const GLOBAL_FIELDS = [
+  { key: 'inkCap', label: 'เพดานสี/ช่อง', min: 0.2, max: 1.5, step: 0.05 },
+  { key: 'density', label: 'จางช้า (density)', min: 0, max: 0.01, step: 0.0005 },
+]
+const INFO_ROWS = [
+  { key: 'webgl', label: 'WebGL' },
+  { key: 'format', label: 'รูปแบบ texture' },
+  { key: 'texType', label: 'ชนิดข้อมูล' },
+  { key: 'linear', label: 'linear filtering' },
+  { key: 'density', label: 'density ที่ใช้จริง' },
+  { key: 'velocity', label: 'velocity ที่ใช้จริง' },
+  { key: 'dyeRes', label: 'dye resolution' },
+  { key: 'simRes', label: 'sim resolution' },
+  { key: 'canvas', label: 'ขนาดผ้าใบ' },
 ]
 const WARM_FIELDS = [
   { key: 'size', label: 'ขนาดหยด', min: 0.1, max: 3, step: 0.05 },
@@ -79,6 +111,26 @@ const set = (f, v) => {
   tick.value++
 }
 
+const gv = (g) => (tick.value, FLUID_GLOBAL[g.key])
+const setGlobal = (g, v) => {
+  if (Number.isNaN(v)) return
+  FLUID_GLOBAL[g.key] = v
+  window.dispatchEvent(new Event(DEV_PARAMS_EVENT))
+  tick.value++
+}
+
+// คืนค่าเริ่มต้น (ค่าที่เขียนไว้ใน emotions.js ตอนโหลดหน้า) เฉพาะอารมณ์ที่เลือก / เฉพาะค่ากลาง
+const resetEmotion = () => {
+  resetEmotionParams(emotion.value)
+  window.dispatchEvent(new Event(DEV_PARAMS_EVENT))
+  tick.value++
+}
+const resetGlobal = () => {
+  resetFluidGlobal()
+  window.dispatchEvent(new Event(DEV_PARAMS_EVENT))
+  tick.value++
+}
+
 // ล้างผ้าใบแล้วหยดสีเริ่มต้นของอารมณ์ที่เลือกใหม่ (ทางเดียวกับปุ่ม "เริ่มใหม่" ไม่ต้องกลับไปหน้า pick)
 const redrop = () => app.clearCanvas()
 
@@ -90,7 +142,7 @@ const resetNote = () => {
 
 const copy = async () => {
   const e = emotion.value
-  const json = JSON.stringify({ emotion: e, initialSplats: INITIAL_SPLATS[e], ...FLUID_PARAMS[e] }, null, 2)
+  const json = JSON.stringify({ emotion: e, initialSplats: INITIAL_SPLATS[e], ...FLUID_PARAMS[e], global: { ...FLUID_GLOBAL } }, null, 2)
   try {
     await navigator.clipboard.writeText(json)
   } catch {

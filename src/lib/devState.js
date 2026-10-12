@@ -17,3 +17,6 @@ export const noteDebug = reactive({ elapsed: '-', idle: '-' })
 export const DEV_PARAMS_EVENT = 'colorscrap:params'
 // แผง dev สั่งให้ FluidCanvas เริ่มนับโน้ตของแผ่นปัจจุบันใหม่ (ไม่ล้างภาพ)
 export const DEV_NOTE_RESET_EVENT = 'colorscrap:note-reset'
+
+// ข้อมูลที่ไลบรารีน้ำไหลใช้งานจริง (อ่านกลับจากตัวไลบรารีตอน ?debug) แผง dev เอาไปโชว์ให้ตรวจบน iPad
+export const fluidInfo = reactive({ webgl: '-', format: '-', texType: '-', linear: '-', density: '-', velocity: '-', dyeRes: '-', simRes: '-', canvas: '-' })
