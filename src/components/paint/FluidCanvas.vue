@@ -97,18 +97,42 @@ const pickShade = () => {
 }
 
 // ปริมาณสีที่ลงแล้วต่อช่อง (รีเซ็ตเมื่อล้างผ้าใบ) หน่วยเดียวกับ INK_CAP = ค่าสีสูงสุดของช่องสีหนึ่งในบัฟเฟอร์ ให้สีบนผ้าใบไม่เกินเพดาน
-// strength = ความแรงที่ตั้งใจจะลง (1 = หยดเต็ม) คืนความแรงที่ลงได้จริง: ลดลงให้พอดีที่ว่างที่เหลือในช่อง (เต็มแล้ว = 0)
+// หยดหนึ่งไม่ได้ลงแค่ช่องที่ตก: เป็น Gaussian exp(−d²/ρ) กว้าง ~±1–2 ช่อง จึงคิดส่วนที่ตกในทุกช่องที่โดน (ค่าที่กึ่งกลางช่อง)
+// แล้วลดแรงหยดให้ไม่มีช่องไหนเกินเพดาน (หยดหลายหยดที่อยู่ติดกันซ้อนกันไม่ทะลุเพดาน ไม่ดำ) คิดค่าสูงสุดในช่อง ไม่ใช่ที่กึ่งกลาง
+// strength = ความแรงที่ตั้งใจจะลง (1 = หยดเต็ม) คืนความแรงที่ลงได้จริง (เต็มแล้ว = 0)
 // ปริมาณสีจริงของหยด = strength × brightness × ตัวคูณความเข้ม × ค่าสีสูงสุดของ dye ของเฉดนั้น (useShade/dyeSetting ใช้สูตรเดียวกัน)
 const inkCols = Math.ceil(SIZE.w / INK_CELL)
-let ink = new Float32Array(inkCols * Math.ceil(SIZE.h / INK_CELL))
+const inkRows = Math.ceil(SIZE.h / INK_CELL)
+let ink = new Float32Array(inkCols * inkRows)
 const dyePeak = (hex) => Math.max(...[1, 3, 5].map((i) => 1 - parseInt(hex.slice(i, i + 2), 16) / 255))
-const takeInk = (x, y, strength, hex) => {
-  const i = Math.min(ink.length - 1, Math.floor(y / INK_CELL) * inkCols + Math.floor(x / INK_CELL))
+const takeInk = (x, y, strength, hex, radius) => {
   const unit = params().brightness * INTENSITY_FACTOR[props.intensity] * dyePeak(hex)
   if (unit <= 0) return 0
-  const give = Math.min(strength * unit, Math.max(0, FLUID_GLOBAL.inkCap - ink[i]))
-  ink[i] += give
-  return give / unit
+  // ρ ของ exp(−d²/ρ) ในหน่วยพิกเซลกระดาษ: ไลบรารีใช้ (splatRadius/100) × aspect บน UV ที่ x ถูกคูณ aspect อยู่แล้ว
+  const rho = (SIZE.w * SIZE.h * radius) / 100
+  const reach = Math.ceil(Math.sqrt(rho * 3) / INK_CELL) + 1 // 3ρ ≈ ค่าตกเหลือ e^-3 (5%) +1 ช่องเผื่อขอบ
+  const cx = Math.floor(x / INK_CELL)
+  const cy = Math.floor(y / INK_CELL)
+  const hit = [] // { index, weight }
+  for (let j = Math.max(0, cy - reach); j <= Math.min(inkRows - 1, cy + reach); j++) {
+    for (let i = Math.max(0, cx - reach); i <= Math.min(inkCols - 1, cx + reach); i++) {
+      // ระยะจากจุดตกถึงจุดในช่องที่ใกล้ที่สุด (ช่องที่หยดตกอยู่ = 0): ค่าสูงสุดของหยดในช่องนั้น ไม่ใช่ที่กึ่งกลางช่อง
+      // (ไม่งั้นหยดที่ตกตรงมุมช่องผ่านเพดานได้เกือบ 1.6 เท่า)
+      const dx = Math.max(0, Math.abs((i + 0.5) * INK_CELL - x) - INK_CELL / 2)
+      const dy = Math.max(0, Math.abs((j + 0.5) * INK_CELL - y) - INK_CELL / 2)
+      const weight = Math.exp(-(dx * dx + dy * dy) / rho)
+      if (weight > 0.05) hit.push({ index: j * inkCols + i, weight })
+    }
+  }
+  if (!hit.length) {
+    // หยดตกนอกกริด/แคบมาก: ใช้ช่องที่ตกอย่างเดียว
+    const i = Math.min(ink.length - 1, cy * inkCols + cx)
+    hit.push({ index: Math.max(0, i), weight: 1 })
+  }
+  let allowed = strength * unit
+  for (const h of hit) allowed = Math.min(allowed, Math.max(0, FLUID_GLOBAL.inkCap - ink[h.index]) / h.weight)
+  for (const h of hit) ink[h.index] += allowed * h.weight
+  return allowed / unit
 }
 
 // ตั้งสีของหยดถัดไป: ไลบรารีสุ่มจาก colorPalette (hue/saturation) และใช้ brightness เป็นความเข้ม
@@ -121,11 +145,63 @@ const useShade = (hex, strength = 1) => {
 // ---- ประหยัดงาน GPU/CPU (SPEC §6.5) ----
 // พักการจำลอง: น้ำนิ่งแล้ว (ไม่มีแรง/สีใหม่ SLEEP_MS) ข้ามขั้น step (pressure 20 รอบ + advect) ต่อ แต่ยัง render ทุกเฟรม
 // ภาพจึงไม่เปลี่ยนและ capture() ยังอ่านได้ ปลุกทันทีเมื่อมีแรง/สีใหม่ ล้างผ้าใบ หรือกลับเข้าหน้า paint
-const SLEEP_MS = 6000
+// พักเมื่อ "ความเร็วน้ำต่ำมากจริง" เท่านั้น: อ่านความเร็วสูงสุดของสนามน้ำแบบ async (PBO + fence ไม่หยุด GPU) ทุก ~0.5 วินาที
+// ไม่ใช่นับเวลาอย่างเดียว (น้ำไหลช้าแต่ยังไหลอยู่ ถ้าพักเฉยสีจะหยุดกะทันหัน) WebGL1 ที่ไม่มี fence ใช้เวลานิ่ง SLEEP_FALLBACK_MS แทน
+const STILL_SPEED = 0.15 // หน่วยของสนามความเร็ว (texel/วินาที ของกริดจำลอง 233×128) ต่ำกว่านี้ตาแยกการขยับไม่ออก (วัดแล้ว ดู SPEC §6.5)
+const SETTLE_MIN_MS = 1500 // อย่างน้อยหลังแรงสุดท้ายเท่านี้ก่อนเริ่มตรวจ
+const PROBE_EVERY_MS = 500
+const SLEEP_FALLBACK_MS = 20000
 let lastImpulse = 0
 let sleeping = false
+let probe = null // { buf, sync, w, h } การอ่านที่ค้างอยู่
+let probeBuf = null
+let lastProbeAt = 0
+let flowSpeed = Infinity // ความเร็วสูงสุดที่อ่านล่าสุด
+
+const startProbe = () => {
+  const sim = fluid?.simulation
+  const gl = sim?.gl
+  const v = sim?._velocity?.read
+  if (!gl || !v || typeof gl.fenceSync !== 'function' || probe) return false
+  const bytes = v.width * v.height * 16
+  if (!probeBuf) probeBuf = gl.createBuffer()
+  gl.bindBuffer(gl.PIXEL_PACK_BUFFER, probeBuf)
+  gl.bufferData(gl.PIXEL_PACK_BUFFER, bytes, gl.STREAM_READ)
+  gl.bindFramebuffer(gl.FRAMEBUFFER, v.fbo)
+  gl.readPixels(0, 0, v.width, v.height, gl.RGBA, gl.FLOAT, 0)
+  gl.bindBuffer(gl.PIXEL_PACK_BUFFER, null)
+  probe = { sync: gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0), w: v.width, h: v.height, at: performance.now() }
+  gl.flush()
+  return true
+}
+const pollProbe = () => {
+  if (!probe || !fluid) return
+  const gl = fluid.simulation.gl
+  const status = gl.clientWaitSync(probe.sync, 0, 0)
+  if (status === gl.TIMEOUT_EXPIRED) return
+  // อ่านก่อนมีแรงใหม่ = ข้อมูลเก่า ทิ้ง (ไม่งั้นพักผิดจังหวะ)
+  if (status !== gl.WAIT_FAILED && probe.at >= lastImpulse) {
+    const out = new Float32Array(probe.w * probe.h * 4)
+    gl.bindBuffer(gl.PIXEL_PACK_BUFFER, probeBuf)
+    gl.getBufferSubData(gl.PIXEL_PACK_BUFFER, 0, out)
+    gl.bindBuffer(gl.PIXEL_PACK_BUFFER, null)
+    let max = 0
+    for (let i = 0; i < out.length; i += 4) {
+      const m = Math.abs(out[i]) + Math.abs(out[i + 1])
+      if (m > max) max = m
+    }
+    flowSpeed = max
+    if (DEBUG) {
+      fluidInfo.speed = max.toFixed(3)
+      window.__flowSpeed = max
+    }
+  }
+  gl.deleteSync(probe.sync)
+  probe = null
+}
 const wake = () => {
   lastImpulse = performance.now()
+  flowSpeed = Infinity // มีแรงใหม่ ค่าที่อ่านไว้ใช้ไม่ได้แล้ว
   if (sleeping && fluid) {
     sleeping = false
     fluid.togglePause()
@@ -177,7 +253,7 @@ const splat = (x, y, dx, dy, { hex, radius, noColor, strength = 1 } = {}) => {
   wake()
   fluid.setConfig({ splatRadius: radius })
   const shade = hex ?? pickShade()
-  const given = takeInk(x, y, strength, shade)
+  const given = takeInk(x, y, strength, shade, radius)
   // ช่องที่สีเต็มเพดานแล้วไม่ควรดันน้ำเต็มแรงอีก (ไม่งั้นแตะจุดเดิมรัว ๆ ปั่นสีเดิมให้กระจายทั่วผ้าใบ) ดันตามสัดส่วนที่ลงสีได้จริง ขั้นต่ำ 10%
   const push = strength > 0 ? Math.max(0.1, given / strength) : 1
   if (useShade(shade, given)) fluid.splatAtLocation(x * (window.devicePixelRatio || 1), y, dx * push, dy * push)
@@ -235,7 +311,7 @@ const dropInitial = () => {
   if (!fluid) return
   const p = params()
   const level = SPLASH_LEVELS[props.intensity] ?? SPLASH_LEVELS[1]
-  const count = Math.max(1, Math.round(INITIAL_SPLATS[props.emotion] * level.count))
+  const count = Math.max(1, Math.round(INITIAL_SPLATS[props.emotion] * level.count * (p.splash?.[props.intensity] ?? 1)))
   const mag = 220 * p.speed
   const calm = Boolean(reducedMotion?.matches)
   const half = Math.min(0.46, 0.35 * level.spread) // ครึ่งช่วงของตำแหน่ง (เดิม 0.35 = 15–85%)
@@ -374,7 +450,20 @@ const dropWarmSamples = () => {
 // pointermove ที่ไม่ได้กด (hover) ไม่ถูกนับ เพราะ onMove ข้าม pointer ที่ไม่อยู่ใน pointers
 const noteTick = () => {
   // น้ำนิ่งแล้ว (ไม่มีแรง/สีใหม่, ไม่มีนิ้วกด, ไม่มีการซึมค้าง) → พักการจำลอง
-  if (fluid && props.running && !clearing && !sleeping && pointers.size === 0 && timers.size === 0 && performance.now() - lastImpulse > SLEEP_MS) goToSleep()
+  if (fluid && props.running && !clearing && !sleeping && pointers.size === 0 && timers.size === 0) {
+    const now = performance.now()
+    pollProbe()
+    if (now - lastImpulse > SETTLE_MIN_MS) {
+      const canProbe = typeof fluid.simulation?.gl?.fenceSync === 'function'
+      if (canProbe) {
+        if (flowSpeed < STILL_SPEED && lastProbeAt > lastImpulse) goToSleep()
+        else if (!probe && now - lastProbeAt > PROBE_EVERY_MS) {
+          lastProbeAt = now
+          startProbe()
+        }
+      } else if (now - lastImpulse > SLEEP_FALLBACK_MS) goToSleep()
+    }
+  }
   if (!fluid || !props.running || clearing || !sheet.started) return
   const dt = NOTE_TICK * NOTE_TIME_SCALE
   sheet.elapsed += dt

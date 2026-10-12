@@ -53,17 +53,19 @@ export const INTENSITY_FACTOR = [0.6, 1, 1.5]
 // brightness = ตัวคูณความเข้มของ dye (1 = จุดศูนย์กลางหยดแรกได้สีเท่า hex ของอารมณ์ เกิน 1 = เข้มกว่า) จูนต่ออารมณ์ให้สีบนผ้าใบใกล้ hex
 // (ค่าสูงสุดที่มีผลคือ INK_CAP ÷ ค่าสีสูงสุดของ hex นั้น ~1.1 แดง ถึง ~1.4 ชมพู เกินกว่านั้นถูกตัดที่เพดาน)
 // speed = ตัวคูณความเร็วหยด, velDiss = velocityDissipation (ยิ่งมาก การไหลหยุดเร็ว ~1/velDiss วินาทีต่อรอบ), radius = ขนาดหยด (splatRadius ของไลบรารี)
-// bleed = สัดส่วนสีของหยดที่ "ซึม" ออกทีหลัง (0–0.9) reach = ขนาดวงซึมสุดท้ายเทียบรัศมีหยดแรก (เท่า) ซึมต่อเนื่อง FLUID_GLOBAL.bleedMs มิลลิวินาที (SPEC §6.3)
+// bleed = สัดส่วนสีของหยดที่ "ซึม" ออกทีหลัง (0–0.9) reach = ขนาดวงซึมสุดท้ายเทียบรัศมีหยดแรก (เท่า) ซึมต่อเนื่อง FLUID_GLOBAL.bleedMs มิลลิวินาที
+// splash = ตัวคูณจำนวนหยดตอนสาดของอารมณ์นี้ [นิดหน่อย, พอประมาณ, มากเลย] (คูณกับ SPLASH_LEVELS) ใช้ปรับให้พื้นที่หลังสาดของแต่ละอารมณ์ใกล้เป้าเดียวกัน (อารมณ์ที่น้ำพาสีไปไกลอย่างตื่นเต้นใช้ค่าน้อยกว่า)
+// ปิดไว้เป็นค่าเริ่มต้น (bleed 0): วงสีที่ค่อย ๆ ขยายดูเป็น airbrush ไม่ใช่สีน้ำ (ทดสอบแล้ว)
 // pattern: burst กระจายรอบทิศ | drift ไหลช้า | fall ไหลลง (มีแรงถ่วง) | pulse พุ่งเป็นจังหวะ | scatter จุดเล็กทั่วกระดาษ | still แทบนิ่ง
 export const FLUID_PARAMS = {
-  happy: { brightness: 0.86, speed: 0.5, curl: 9, velDiss: 1.1, radius: 0.15, bleed: 0.3, reach: 5.5, pattern: 'burst' },
-  calm: { brightness: 0.9, speed: 0.3, curl: 3, velDiss: 0.7, radius: 0.2, bleed: 0.3, reach: 6, pattern: 'drift' },
-  excited: { brightness: 1.08, speed: 0.6, curl: 8, velDiss: 1.2, radius: 0.15, bleed: 0.3, reach: 5, pattern: 'burst' },
-  warm: { brightness: 0.95, speed: 0.45, curl: 6, velDiss: 0.7, radius: 0.22, bleed: 0.3, reach: 6, pattern: 'burst' },
-  sad: { brightness: 0.86, speed: 0.3, curl: 4, velDiss: 0.8, radius: 0.18, bleed: 0.3, reach: 5.5, pattern: 'fall' },
-  angry: { brightness: 0.8, speed: 0.6, curl: 7, velDiss: 1.2, radius: 0.13, bleed: 0.3, reach: 5, pattern: 'pulse' },
-  anxious: { brightness: 0.78, speed: 0.4, curl: 5, velDiss: 1.1, radius: 0.09, bleed: 0.3, reach: 5, pattern: 'scatter' },
-  tired: { brightness: 0.82, speed: 0.1, curl: 2, velDiss: 0.9, radius: 0.2, bleed: 0.3, reach: 5.5, pattern: 'still' },
+  happy: { brightness: 2.0, speed: 1.3, curl: 18, velDiss: 0.35, radius: 0.15, bleed: 0, reach: 3, splash: [1, 1, 1], pattern: 'burst' },
+  calm: { brightness: 1.8, speed: 0.5, curl: 6, velDiss: 0.5, radius: 0.2, bleed: 0, reach: 3, splash: [1.1, 1.25, 1.8], pattern: 'drift' },
+  excited: { brightness: 2.0, speed: 1.4, curl: 30, velDiss: 0.3, radius: 0.12, bleed: 0, reach: 3, splash: [0.47, 0.59, 0.35], pattern: 'burst' },
+  warm: { brightness: 2.0, speed: 1, curl: 12, velDiss: 0.4, radius: 0.22, bleed: 0, reach: 3, splash: [1, 1, 1], pattern: 'burst' },
+  sad: { brightness: 1.7, speed: 0.5, curl: 8, velDiss: 0.5, radius: 0.18, bleed: 0, reach: 3, splash: [0.9, 1.0, 1.12], pattern: 'fall' },
+  angry: { brightness: 2.0, speed: 1.3, curl: 26, velDiss: 0.3, radius: 0.13, bleed: 0, reach: 3, splash: [1, 1, 1], pattern: 'pulse' },
+  anxious: { brightness: 1.9, speed: 1, curl: 22, velDiss: 0.35, radius: 0.09, bleed: 0, reach: 3, splash: [1, 1, 1], pattern: 'scatter' },
+  tired: { brightness: 1.6, speed: 0.2, curl: 4, velDiss: 0.55, radius: 0.2, bleed: 0, reach: 3, splash: [1, 1, 1], pattern: 'still' },
 }
 
 // สีน้ำที่แห้งติดกระดาษ: สีไม่จางเลย ต้องเป็น 0 พอดี (ไม่ใช่ค่าเล็ก ๆ)
@@ -82,9 +84,9 @@ export const INK_CAP = 0.85
 // การสาดตอนเข้าหน้า paint แยกตามระดับอารมณ์ (นิดหน่อย / พอประมาณ / มากเลย) แยกจาก INTENSITY_FACTOR ที่ยังคุมความเข้มสีต่อหยด
 // count = ตัวคูณจำนวนหยด (คูณ INITIAL_SPLATS ของอารมณ์) size = ตัวคูณขนาดหยด spread = ตัวคูณระยะกระจายของตำแหน่ง (1 = ช่วง 15–85% ของกระดาษ)
 export const SPLASH_LEVELS = [
-  { count: 1.3, size: 1.2, spread: 1.15 },
-  { count: 2.2, size: 1.3, spread: 1.25 },
-  { count: 3.2, size: 1.4, spread: 1.35 },
+  { count: 1.5, size: 1.2, spread: 1.15 },
+  { count: 3.0, size: 1.5, spread: 1.25 },
+  { count: 4.8, size: 2.2, spread: 1.35 },
 ]
 
 // bleedMs = เวลาที่สีซึมออกหลังหยด (ms) ซึมเสร็จแล้วสีนิ่ง
@@ -96,12 +98,12 @@ const clone = (o) => JSON.parse(JSON.stringify(o))
 const FLUID_DEFAULTS = { params: clone(FLUID_PARAMS), splats: clone(INITIAL_SPLATS), global: clone(FLUID_GLOBAL), splash: clone(SPLASH_LEVELS) }
 export const defaultsOf = (key) => ({ ...FLUID_DEFAULTS.params[key], splats: FLUID_DEFAULTS.splats[key] })
 export const resetEmotionParams = (key) => {
-  Object.assign(FLUID_PARAMS[key], FLUID_DEFAULTS.params[key])
+  Object.assign(FLUID_PARAMS[key], clone(FLUID_DEFAULTS.params[key])) // clone: ค่า splash เป็น array ห้ามอ้างอิงตัวเดียวกับค่าเริ่มต้น
   INITIAL_SPLATS[key] = FLUID_DEFAULTS.splats[key]
 }
 export const resetFluidGlobal = () => {
   Object.assign(FLUID_GLOBAL, FLUID_DEFAULTS.global)
-  FLUID_DEFAULTS.splash.forEach((level, i) => Object.assign(SPLASH_LEVELS[i], level))
+  FLUID_DEFAULTS.splash.forEach((level, i) => Object.assign(SPLASH_LEVELS[i], { ...level }))
 }
 
 // อารมณ์ด้านลบ ใช้กับการปรับโทน (SPEC §6.4)

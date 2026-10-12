@@ -17,9 +17,9 @@
       </div>
 
       <div class="font-bold">{{ EMOTION_BY_KEY[emotion].th }} (FLUID_PARAMS)</div>
-      <label v-for="f in FIELDS" :key="f.key" class="flex items-center gap-2">
+      <label v-for="f in FIELDS" :key="f.key + (f.index ?? '')" class="flex items-center gap-2">
         <span class="w-[78px] shrink-0">{{ f.label }}</span>
-        <input type="range" class="w-[88px]" :min="f.min" :max="f.max" :step="f.step" :data-field="f.key" :value="get(f)" @input="set(f, $event.target.valueAsNumber)" />
+        <input type="range" class="w-[88px]" :min="f.min" :max="f.max" :step="f.step" :data-field="f.key + (f.index ?? '')" :value="get(f)" @input="set(f, $event.target.valueAsNumber)" />
         <span class="w-9 text-right">{{ get(f) }}</span>
       </label>
       <div class="my-1 flex flex-wrap gap-1">
@@ -85,6 +85,9 @@ const FIELDS = [
   { key: 'velDiss', label: 'velDiss', min: 0, max: 2, step: 0.05 },
   { key: 'radius', label: 'ขนาดหยด', min: 0.02, max: 0.6, step: 0.01 },
   { key: 'brightness', label: 'ความเข้ม', min: 0.5, max: 4, step: 0.1 },
+  { key: 'splash', index: 0, label: 'สาด×นิดหน่อย', min: 0.1, max: 3, step: 0.05 },
+  { key: 'splash', index: 1, label: 'สาด×พอประมาณ', min: 0.1, max: 3, step: 0.05 },
+  { key: 'splash', index: 2, label: 'สาด×มากเลย', min: 0.1, max: 3, step: 0.05 },
   { key: 'bleed', label: 'สัดส่วนที่ซึม', min: 0, max: 0.9, step: 0.05 },
   { key: 'reach', label: 'วงซึม (เท่า)', min: 1, max: 6, step: 0.1 },
 ]
@@ -111,6 +114,7 @@ const INFO_ROWS = [
   { key: 'simRes', label: 'sim resolution' },
   { key: 'canvas', label: 'ขนาดผ้าใบ' },
   { key: 'state', label: 'การจำลอง' },
+  { key: 'speed', label: 'ความเร็วน้ำสูงสุด' },
 ]
 const WARM_FIELDS = [
   { key: 'size', label: 'ขนาดหยด', min: 0.1, max: 3, step: 0.05 },
@@ -123,10 +127,11 @@ const WARM_FIELDS = [
 // แผงแก้ object ในโมดูล emotions.js ตรง ๆ (FluidCanvas อ่านค่าสดจากที่เดียวกัน) แล้วแจ้งให้ตั้ง curl/velDiss ใหม่
 // ค่าที่แก้อยู่แค่ในหน่วยความจำ ต้องกด "คัดลอกค่า" แล้วนำไปแก้ emotions.js เอง
 const tick = ref(0) // อ่านใน get() ให้แถบเลื่อนอัปเดตตามเมื่อค่าใน object ธรรมดาเปลี่ยน
-const get = (f) => (tick.value, f.key === 'splats' ? INITIAL_SPLATS[emotion.value] : FLUID_PARAMS[emotion.value][f.key])
+const get = (f) => (tick.value, f.key === 'splats' ? INITIAL_SPLATS[emotion.value] : f.index !== undefined ? FLUID_PARAMS[emotion.value][f.key][f.index] : FLUID_PARAMS[emotion.value][f.key])
 const set = (f, v) => {
   if (Number.isNaN(v)) return
   if (f.key === 'splats') INITIAL_SPLATS[emotion.value] = v
+  else if (f.index !== undefined) FLUID_PARAMS[emotion.value][f.key][f.index] = v
   else FLUID_PARAMS[emotion.value][f.key] = v
   window.dispatchEvent(new Event(DEV_PARAMS_EVENT))
   tick.value++
