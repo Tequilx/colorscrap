@@ -93,6 +93,7 @@ const INFO_ROWS = [
   { key: 'dyeRes', label: 'dye resolution' },
   { key: 'simRes', label: 'sim resolution' },
   { key: 'canvas', label: 'ขนาดผ้าใบ' },
+  { key: 'state', label: 'การจำลอง' },
 ]
 const WARM_FIELDS = [
   { key: 'size', label: 'ขนาดหยด', min: 0.1, max: 3, step: 0.05 },

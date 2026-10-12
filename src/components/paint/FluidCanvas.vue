@@ -118,19 +118,69 @@ const useShade = (hex, strength = 1) => {
   return !!dye
 }
 
+// ---- ประหยัดงาน GPU/CPU (SPEC §6.5) ----
+// พักการจำลอง: น้ำนิ่งแล้ว (ไม่มีแรง/สีใหม่ SLEEP_MS) ข้ามขั้น step (pressure 20 รอบ + advect) ต่อ แต่ยัง render ทุกเฟรม
+// ภาพจึงไม่เปลี่ยนและ capture() ยังอ่านได้ ปลุกทันทีเมื่อมีแรง/สีใหม่ ล้างผ้าใบ หรือกลับเข้าหน้า paint
+const SLEEP_MS = 6000
+let lastImpulse = 0
+let sleeping = false
+const wake = () => {
+  lastImpulse = performance.now()
+  if (sleeping && fluid) {
+    sleeping = false
+    fluid.togglePause()
+    if (DEBUG) {
+      fluidInfo.state = 'ทำงาน'
+      window.__fluidSleeping = false
+    }
+  }
+}
+const goToSleep = () => {
+  if (sleeping || !fluid) return
+  sleeping = true
+  fluid.togglePause()
+  if (DEBUG) {
+    fluidInfo.state = 'พัก (น้ำนิ่ง)'
+    window.__fluidSleeping = true
+  }
+}
+
+// ดันน้ำอย่างเดียว (ไม่เติมสี): ไลบรารีทุก splat ทำ 2 ผ่าน (ความเร็ว + สี) และอ่าน clientHeight (บังคับ layout) ทุกครั้ง
+// ที่นี่ทำเฉพาะผ่านความเร็วเองด้วยโปรแกรม splat ของไลบรารี ใช้ตอนปาดสี/แรงถ่วง ที่ส่งสีศูนย์อยู่แล้ว ถ้าเข้าถึงภายในไม่ได้ถอยไปใช้ของไลบรารี
+const pushWater = (x, y, dx, dy, radius) => {
+  wake()
+  const sim = fluid.simulation
+  const program = sim?.programs?.splatProgram
+  if (program && sim._velocity && typeof sim.blit === 'function' && typeof sim.correctRadius === 'function') {
+    const gl = sim.gl
+    program.bind()
+    gl.uniform1i(program.uniforms.uTarget, sim._velocity.read.attach(0))
+    gl.uniform1f(program.uniforms.aspectRatio, sim.canvas.width / sim.canvas.height)
+    gl.uniform2f(program.uniforms.point, x / SIZE.w, 1 - y / SIZE.h)
+    gl.uniform3f(program.uniforms.color, dx, dy, 0)
+    gl.uniform1f(program.uniforms.radius, sim.correctRadius(radius / 100))
+    sim.blit(sim._velocity.write)
+    sim._velocity.swap()
+    return
+  }
+  fluid.setConfig({ splatRadius: radius })
+  fluid.splatAtLocation(x * (window.devicePixelRatio || 1), y, dx, dy, '#000000')
+}
+
 // พิกัด css px บนกระดาษ (0..SIZE) → ไลบรารี (x เป็น px จริง ×dpr, y เป็น css px และกลับแกนเอง)
 const splat = (x, y, dx, dy, { hex, radius, noColor, strength = 1 } = {}) => {
   if (!fluid) return
-  fluid.setConfig({ splatRadius: radius })
   if (noColor) {
-    fluid.splatAtLocation(x * (window.devicePixelRatio || 1), y, dx, dy, '#000000') // สี 0 = ใส่แรงอย่างเดียว
-  } else {
-    const shade = hex ?? pickShade()
-    const given = takeInk(x, y, strength, shade)
-    // ช่องที่สีเต็มเพดานแล้วไม่ควรดันน้ำเต็มแรงอีก (ไม่งั้นแตะจุดเดิมรัว ๆ ปั่นสีเดิมให้กระจายทั่วผ้าใบ) ดันตามสัดส่วนที่ลงสีได้จริง ขั้นต่ำ 10%
-    const push = strength > 0 ? Math.max(0.1, given / strength) : 1
-    if (useShade(shade, given)) fluid.splatAtLocation(x * (window.devicePixelRatio || 1), y, dx * push, dy * push)
+    pushWater(x, y, dx, dy, radius)
+    return
   }
+  wake()
+  fluid.setConfig({ splatRadius: radius })
+  const shade = hex ?? pickShade()
+  const given = takeInk(x, y, strength, shade)
+  // ช่องที่สีเต็มเพดานแล้วไม่ควรดันน้ำเต็มแรงอีก (ไม่งั้นแตะจุดเดิมรัว ๆ ปั่นสีเดิมให้กระจายทั่วผ้าใบ) ดันตามสัดส่วนที่ลงสีได้จริง ขั้นต่ำ 10%
+  const push = strength > 0 ? Math.max(0.1, given / strength) : 1
+  if (useShade(shade, given)) fluid.splatAtLocation(x * (window.devicePixelRatio || 1), y, dx * push, dy * push)
 }
 
 const params = () => FLUID_PARAMS[props.emotion]
@@ -150,6 +200,7 @@ const applyParams = () => {
 // ไลบรารีใช้ half float 16 บิตเสมอ (WebGL2: RGBA16F / WebGL1: OES_texture_half_float) ไม่มีทางถอยเป็น 8 บิต
 const reportInfo = () => {
   if (!DEBUG || !fluid) return
+  window.__fluid = fluid // dev เท่านั้น: ให้สคริปต์วัด (scripts/measure-fps.mjs) จับเวลาแต่ละขั้นของไลบรารี
   const sim = fluid.simulation
   if (!sim) return
   const gl = sim.gl
@@ -287,6 +338,8 @@ const dropWarmSamples = () => {
 // elapsed = เวลาตั้งแต่ pointerdown ครั้งแรกของแผ่น (ไม่ต้องกดค้างตลอด) idle = เวลาที่ไม่มี pointerdown และไม่มี pointer กดค้าง
 // pointermove ที่ไม่ได้กด (hover) ไม่ถูกนับ เพราะ onMove ข้าม pointer ที่ไม่อยู่ใน pointers
 const noteTick = () => {
+  // น้ำนิ่งแล้ว (ไม่มีแรง/สีใหม่, ไม่มีนิ้วกด, ไม่มีการซึมค้าง) → พักการจำลอง
+  if (fluid && props.running && !clearing && !sleeping && pointers.size === 0 && timers.size === 0 && performance.now() - lastImpulse > SLEEP_MS) goToSleep()
   if (!fluid || !props.running || clearing || !sheet.started) return
   const dt = NOTE_TICK * NOTE_TIME_SCALE
   sheet.elapsed += dt
@@ -313,6 +366,7 @@ const resetNote = () => {
 const clearTimers = () => {
   timers.forEach(clearTimeout)
   timers.clear()
+  bleeding = 0
 }
 
 const createFluid = () => {
@@ -321,8 +375,10 @@ const createFluid = () => {
     fluid = new WebGLFluid(containerRef.value)
     fluid.setConfig({
       simResolution: 128,
-      dyeResolution: navigator.maxTouchPoints > 1 ? 512 : 1024,
+      // ความละเอียดสีบนจอทั่วไป 768 (เดิม 1024) และ pressure 12 รอบ (ไลบรารีตั้งต้น 20): วัดแล้วผลภาพเหมือนเดิม (ความเข้มรอบจุด/พื้นที่ ต่างไม่เกิน 0.3%) แต่ GPU เบาลง
+      dyeResolution: navigator.maxTouchPoints > 1 ? 512 : 768,
       pressure: 0.8,
+      pressureIterations: 12,
       splatForce: SMEAR_FORCE,
       hover: false, // pointer ทั้งหมดรับผ่านชั้นของเราเอง
       colorful: true, // ต้องเป็น true เสมอ ไม่งั้น library ไม่ใช้ colorPalette
@@ -357,6 +413,7 @@ const clear = async () => {
   if (!fluid || clearing) return
   debug.elapsed = debug.idle = '-'
   clearing = true
+  wake() // ต้องให้ step วิ่งอยู่ ไม่งั้น dissipation ที่ตั้งไว้ล้างไม่ได้
   releaseAll()
   clearTimers()
   sheet = newSheetState()
@@ -373,26 +430,37 @@ const clear = async () => {
 
 // ---- Pointer ----
 
+// getBoundingClientRect บังคับ layout ทุกครั้ง: เก็บผลไว้ใช้ทั้งเฟรม (เมาส์/Pencil ส่ง pointermove ได้หลายครั้งต่อเฟรม)
+let rectCache = null
 const toCanvas = (e) => {
-  const rect = inputRef.value.getBoundingClientRect()
+  if (!rectCache) {
+    rectCache = inputRef.value.getBoundingClientRect()
+    requestAnimationFrame(() => (rectCache = null))
+  }
+  const rect = rectCache
   // ชดเชย scale ของ Stage: rect เป็นขนาดบนจอ ส่วน SIZE เป็นขนาดจริงบนกระดาษ
   return { x: ((e.clientX - rect.left) / rect.width) * SIZE.w, y: ((e.clientY - rect.top) / rect.height) * SIZE.h }
 }
 
 // หยดที่ "ซึม": สีน้ำจริงไม่ประทับเป็นดวงเดียว หยดแรกลงสัดส่วน (1 − bleed) แล้วส่วนที่เหลือค่อย ๆ ซึมออกเป็นวงที่กว้างขึ้นตลอด bleedMs
 // (การดันน้ำอย่างเดียวขยับก้อนสีไปทั้งก้อน ไม่ทำให้พื้นที่สีโต) กดค้างเบา (strength < 0.5) ไม่ซึม ไม่งั้นรัวหยดทุก 120ms จะใส่งานให้ GPU มากเกินไป
-const BLEED_STEPS = 12
+const BLEED_STEPS = 6 // ขั้นการซึมต่อหยด (เดิม 12: ภาพซึมเหมือนเดิมเพราะวงถัดกันห่างกันพอ)
+let bleeding = 0 // จำนวนขั้นซึมที่ค้างรอ ถ้าเยอะ (แตะรัว) ลดเหลือ 3 ขั้นต่อหยด กัน splat ท่วม
+const BLEED_BUSY = 36
 const dropBleed = (x, y, dx, dy, { radius, strength = 1 }) => {
   const p = params()
   const shade = pickShade() // เฉดเดียวตลอดการซึม ไม่งั้นขอบวงเป็นลายด่าง
   const bleed = strength >= 0.5 ? p.bleed : 0
   splat(x, y, dx, dy, { hex: shade, radius, strength: strength * (1 - bleed) })
   if (bleed <= 0) return
-  const share = (strength * bleed) / BLEED_STEPS
-  for (let i = 1; i <= BLEED_STEPS; i++) {
-    const k = i / BLEED_STEPS
+  const steps = bleeding > BLEED_BUSY ? Math.ceil(BLEED_STEPS / 2) : BLEED_STEPS
+  const share = (strength * bleed) / steps
+  bleeding += steps
+  for (let i = 1; i <= steps; i++) {
+    const k = i / steps
     const t = setTimeout(() => {
       timers.delete(t)
+      bleeding = Math.max(0, bleeding - 1)
       if (!fluid) return
       splat(x, y, 0, 0, { hex: shade, radius: radius * (1 + (p.reach - 1) * k), strength: share })
     }, FLUID_GLOBAL.bleedMs * k)
@@ -458,8 +526,27 @@ const onMove = (e) => {
   }
   if (props.tool === 'smear' && !pointer.hold) {
     const k = SMEAR_FORCE / SIZE.w // เท่ากับแรงของไลบรารีในแนวนอน และเท่ากันทุกทิศ
-    splat(x, y, dx * k, -dy * k, { radius: SMEAR_RADIUS, noColor: true })
+    queueSmear(x, y, dx * k, -dy * k)
   }
+}
+
+// รวมการปาดทั้งหมดที่เกิดในเฟรมเดียว (เมาส์/แทร็กแพด/Pencil ส่ง pointermove ได้ 120–1000 ครั้ง/วินาที) เป็น 1 ครั้งต่อเฟรม
+let smear = null
+let smearFrame = 0
+const flushSmear = () => {
+  smearFrame = 0
+  const s = smear
+  smear = null
+  if (s && fluid && !clearing && props.running) pushWater(s.x, s.y, s.dx, s.dy, SMEAR_RADIUS)
+}
+const queueSmear = (x, y, dx, dy) => {
+  if (smear) {
+    smear.x = x
+    smear.y = y
+    smear.dx += dx
+    smear.dy += dy
+  } else smear = { x, y, dx, dy }
+  if (!smearFrame) smearFrame = requestAnimationFrame(flushSmear)
 }
 
 const onUp = (e) => {
@@ -490,6 +577,9 @@ watch(
     if (!fluid) return
     if (running) {
       fluid.start()
+      sleeping = false
+      if (fluid.simulation) fluid.simulation.paused = false
+      lastImpulse = performance.now()
       tryDrop()
     } else {
       releaseAll()

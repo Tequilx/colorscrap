@@ -4,7 +4,7 @@
 //   1) เปิดเซิร์ฟเวอร์:  VITE_USE_MOCK=true npm run dev -- --port 5199
 //   2) PLAYWRIGHT=/path/to/node_modules/playwright/index.mjs node scripts/measure-fluid.mjs --emotions calm,excited,sad --seeds 1,2
 // ตัวเลือก: --url http://localhost:5199  --times 1,5,15,30,60  --out ผลลัพธ์.json
-//   --replace "ข้อความเดิม=>ข้อความใหม่"  (ใช้ซ้ำได้) แทนที่ข้อความในโมดูล emotions.js ที่เบราว์เซอร์โหลด
+//   --replace "ข้อความเดิม=>ข้อความใหม่"  (ใช้ซ้ำได้) แทนที่ข้อความในโมดูล emotions.js ที่เบราว์เซอร์โหลด (ตั้งตัวแปรแวดล้อม MODULE=ส่วนของ path เพื่อเปลี่ยนไฟล์ เช่น MODULE=FluidCanvas.vue)
 //   เพื่อลองค่าใหม่/ทดลองแยกปัจจัยโดยไม่แก้ไฟล์จริง เช่น --replace "DENSITY_DISSIPATION = 0.002=>DENSITY_DISSIPATION = 0"
 // ผลลัพธ์: ค่า ink ต่อพิกเซล = ระยะสีจากกระดาษ ÷ ระยะของสีอารมณ์เต็มแรง (1 = เข้มเท่าสีอารมณ์) ดู src/dev/fluidMetrics.js
 import { writeFileSync } from 'node:fs'
@@ -53,7 +53,7 @@ for (const emotion of emotions) {
     }, seed)
     const page = await context.newPage()
     for (const [from, to] of replacements) {
-      await page.route('**/src/lib/emotions.js*', async (route) => {
+      await page.route(`**/${process.env.MODULE || 'src/lib/emotions.js'}*`, async (route) => {
         const response = await route.fetch()
         let body = await response.text()
         if (!body.includes(from)) console.error(`!! ไม่พบข้อความที่จะแทนที่: ${from}`)

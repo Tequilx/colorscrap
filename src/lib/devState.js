@@ -19,4 +19,4 @@ export const DEV_PARAMS_EVENT = 'colorscrap:params'
 export const DEV_NOTE_RESET_EVENT = 'colorscrap:note-reset'
 
 // ข้อมูลที่ไลบรารีน้ำไหลใช้งานจริง (อ่านกลับจากตัวไลบรารีตอน ?debug) แผง dev เอาไปโชว์ให้ตรวจบน iPad
-export const fluidInfo = reactive({ webgl: '-', format: '-', texType: '-', linear: '-', density: '-', velocity: '-', dyeRes: '-', simRes: '-', canvas: '-' })
+export const fluidInfo = reactive({ webgl: '-', format: '-', texType: '-', linear: '-', density: '-', velocity: '-', dyeRes: '-', simRes: '-', canvas: '-', state: '-' })
