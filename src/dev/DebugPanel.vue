@@ -37,6 +37,17 @@
       <div class="text-[11px] text-white/70">จางช้า (density) ต้องเป็น 0 พอดีถึงจะไม่จาง ค่าเล็ก ๆ ก็ทำให้สีหายใน ~1 นาที (ดูหมายเหตุใน emotions.js)</div>
       <button type="button" class="my-1 cursor-pointer rounded border border-white/50 bg-white/10 px-1.5 py-0.5 font-mono text-[12px] text-white" @click="resetGlobal">รีเซ็ตค่ากลาง</button>
 
+      <div class="mt-1 border-t border-white/30 pt-1 font-bold">สาดสีตอนเข้าหน้า (ตามระดับ)</div>
+      <div v-for="(lv, li) in SPLASH_LEVELS" :key="li">
+        <div class="text-white/80">{{ INTENSITY_LABELS[li] }}</div>
+        <label v-for="f in SPLASH_FIELDS" :key="f.key" class="flex items-center gap-2">
+          <span class="w-[78px] shrink-0">{{ f.label }}</span>
+          <input type="range" class="w-[88px]" :min="f.min" :max="f.max" :step="f.step" :value="sv(li, f)" @input="setSplash(li, f, $event.target.valueAsNumber)" />
+          <span class="w-9 text-right">{{ sv(li, f) }}</span>
+        </label>
+      </div>
+      <div class="text-[11px] text-white/70">เปลี่ยนแล้วกด "หยดสีเริ่มต้นใหม่" เพื่อดูผล</div>
+
       <div class="mt-1 border-t border-white/30 pt-1 font-bold">ตรวจเครื่องนี้ (อ่านจากไลบรารี)</div>
       <div v-for="row in INFO_ROWS" :key="row.key" class="flex justify-between gap-2">
         <span class="shrink-0">{{ row.label }}</span>
@@ -57,7 +68,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useAppStore } from '@/stores/app'
-import { EMOTIONS, EMOTION_BY_KEY, FLUID_PARAMS, FLUID_GLOBAL, INITIAL_SPLATS, resetEmotionParams, resetFluidGlobal } from '@/lib/emotions'
+import { EMOTIONS, EMOTION_BY_KEY, FLUID_PARAMS, FLUID_GLOBAL, SPLASH_LEVELS, INTENSITY_LABELS, INITIAL_SPLATS, resetEmotionParams, resetFluidGlobal } from '@/lib/emotions'
 import { warmTune, noteDebug, fluidInfo, DEV_PARAMS_EVENT, DEV_NOTE_RESET_EVENT } from '@/lib/devState'
 
 const app = useAppStore()
@@ -82,6 +93,12 @@ const GLOBAL_FIELDS = [
   { key: 'inkCap', label: 'เพดานสี/ช่อง', min: 0.2, max: 1.5, step: 0.05 },
   { key: 'density', label: 'จางช้า (density)', min: 0, max: 0.01, step: 0.0005 },
   { key: 'bleedMs', label: 'เวลาซึม (ms)', min: 500, max: 8000, step: 250 },
+  { key: 'splashMs', label: 'เวลาสาด (ms)', min: 200, max: 3000, step: 100 },
+]
+const SPLASH_FIELDS = [
+  { key: 'count', label: 'จำนวนหยด ×', min: 0.3, max: 6, step: 0.1 },
+  { key: 'size', label: 'ขนาดหยด ×', min: 0.5, max: 3, step: 0.05 },
+  { key: 'spread', label: 'ระยะกระจาย ×', min: 0.5, max: 2, step: 0.05 },
 ]
 const INFO_ROWS = [
   { key: 'webgl', label: 'WebGL' },
@@ -116,6 +133,12 @@ const set = (f, v) => {
 }
 
 const gv = (g) => (tick.value, FLUID_GLOBAL[g.key])
+const sv = (i, f) => (tick.value, SPLASH_LEVELS[i][f.key])
+const setSplash = (i, f, v) => {
+  if (Number.isNaN(v)) return
+  SPLASH_LEVELS[i][f.key] = v
+  tick.value++
+}
 const setGlobal = (g, v) => {
   if (Number.isNaN(v)) return
   FLUID_GLOBAL[g.key] = v
@@ -146,7 +169,7 @@ const resetNote = () => {
 
 const copy = async () => {
   const e = emotion.value
-  const json = JSON.stringify({ emotion: e, initialSplats: INITIAL_SPLATS[e], ...FLUID_PARAMS[e], global: { ...FLUID_GLOBAL } }, null, 2)
+  const json = JSON.stringify({ emotion: e, initialSplats: INITIAL_SPLATS[e], ...FLUID_PARAMS[e], global: { ...FLUID_GLOBAL }, splash: SPLASH_LEVELS.map((l) => ({ ...l })) }, null, 2)
   try {
     await navigator.clipboard.writeText(json)
   } catch {

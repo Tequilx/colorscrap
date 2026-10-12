@@ -78,7 +78,9 @@ export const useAppStore = defineStore('app', () => {
   const leafFlipping = ref(false) // แผ่นแทรกกำลังพลิก
   const photoFlying = ref(false) // ภาพกำลังบินเข้า/ออกหน้า photo
   watch(savePhase, (phase) => (sequenceActive.value = phase !== 'idle'), { flush: 'sync' }) // sync: อัปโหลดที่ตามหลัง addEntry ต้องเห็นค่านี้ทันที
-  const busy = computed(() => savePhase.value !== 'idle' || leafFlipping.value || photoFlying.value)
+  // กำลังสาดสีตอนเข้าหน้า paint (FluidCanvas ตั้งค่า): ยังไม่ให้บันทึกจนหยดลงครบ
+  const splashing = ref(false)
+  const busy = computed(() => savePhase.value !== 'idle' || leafFlipping.value || photoFlying.value || splashing.value)
   // ผู้ขับลำดับ (timer/WAAPI) ลงทะเบียนวิธียกเลิกตัวเองไว้ เรียกตอนปุ่ม back ข้ามหน้าหรือออกจากระบบกลางลำดับ
   const cancellers = new Set()
   const onCancel = (fn) => {
@@ -264,6 +266,7 @@ export const useAppStore = defineStore('app', () => {
     freshLeaf.value = null
     helloEditing.value = false
     clearTick.value += 1 // ล้างผ้าใบ
+    splashing.value = false
     canvasDirty.value = false
     sheetEmotions.value = []
     sheetShifted.value = false
@@ -373,7 +376,7 @@ export const useAppStore = defineStore('app', () => {
 
   // บันทึกภาพบนผ้าใบลงสมุด (SPEC §5.3 → §5.4)
   const saveToBook = async () => {
-    if (saving.value) return null
+    if (saving.value || splashing.value) return null
     saving.value = true
     // ล็อกกดซ้ำไว้ตลอดจนจบ และปลดเสมอ (finally) ไม่ให้ปุ่มบันทึกค้างเงียบ ๆ ถ้าพลาดกลางทาง
     try {
@@ -441,6 +444,7 @@ export const useAppStore = defineStore('app', () => {
     leafFlipping,
     photoFlying,
     busy,
+    splashing,
     onCancel,
     cancelSequences,
     registerPainter,

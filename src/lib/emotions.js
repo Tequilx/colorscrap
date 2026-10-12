@@ -79,18 +79,30 @@ export const INK_CELL = 80
 export const INK_CAP = 0.85
 
 // ค่ากลางที่แผง ?debug ปรับสดได้ (FluidCanvas อ่านจากที่นี่ ไม่อ่านค่าคงที่ข้างบนโดยตรง)
+// การสาดตอนเข้าหน้า paint แยกตามระดับอารมณ์ (นิดหน่อย / พอประมาณ / มากเลย) แยกจาก INTENSITY_FACTOR ที่ยังคุมความเข้มสีต่อหยด
+// count = ตัวคูณจำนวนหยด (คูณ INITIAL_SPLATS ของอารมณ์) size = ตัวคูณขนาดหยด spread = ตัวคูณระยะกระจายของตำแหน่ง (1 = ช่วง 15–85% ของกระดาษ)
+export const SPLASH_LEVELS = [
+  { count: 1.3, size: 1.2, spread: 1.15 },
+  { count: 2.2, size: 1.3, spread: 1.25 },
+  { count: 3.2, size: 1.4, spread: 1.35 },
+]
+
 // bleedMs = เวลาที่สีซึมออกหลังหยด (ms) ซึมเสร็จแล้วสีนิ่ง
-export const FLUID_GLOBAL = { density: DENSITY_DISSIPATION, inkCap: INK_CAP, bleedMs: 3500 }
+// splashMs = ช่วงเวลาที่หยดตอนสาดทยอยลง (ms) ไม่ลงพร้อมกันทั้งหมด
+export const FLUID_GLOBAL = { density: DENSITY_DISSIPATION, inkCap: INK_CAP, bleedMs: 3500, splashMs: 1000 }
 
 // ค่าเริ่มต้นทั้งหมด (สำเนาตอนโหลดโมดูล) ให้ปุ่ม "รีเซ็ตเป็นค่าเริ่มต้น" ในแผง ?debug คืนค่า
 const clone = (o) => JSON.parse(JSON.stringify(o))
-const FLUID_DEFAULTS = { params: clone(FLUID_PARAMS), splats: clone(INITIAL_SPLATS), global: clone(FLUID_GLOBAL) }
+const FLUID_DEFAULTS = { params: clone(FLUID_PARAMS), splats: clone(INITIAL_SPLATS), global: clone(FLUID_GLOBAL), splash: clone(SPLASH_LEVELS) }
 export const defaultsOf = (key) => ({ ...FLUID_DEFAULTS.params[key], splats: FLUID_DEFAULTS.splats[key] })
 export const resetEmotionParams = (key) => {
   Object.assign(FLUID_PARAMS[key], FLUID_DEFAULTS.params[key])
   INITIAL_SPLATS[key] = FLUID_DEFAULTS.splats[key]
 }
-export const resetFluidGlobal = () => Object.assign(FLUID_GLOBAL, FLUID_DEFAULTS.global)
+export const resetFluidGlobal = () => {
+  Object.assign(FLUID_GLOBAL, FLUID_DEFAULTS.global)
+  FLUID_DEFAULTS.splash.forEach((level, i) => Object.assign(SPLASH_LEVELS[i], level))
+}
 
 // อารมณ์ด้านลบ ใช้กับการปรับโทน (SPEC §6.4)
 export const NEGATIVE_EMOTIONS = ['sad', 'angry', 'anxious', 'tired']

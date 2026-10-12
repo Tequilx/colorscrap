@@ -27,6 +27,8 @@ const out = opt('out', '')
 const scenario = opt('scenario', 'drop')
 // --extract: ตอนจบรัน extractColors จริง (เหมือนตอนกดบันทึก) แล้วรายงานสีที่ดูดได้
 const extract = args.includes('--extract')
+// ระดับอารมณ์ที่ใช้ (0 นิดหน่อย, 1 พอประมาณ, 2 มากเลย)
+const intensityLevel = Number(opt('intensity', '1'))
 
 const { chromium } = await import(process.env.PLAYWRIGHT || 'playwright')
 const hexRgb = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16))
@@ -72,9 +74,9 @@ for (const emotion of emotions) {
     }, emotion)
 
     // เข้า paint โดยตั้ง canvasDirty ไว้ก่อน = ไม่หยดสีเริ่มต้น ผ้าใบว่างจริง
-    await page.evaluate(({ key, initialOnly }) => {
+    await page.evaluate(({ key, initialOnly, level }) => {
       const app = document.querySelector('#app').__vue_app__.config.globalProperties.$pinia._s.get('app')
-      app.selection = { emotion: key, intensity: 1 }
+      app.selection = { emotion: key, intensity: level }
       app.tool = 'drop'
       if (!initialOnly) app.canvasDirty = true
       window.__frames = 0
@@ -89,7 +91,7 @@ for (const emotion of emotions) {
       }
       requestAnimationFrame(loop)
       location.hash = 'paint'
-    }, { key: emotion, initialOnly: scenario === 'initial' })
+    }, { key: emotion, initialOnly: scenario === 'initial', level: intensityLevel })
     await page.waitForTimeout(1800)
 
     const cx = PAPER_RECT.x + PAPER_RECT.w / 2
@@ -172,7 +174,7 @@ for (const emotion of emotions) {
     if (scenario === 'tap') await page.evaluate(() => clearInterval(window.__tapTimer))
     const end = await page.evaluate(() => ({ t: performance.now(), frames: window.__frames }))
     const fps = ((end.frames - start.frames) / ((end.t - start.t) / 1000)).toFixed(1)
-    results.push({ emotion, seed, scenario, fps: Number(fps), params, samples, errors, extracted })
+    results.push({ emotion, seed, scenario, intensity: intensityLevel, fps: Number(fps), params, samples, errors, extracted })
     console.error(`เสร็จ ${emotion} seed ${seed} (${fps} fps)`)
     await context.close()
   }

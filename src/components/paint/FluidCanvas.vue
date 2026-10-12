@@ -20,7 +20,7 @@
 <script setup>
 import { ref, watch, onMounted, onBeforeUnmount } from 'vue'
 import WebGLFluid from 'webgl-fluid-enhanced'
-import { emotionShades, FLUID_PARAMS, FLUID_GLOBAL, INK_CELL, INITIAL_SPLATS, INTENSITY_FACTOR, SHIFT_TARGETS } from '@/lib/emotions'
+import { emotionShades, FLUID_PARAMS, FLUID_GLOBAL, SPLASH_LEVELS, INK_CELL, INITIAL_SPLATS, INTENSITY_FACTOR, SHIFT_TARGETS } from '@/lib/emotions'
 import { PALETTE } from '@/lib/tokens'
 import { dyeSetting, invertedHex } from '@/lib/dye'
 import { warmTune as tune, noteDebug as debug, fluidInfo, DEV_PARAMS_EVENT, DEV_NOTE_RESET_EVENT } from '@/lib/devState'
@@ -43,7 +43,7 @@ const props = defineProps({
 })
 
 // shifted: ผู้ใช้หยดสีอุ่นเองหยดแรกของแผ่น | invite: ระบายรวมครบและพักมือ ควรโผล่โน้ตชวน (SPEC §6.4)
-const emit = defineEmits(['shifted', 'invite'])
+const emit = defineEmits(['shifted', 'invite', 'splash'])
 
 const SIZE = { w: 1112, h: 612 }
 const HOLD_MS = 400 // กดค้างเกินนี้ = หยดต่อเนื่อง (SPEC §6.5)
@@ -221,37 +221,72 @@ const reportInfo = () => {
 
 const rand = (min, max) => min + Math.random() * (max - min)
 
-// หยดเริ่มต้นตามอารมณ์และความเข้ม (SPEC §6.3)
+// สาดสีตอนเข้าหน้า paint (SPEC §6.3): หยดทยอยลงภายใน FLUID_GLOBAL.splashMs ตาม pattern ของอารมณ์ ไม่ลงพร้อมกันทั้งหมด
+// จำนวน/ขนาด/ระยะกระจายตามระดับที่ผู้ใช้เลือก (SPLASH_LEVELS แยกจาก INTENSITY_FACTOR ที่ยังคุมความเข้มสีต่อหยด)
+// ลดการเคลื่อนไหว: ทุกหยดลงทันทีโดยไม่ซึมเป็นจังหวะ ผ้าใบปรากฏด้วย fade 150ms แทน
+let splashPending = 0
+const setSplashing = (on) => {
+  emit('splash', on)
+}
+const finishSplashOne = () => {
+  if (splashPending > 0 && --splashPending === 0) setSplashing(false)
+}
 const dropInitial = () => {
   if (!fluid) return
   const p = params()
-  const count = Math.max(1, Math.round(INITIAL_SPLATS[props.emotion] * INTENSITY_FACTOR[props.intensity]))
+  const level = SPLASH_LEVELS[props.intensity] ?? SPLASH_LEVELS[1]
+  const count = Math.max(1, Math.round(INITIAL_SPLATS[props.emotion] * level.count))
   const mag = 220 * p.speed
+  const calm = Boolean(reducedMotion?.matches)
+  const half = Math.min(0.46, 0.35 * level.spread) // ครึ่งช่วงของตำแหน่ง (เดิม 0.35 = 15–85%)
+  const radius = p.radius * DROP_RADIUS_SCALE * level.size
+  const span = calm ? 0 : FLUID_GLOBAL.splashMs
+
+  // สร้างรายการหยดก่อน (ตำแหน่ง ทิศ แรง) แล้วกำหนดเวลาตาม pattern
+  const drops = []
   for (let i = 0; i < count; i++) {
-    const drop = () => {
-      if (!fluid) return
-      let x = rand(SIZE.w * 0.15, SIZE.w * 0.85)
-      let y = rand(SIZE.h * 0.15, SIZE.h * 0.85)
-      let angle = rand(0, Math.PI * 2)
-      let m = mag
-      if (p.pattern === 'scatter') {
-        x = rand(30, SIZE.w - 30)
-        y = rand(30, SIZE.h - 30)
-      } else if (p.pattern === 'fall') {
-        angle = -Math.PI / 2 + rand(-0.4, 0.4) // ลง (แกน y ของไลบรารีชี้ขึ้น)
-      } else if (p.pattern === 'still') {
-        m = mag * rand(0, 1)
-      }
-      dropBleed(x, y, Math.cos(angle) * m, Math.sin(angle) * m, { radius: p.radius * DROP_RADIUS_SCALE })
+    let x = SIZE.w * rand(0.5 - half, 0.5 + half)
+    let y = SIZE.h * rand(0.5 - half, 0.5 + half)
+    let angle = rand(0, Math.PI * 2)
+    let m = mag
+    if (p.pattern === 'scatter') {
+      x = rand(30, SIZE.w - 30)
+      y = rand(30, SIZE.h - 30)
+    } else if (p.pattern === 'fall') {
+      angle = -Math.PI / 2 + rand(-0.4, 0.4) // ลง (แกน y ของไลบรารีชี้ขึ้น)
+    } else if (p.pattern === 'still') {
+      m = mag * rand(0, 1)
     }
-    // angry พุ่งเป็นจังหวะ: เหลื่อมเวลาของแต่ละหยด
-    if (p.pattern === 'pulse') {
+    drops.push({ x, y, dx: Math.cos(angle) * m, dy: Math.sin(angle) * m })
+  }
+  if (p.pattern === 'fall') drops.sort((a, b) => a.y - b.y) // ไหลลง: ทยอยจากบนลงล่าง
+  const last = Math.max(1, count - 1)
+  drops.forEach((d, i) => {
+    const k = i / last
+    let t
+    if (p.pattern === 'burst') t = span * 0.7 * k ** 0.8 // พุ่งออกเร็ว ๆ ช่วงต้น
+    else if (p.pattern === 'scatter') t = rand(0, span) // จุดเล็กผุดสุ่ม
+    else if (p.pattern === 'drift' || p.pattern === 'still') t = span * k // ไล่เรียงสม่ำเสมอ
+    else t = span * k // pulse / fall: จังหวะเท่ากัน
+    d.t = t + (calm ? 0 : rand(0, 60))
+  })
+
+  splashPending += count
+  if (splashPending === count) setSplashing(true)
+  if (calm && containerRef.value?.animate) containerRef.value.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 150 })
+  for (const d of drops) {
+    const run = () => {
+      if (fluid) dropBleed(d.x, d.y, d.dx, d.dy, { radius })
+      finishSplashOne()
+    }
+    if (d.t <= 0) run()
+    else {
       const t = setTimeout(() => {
         timers.delete(t)
-        drop()
-      }, i * 260)
+        run()
+      }, d.t)
       timers.add(t)
-    } else drop()
+    }
   }
 }
 
@@ -367,6 +402,10 @@ const clearTimers = () => {
   timers.forEach(clearTimeout)
   timers.clear()
   bleeding = 0
+  if (splashPending > 0) {
+    splashPending = 0
+    setSplashing(false)
+  }
 }
 
 const createFluid = () => {
@@ -450,7 +489,7 @@ const BLEED_BUSY = 36
 const dropBleed = (x, y, dx, dy, { radius, strength = 1 }) => {
   const p = params()
   const shade = pickShade() // เฉดเดียวตลอดการซึม ไม่งั้นขอบวงเป็นลายด่าง
-  const bleed = strength >= 0.5 ? p.bleed : 0
+  const bleed = strength >= 0.5 && !reducedMotion?.matches ? p.bleed : 0
   splat(x, y, dx, dy, { hex: shade, radius, strength: strength * (1 - bleed) })
   if (bleed <= 0) return
   const steps = bleeding > BLEED_BUSY ? Math.ceil(BLEED_STEPS / 2) : BLEED_STEPS

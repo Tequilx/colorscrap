@@ -1,6 +1,6 @@
 // สคริปต์ dev วัด FPS ของผ้าใบ (เฉลี่ยและ 1% low) ใน 3 กรณี: idle (ปล่อยนิ่ง) / tap (แตะรัวทุก 150ms) / drag (ลากต่อเนื่อง) นานกรณีละ 5 วินาที
 //   PLAYWRIGHT=/path/to/playwright/index.mjs node scripts/measure-fps.mjs --emotion calm --intensity 1 --label base
-// ตัวเลือก: --url (ค่าเริ่มต้น http://localhost:5199) --dpr 1|2 --debug (เปิด ?debug) --cases idle,tap,drag --seconds 5
+// ตัวเลือก: --url (ค่าเริ่มต้น http://localhost:5199) --dpr 1|2 --debug (เปิด ?debug) --cases idle,tap,drag,splash --seconds 5
 //   --replace "ข้อความเดิม=>ข้อความใหม่" และ --module ไฟล์ (ส่วนของ path เช่น FluidCanvas.vue; ไม่ใส่ = emotions.js) ใช้ทดลองค่าโดยไม่แก้ไฟล์จริง
 //   --json-out ไฟล์.json
 import { writeFileSync } from 'node:fs'
@@ -81,12 +81,12 @@ for (const kase of cases) {
     const app = document.querySelector('#app').__vue_app__.config.globalProperties.$pinia._s.get('app')
     app.selection = { emotion, intensity }
     app.tool = kase === 'drag' ? 'smear' : 'drop'
-    if (kase !== 'idle') app.canvasDirty = true // tap/drag เริ่มจากผ้าใบว่าง ไม่มีหยดเริ่มต้น
+    if (kase !== 'idle' && kase !== 'splash') app.canvasDirty = true // tap/drag เริ่มจากผ้าใบว่าง ไม่มีหยดเริ่มต้น (splash = วัดช่วงสาดตอนเข้า paint)
     window.__t = []
     location.hash = 'paint'
   }, { emotion, intensity, kase })
   // idle: รอให้หยดเริ่มต้นและการซึมจบก่อน (≈ 6 วิ) แล้วค่อยวัดตอนนิ่ง
-  await page.waitForTimeout(kase === 'idle' ? 6500 : 2000)
+  await page.waitForTimeout(kase === 'idle' ? 6500 : kase === 'splash' ? 0 : 2000)
 
   const stats = await page.evaluate(
     ({ kase, seconds, dragMs, vsyncMode }) =>
