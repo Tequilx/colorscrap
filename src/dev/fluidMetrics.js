@@ -19,7 +19,6 @@ export const measureInk = (rgba, opts) => {
   let areaVisible = 0
   let areaStrong = 0
   const all = new Float32Array(n)
-  const mask = new Uint8Array(n)
   for (let i = 0; i < n; i++) {
     const o = i * 4
     const ink = dist(rgba[o], rgba[o + 1], rgba[o + 2], paper) / full
@@ -28,7 +27,6 @@ export const measureInk = (rgba, opts) => {
     if (ink > peak) peak = ink
     if (ink >= visible) {
       areaVisible++
-      mask[i] = 1
     }
     if (ink >= strong) areaStrong++
     const x = i % width
@@ -42,15 +40,6 @@ export const measureInk = (rgba, opts) => {
       const lum = (0.2126 * rgba[o] + 0.7152 * rgba[o + 1] + 0.0722 * rgba[o + 2]) / 255
       if (lum < darkest) darkest = lum
     }
-  }
-  // เส้นรอบรูปของบริเวณที่เห็นสี: พิกเซลในบริเวณที่มีเพื่อนบ้าน 4 ทิศอย่างน้อย 1 อันอยู่นอกบริเวณ
-  // circ = 4π·พื้นที่ / เส้นรอบรูป² (วงกลม ≈ 1, ยิ่งเป็นแฉกหรือขอบหยักยิ่งต่ำ) ใช้เทียบ "ขอบแฉก" ก่อน/หลัง
-  let perimeter = 0
-  for (let i = 0; i < n; i++) {
-    if (!mask[i]) continue
-    const x = i % width
-    const y = (i / width) | 0
-    if (x === 0 || y === 0 || x === width - 1 || y === height - 1 || !mask[i - 1] || !mask[i + 1] || !mask[i - width] || !mask[i + width]) perimeter++
   }
   // ค่าเฉลี่ยของ 1% ที่เข้มที่สุด (ทนต่อพิกเซลเดียวที่สว่างผิดปกติได้ดีกว่า peak)
   const sorted = Float32Array.from(all).sort()
@@ -66,7 +55,46 @@ export const measureInk = (rgba, opts) => {
     total: total / n, // "ปริมาณสี" ต่อพิกเซล (เฉลี่ยทั้งผ้าใบ)
     areaVisible: areaVisible / n, // สัดส่วนผ้าใบที่เห็นว่ามีสี
     areaStrong: areaStrong / n,
-    perimeter,
-    circ: perimeter ? (4 * Math.PI * areaVisible) / (perimeter * perimeter) : 0,
   }
+}
+
+// ค่าต่างเฉลี่ยของพิกเซลระหว่างสองภาพ (0..255 ต่อช่องสี) ใช้วัดว่าน้ำนิ่งจริงไหม
+export const meanAbsDiff = (a, b) => {
+  let sum = 0
+  let count = 0
+  for (let i = 0; i < a.length; i += 4) {
+    sum += Math.abs(a[i] - b[i]) + Math.abs(a[i + 1] - b[i + 1]) + Math.abs(a[i + 2] - b[i + 2])
+    count += 3
+  }
+  return count ? sum / count : 0
+}
+
+// ตำแหน่งกึ่งกลาง (centroid, 0..1 ของความกว้าง/สูง) ของสีแต่ละสีในภาพ: ทุกพิกเซลที่มีสีเกิน visible ถูกจัดเข้าสีที่ทิศ (ผลต่างจากกระดาษ) ใกล้ที่สุด
+// colors = [[r,g,b], ...] ของสีอารมณ์ที่ใช้ คืนค่า [{ x, y, n }] ตามลำดับเดียวกัน (n = จำนวนพิกเซล)
+export const colorCentroids = (rgba, { width, height, paper, colors, full, visible = 0.1 }) => {
+  const dirs = colors.map((c) => {
+    const d = c.map((v, i) => v - paper[i])
+    const len = Math.hypot(...d) || 1
+    return d.map((v) => v / len)
+  })
+  const acc = colors.map(() => ({ sx: 0, sy: 0, n: 0 }))
+  for (let i = 0; i < width * height; i++) {
+    const o = i * 4
+    const d = [rgba[o] - paper[0], rgba[o + 1] - paper[1], rgba[o + 2] - paper[2]]
+    const len = Math.hypot(...d)
+    if (len / full[0] < visible) continue
+    let best = 0
+    let bestCos = -2
+    dirs.forEach((u, k) => {
+      const cos = (d[0] * u[0] + d[1] * u[1] + d[2] * u[2]) / len
+      if (cos > bestCos) {
+        bestCos = cos
+        best = k
+      }
+    })
+    acc[best].sx += (i % width) / width
+    acc[best].sy += ((i / width) | 0) / height
+    acc[best].n++
+  }
+  return acc.map((a) => ({ x: a.n ? a.sx / a.n : 0, y: a.n ? a.sy / a.n : 0, n: a.n }))
 }

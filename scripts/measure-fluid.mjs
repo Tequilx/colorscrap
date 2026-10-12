@@ -8,7 +8,7 @@
 //   เพื่อลองค่าใหม่/ทดลองแยกปัจจัยโดยไม่แก้ไฟล์จริง เช่น --replace "DENSITY_DISSIPATION = 0.002=>DENSITY_DISSIPATION = 0"
 // ผลลัพธ์: ค่า ink ต่อพิกเซล = ระยะสีจากกระดาษ ÷ ระยะของสีอารมณ์เต็มแรง (1 = เข้มเท่าสีอารมณ์) ดู src/dev/fluidMetrics.js
 import { writeFileSync } from 'node:fs'
-import { measureInk } from '../src/dev/fluidMetrics.js'
+import { measureInk, meanAbsDiff, colorCentroids } from '../src/dev/fluidMetrics.js'
 import { PALETTE, EMOTION_COLORS } from '../src/lib/tokens.js'
 
 const args = process.argv.slice(2)
@@ -24,11 +24,14 @@ const times = opt('times', '1,5,15,30,60').split(',').map(Number)
 const out = opt('out', '')
 // scenario: drop = หยด 1 หยดแล้วรอ (ค่าเริ่มต้น) | tap = แตะจุดเดิมทุก 250 ms | hold = กดค้างที่จุดเดิม (หยดต่อเนื่อง)
 //           | initial = ปล่อยให้แอปหยดสีเริ่มต้นของอารมณ์เองตอนเข้า paint (ไม่แตะ) แล้วรอ
+//           | three = หยด 3 สีแยกกัน (--three calm,happy,angry ซ้าย/กลาง/ขวา) แล้วรอ วัดตำแหน่งกึ่งกลางของแต่ละสี
 const scenario = opt('scenario', 'drop')
 // --extract: ตอนจบรัน extractColors จริง (เหมือนตอนกดบันทึก) แล้วรายงานสีที่ดูดได้
 const extract = args.includes('--extract')
 // ระดับอารมณ์ที่ใช้ (0 นิดหน่อย, 1 พอประมาณ, 2 มากเลย)
 const intensityLevel = Number(opt('intensity', '1'))
+const diffArg = opt('diff', '')
+const threeEmotions = opt('three', 'calm,happy,angry').split(',')
 
 const { chromium } = await import(process.env.PLAYWRIGHT || 'playwright')
 const hexRgb = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16))
@@ -118,6 +121,19 @@ for (const emotion of emotions) {
         },
         { cx, cy, ms: 250 },
       )
+    } else if (scenario === 'three') {
+      // หยดทีละสีที่ซ้าย กลาง ขวา (เปลี่ยนอารมณ์ผ่าน store เหมือนผู้ใช้เลือกอารมณ์ใหม่กลางแผ่น)
+      const xs = [cx - 330, cx, cx + 330]
+      for (let k = 0; k < 3; k++) {
+        await page.evaluate((key) => {
+          const app = document.querySelector('#app').__vue_app__.config.globalProperties.$pinia._s.get('app')
+          app.selection = { ...app.selection, emotion: key }
+        }, threeEmotions[k])
+        await page.waitForTimeout(100)
+        await page.mouse.move(xs[k], cy)
+        await page.mouse.down()
+        await page.mouse.up()
+      }
     } else {
       await page.mouse.down()
       await page.mouse.up()
@@ -125,6 +141,7 @@ for (const emotion of emotions) {
 
     const full = Math.hypot(...hexRgb(EMOTION_COLORS[emotion]).map((v, i) => v - paper[i]))
     const samples = []
+    const shots = []
     for (const t of [0.4, ...times]) {
       const shot = await page.evaluate(
         ({ t, startT, size, startSim }) =>
@@ -142,14 +159,20 @@ for (const emotion of emotions) {
                 ctx.globalCompositeOperation = 'difference'
                 ctx.fillStyle = '#ffffff'
                 ctx.fillRect(0, 0, size.w, size.h)
-                resolve({ rgba: Array.from(ctx.getImageData(0, 0, size.w, size.h).data), sim: window.__sim - startSim, frames: window.__frames })
+                resolve({ rgba: Array.from(ctx.getImageData(0, 0, size.w, size.h).data), sim: window.__sim - startSim, frames: window.__frames, flow: window.__flowSpeed, sleeping: window.__fluidSleeping })
               })
             }, Math.max(0, wait))
           }),
         { t, startT: start.t, size: SAMPLE, startSim: start.sim },
       )
       const m = measureInk(shot.rgba, { width: SAMPLE.w, height: SAMPLE.h, paper, full, center: { x: 0.5, y: 0.5 }, radius: 20 })
-      samples.push({ t, sim: +shot.sim.toFixed(2), ...m })
+      const prev = shots.at(-1)
+      const sample = { t, sim: +shot.sim.toFixed(2), ...m, flow: shot.flow, sleeping: shot.sleeping, diffPrev: prev ? meanAbsDiff(prev.rgba, shot.rgba) : null }
+      if (scenario === 'three') {
+        sample.centroids = colorCentroids(shot.rgba, { width: SAMPLE.w, height: SAMPLE.h, paper, full: [full], colors: threeEmotions.map((k) => hexRgb(EMOTION_COLORS[k])) })
+      }
+      samples.push(sample)
+      shots.push({ t, rgba: shot.rgba })
     }
     let extracted = null
     if (extract) {
@@ -177,7 +200,15 @@ for (const emotion of emotions) {
     if (scenario === 'tap') await page.evaluate(() => clearInterval(window.__tapTimer))
     const end = await page.evaluate(() => ({ t: performance.now(), frames: window.__frames }))
     const fps = ((end.frames - start.frames) / ((end.t - start.t) / 1000)).toFixed(1)
-    results.push({ emotion, seed, scenario, intensity: intensityLevel, fps: Number(fps), params, samples, errors, extracted })
+    // ผลต่างระหว่างภาพที่เวลา a กับ b (--diff 15:60): น้ำนิ่งจริงต้องต่ำ (0..255 ต่อช่องสี)
+    let diffAB = null
+    if (diffArg) {
+      const [ta, tb] = diffArg.split(':').map(Number)
+      const A = shots.find((x) => x.t === ta)
+      const B = shots.find((x) => x.t === tb)
+      if (A && B) diffAB = { from: ta, to: tb, value: meanAbsDiff(A.rgba, B.rgba) }
+    }
+    results.push({ emotion, seed, scenario, intensity: intensityLevel, fps: Number(fps), params, samples, errors, extracted, diffAB })
     console.error(`เสร็จ ${emotion} seed ${seed} (${fps} fps)`)
     await context.close()
   }
@@ -190,5 +221,6 @@ for (const r of results) {
   console.log(`\n## ${r.emotion} seed ${r.seed} ${r.scenario} · ${r.fps} fps · ${JSON.stringify(r.params)}`)
   console.log('เวลา(วิ) sim(วิ) | เข้มรอบจุด | จุดเข้มสุด | ปริมาณรวม | พื้นที่ที่เห็นสี | พื้นที่เข้มชัด | สีเฉลี่ยรอบจุด | มืดสุด')
   if (r.extracted) console.log('สีที่ดูดได้ (extractColors): ' + r.extracted.map((c) => `${c.hex} ${(c.ratio * 100).toFixed(0)}%`).join(', '))
-  for (const s of r.samples) console.log(`${String(s.t).padStart(6)} ${String(s.sim).padStart(7)} | ${pct(s.near)} | ${pct(s.top1)} | ${pct(s.total)} | ${pct(s.areaVisible)} | ${pct(s.areaStrong)} | rgb(${s.nearColor}) | ${(s.darkest * 100).toFixed(0)}%`)
+  if (r.diffAB) console.log(`ผลต่างพิกเซลเฉลี่ย ${r.diffAB.from}→${r.diffAB.to} วิ: ${r.diffAB.value.toFixed(3)} / 255`)
+  for (const s of r.samples) console.log(`${String(s.t).padStart(6)} ${String(s.sim).padStart(7)} | ${pct(s.near)} | ${pct(s.top1)} | ${pct(s.total)} | ${pct(s.areaVisible)} | ${pct(s.areaStrong)} | rgb(${s.nearColor}) | ${(s.darkest * 100).toFixed(0)}% | Δ${s.diffPrev === null ? '-' : s.diffPrev.toFixed(2)} | flow ${s.flow === undefined ? '-' : Number(s.flow).toFixed(2)}${s.sleeping ? ' นอน' : ''}${s.centroids ? ' | ' + s.centroids.map((c) => `(${c.x.toFixed(3)},${c.y.toFixed(3)} n${c.n})`).join(' ') : ''}`)
 }

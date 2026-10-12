@@ -29,10 +29,6 @@
       </div>
 
       <div class="mt-1 border-t border-white/30 pt-1 font-bold">ค่ากลาง (ใช้ทุกอารมณ์)</div>
-      <label class="flex items-center gap-2">
-        <input type="checkbox" :checked="gv({ key: 'driftOn' })" @change="setGlobal({ key: 'driftOn' }, $event.target.checked)" />
-        <span>เปิดน้ำพาสี (ทดลอง) ขอบเป็นแฉก</span>
-      </label>
       <label v-for="g in GLOBAL_FIELDS" :key="g.key" class="flex items-center gap-2">
         <span class="w-[78px] shrink-0">{{ g.label }}</span>
         <input type="range" class="w-[88px]" :min="g.min" :max="g.max" :step="g.step" :value="gv(g)" @input="setGlobal(g, $event.target.valueAsNumber)" />
@@ -92,16 +88,14 @@ const FIELDS = [
   { key: 'splash', index: 0, label: 'สาด×นิดหน่อย', min: 0.1, max: 3, step: 0.05 },
   { key: 'splash', index: 1, label: 'สาด×พอประมาณ', min: 0.1, max: 3, step: 0.05 },
   { key: 'splash', index: 2, label: 'สาด×มากเลย', min: 0.1, max: 3, step: 0.05 },
-  { key: 'drift', label: 'น้ำพาสี (แรง)', min: 0, max: 3, step: 0.1 },
-  { key: 'driftMs', label: 'น้ำพาสี (ms)', min: 500, max: 6000, step: 250 },
-  { key: 'bleed', label: 'สัดส่วนที่ซึม', min: 0, max: 0.9, step: 0.05 },
-  { key: 'reach', label: 'วงซึม (เท่า)', min: 1, max: 6, step: 0.1 },
 ]
 // ค่ากลางของผ้าใบ (FLUID_GLOBAL ใน emotions.js)
 const GLOBAL_FIELDS = [
   { key: 'inkCap', label: 'เพดานสี/ช่อง', min: 0.2, max: 1.5, step: 0.05 },
   { key: 'density', label: 'จางช้า (density)', min: 0, max: 0.01, step: 0.0005 },
-  { key: 'bleedMs', label: 'เวลาซึม (ms)', min: 500, max: 8000, step: 250 },
+  { key: 'dryTime', label: 'เวลาจนแห้ง (วินาที)', min: 4, max: 30, step: 1 },
+  { key: 'flowTime', label: 'ไหลปกติก่อนเริ่มแห้ง (วินาที)', min: 0.5, max: 8, step: 0.5 },
+  { key: 'dryDamp', label: 'ความหน่วงตอนแห้ง', min: 1, max: 20, step: 0.5 },
   { key: 'splashMs', label: 'เวลาสาด (ms)', min: 200, max: 3000, step: 100 },
 ]
 const SPLASH_FIELDS = [

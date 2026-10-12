@@ -51,6 +51,7 @@ const HOLD_INTERVAL = 120
 const HOLD_STRENGTH = 0.1
 const HOLD_MOVE_LIMIT = 8 // ขยับเกินนี้ (px) ถือว่าเป็นการลาก ไม่ใช่กดค้าง
 const SMEAR_RADIUS = 0.25
+const INK_SPREAD = 1.08 // วัดแล้ว: พื้นที่หยดเดี่ยวที่ 2 วินาทีเท่า main ±8% (ไม่ใส่ = 87–96%)
 const DROP_RADIUS_SCALE = 3 // splatRadius ของ SPEC เล็กเกินไปบนกระดาษ 1112×612 ปรับให้หยดมีเนื้อสีพอ
 const SMEAR_FORCE = 1500
 const CLEAR_FRAMES = 8
@@ -99,7 +100,7 @@ const pickShade = () => {
 // ปริมาณสีที่ลงแล้วต่อช่อง (รีเซ็ตเมื่อล้างผ้าใบ) หน่วยเดียวกับ INK_CAP = ค่าสีสูงสุดของช่องสีหนึ่งในบัฟเฟอร์ ให้สีบนผ้าใบไม่เกินเพดาน
 // หยดหนึ่งไม่ได้ลงแค่ช่องที่ตก: เป็น Gaussian exp(−d²/ρ) กว้าง ~±1–2 ช่อง จึงคิดส่วนที่ตกในทุกช่องที่โดน (ค่าที่กึ่งกลางช่อง)
 // แล้วลดแรงหยดให้ไม่มีช่องไหนเกินเพดาน (หยดหลายหยดที่อยู่ติดกันซ้อนกันไม่ทะลุเพดาน ไม่ดำ) คิดค่าสูงสุดในช่อง ไม่ใช่ที่กึ่งกลาง
-// strength = ความแรงที่ตั้งใจจะลง (1 = หยดเต็ม) คืนความแรงที่ลงได้จริง (เต็มแล้ว = 0)
+// strength = ความแรงที่ตั้งใจจะลง (1 = หยดเต็ม) คืน { given: ความแรงที่ลงได้จริง (เต็มแล้ว = 0), room: ที่ว่างเหลือก่อนหยดนี้ในช่องที่เต็มที่สุดที่หยดแตะ (1 = ว่าง 0 = เต็ม) }
 // ปริมาณสีจริงของหยด = strength × brightness × ตัวคูณความเข้ม × ค่าสีสูงสุดของ dye ของเฉดนั้น (useShade/dyeSetting ใช้สูตรเดียวกัน)
 const inkCols = Math.ceil(SIZE.w / INK_CELL)
 const inkRows = Math.ceil(SIZE.h / INK_CELL)
@@ -107,7 +108,7 @@ let ink = new Float32Array(inkCols * inkRows)
 const dyePeak = (hex) => Math.max(...[1, 3, 5].map((i) => 1 - parseInt(hex.slice(i, i + 2), 16) / 255))
 const takeInk = (x, y, strength, hex, radius) => {
   const unit = params().brightness * INTENSITY_FACTOR[props.intensity] * dyePeak(hex)
-  if (unit <= 0) return 0
+  if (unit <= 0) return { given: 0, room: 0 }
   // ρ ของ exp(−d²/ρ) ในหน่วยพิกเซลกระดาษ: ไลบรารีใช้ (splatRadius/100) × aspect บน UV ที่ x ถูกคูณ aspect อยู่แล้ว
   const rho = (SIZE.w * SIZE.h * radius) / 100
   const reach = Math.ceil(Math.sqrt(rho * 3) / INK_CELL) + 1 // 3ρ ≈ ค่าตกเหลือ e^-3 (5%) +1 ช่องเผื่อขอบ
@@ -130,9 +131,13 @@ const takeInk = (x, y, strength, hex, radius) => {
     hit.push({ index: Math.max(0, i), weight: 1 })
   }
   let allowed = strength * unit
-  for (const h of hit) allowed = Math.min(allowed, Math.max(0, FLUID_GLOBAL.inkCap - ink[h.index]) / h.weight)
+  let room = 1
+  for (const h of hit) {
+    allowed = Math.min(allowed, Math.max(0, FLUID_GLOBAL.inkCap - ink[h.index]) / h.weight)
+    room = Math.min(room, Math.max(0, FLUID_GLOBAL.inkCap - ink[h.index]) / FLUID_GLOBAL.inkCap)
+  }
   for (const h of hit) ink[h.index] += allowed * h.weight
-  return allowed / unit
+  return { given: allowed / unit, room }
 }
 
 // ตั้งสีของหยดถัดไป: ไลบรารีสุ่มจาก colorPalette (hue/saturation) และใช้ brightness เป็นความเข้ม
@@ -199,8 +204,49 @@ const pollProbe = () => {
   gl.deleteSync(probe.sync)
   probe = null
 }
-const wake = () => {
+// สีน้ำที่ค่อย ๆ แห้ง: น้ำไหลปกติ (ค่าของอารมณ์) ช่วงแรกหลัง input ล่าสุด แล้วเพิ่ม velocityDissipation แบบ ease-in-out จนน้ำสงบ
+// ไม่แตะ density (สีอยู่ถาวร) input = แตะ ลาก กดค้าง หยดสีอุ่น และหยดสาดตอนเข้าหน้า (นับจากหยดสุดท้าย) มี input ใหม่ = กลับเป็นค่าปกติทันที
+// แรงถ่วงของ sad เป็นส่วนหนึ่งของการสาด ไม่นับเป็น input (ยังปลุกการจำลองได้ แต่ไม่ต่อเวลาแห้ง)
+// เวลาที่ใช้ = "เวลาของการจำลอง" (สะสม dt ที่ไลบรารีจำกัดไว้ ≤ 1/60 วินาทีต่อเฟรม ไม่นับช่วงพัก) ไม่ใช่เวลานาฬิกา:
+// เครื่องที่เฟรมตกจะได้น้ำไหลครบเท่ากัน ไม่ใช่แห้งก่อนน้ำไหลถึง (วัดแล้ว เฟรมช้าลงทำให้พื้นที่สีเล็กลงถ้าใช้เวลานาฬิกา)
+let simNow = 0
+let lastInputAt = 0
+let dryVel = null // ความคืบหน้าการแห้ง (0 = ไหลปกติ 1 = แห้ง) ที่ตั้งให้ไลบรารีล่าสุด (ไม่ตั้งซ้ำถ้าค่าเดิม)
+let dryRaf = 0
+let dryLast = 0
+const ease = (u) => (u < 0.5 ? 2 * u * u : 1 - (-2 * u + 2) ** 2 / 2)
+// curl (vorticity confinement) ใส่พลังงานกลับเข้าน้ำเองจากกระแสวนที่เหลือ ค่าสูง (ตื่นเต้น/โกรธ/กังวล) ทำให้น้ำวนไม่หยุดแม้หน่วงแรง
+// จึงลด curl ลงเหลือ 0 ไปพร้อมกัน (ไม่ใช่ density) ไม่งั้นน้ำของอารมณ์ curl สูงยังขยับที่ความเร็ว 2–12 หลัง 1 นาที (วัดแล้ว)
+const dryProgress = () => {
+  const flow = FLUID_GLOBAL.flowTime
+  const dry = Math.max(flow + 0.001, FLUID_GLOBAL.dryTime)
+  return ease(Math.min(1, Math.max(0, (simNow - lastInputAt - flow) / (dry - flow))))
+}
+const applyDry = () => {
+  if (!fluid) return
+  const e = dryProgress()
+  if (e === dryVel) return
+  dryVel = e
+  const p = params()
+  fluid.setConfig({ velocityDissipation: p.velDiss + (FLUID_GLOBAL.dryDamp - p.velDiss) * e, curl: p.curl * (1 - e) })
+}
+const dryFrame = (t) => {
+  dryRaf = requestAnimationFrame(dryFrame)
+  const dt = Math.min((t - dryLast) / 1000, 1 / 60)
+  dryLast = t
+  if (!fluid || !props.running || clearing || sleeping) return
+  simNow += dt
+  if (pointers.size) lastInputAt = simNow // นิ้วหรือเมาส์กดอยู่ = ยังระบายอยู่
+  applyDry()
+}
+
+// auto = แรงที่แอปใส่เอง (แรงถ่วง) ปลุกการจำลองแต่ไม่นับเป็น input ของผู้ใช้
+const wake = (auto = false) => {
   lastImpulse = performance.now()
+  if (!auto) {
+    lastInputAt = simNow
+    applyDry()
+  }
   flowSpeed = Infinity // มีแรงใหม่ ค่าที่อ่านไว้ใช้ไม่ได้แล้ว
   if (sleeping && fluid) {
     sleeping = false
@@ -223,8 +269,8 @@ const goToSleep = () => {
 
 // ดันน้ำอย่างเดียว (ไม่เติมสี): ไลบรารีทุก splat ทำ 2 ผ่าน (ความเร็ว + สี) และอ่าน clientHeight (บังคับ layout) ทุกครั้ง
 // ที่นี่ทำเฉพาะผ่านความเร็วเองด้วยโปรแกรม splat ของไลบรารี ใช้ตอนปาดสี/แรงถ่วง ที่ส่งสีศูนย์อยู่แล้ว ถ้าเข้าถึงภายในไม่ได้ถอยไปใช้ของไลบรารี
-const pushWater = (x, y, dx, dy, radius) => {
-  wake()
+const pushWater = (x, y, dx, dy, radius, auto = false) => {
+  wake(auto)
   const sim = fluid.simulation
   const program = sim?.programs?.splatProgram
   if (program && sim._velocity && typeof sim.blit === 'function' && typeof sim.correctRadius === 'function') {
@@ -247,15 +293,17 @@ const pushWater = (x, y, dx, dy, radius) => {
 const splat = (x, y, dx, dy, { hex, radius, noColor, strength = 1 } = {}) => {
   if (!fluid) return
   if (noColor) {
-    pushWater(x, y, dx, dy, radius)
+    pushWater(x, y, dx, dy, radius, true)
     return
   }
   wake()
-  fluid.setConfig({ splatRadius: radius })
   const shade = hex ?? pickShade()
-  const given = takeInk(x, y, strength, shade, radius)
-  // ช่องที่สีเต็มเพดานแล้วไม่ควรดันน้ำเต็มแรงอีก (ไม่งั้นแตะจุดเดิมรัว ๆ ปั่นสีเดิมให้กระจายทั่วผ้าใบ) ดันตามสัดส่วนที่ลงสีได้จริง ขั้นต่ำ 10%
-  const push = strength > 0 ? Math.max(0.1, given / strength) : 1
+  const { given, room } = takeInk(x, y, strength, shade, radius)
+  // เพดานสีตัดยอดหยดให้เตี้ยลง สีที่ถูกตัดไปจึงกระจายออกข้างแทน (ปริมาณสีไม่หายไปเฉย ๆ) ขอบวงกว้างขึ้นเล็กน้อยให้พื้นที่ช่วงแรกใกล้ main
+  fluid.setConfig({ splatRadius: radius * INK_SPREAD })
+  // ช่องที่สีเต็มเพดานแล้วไม่ควรดันน้ำเต็มแรงอีก (ไม่งั้นแตะจุดเดิมรัว ๆ ปั่นสีเดิมให้กระจายทั่วผ้าใบ) ดันตามที่ว่างเหลือ ขั้นต่ำ 10%
+  // ดันตามที่ว่าง ไม่ใช่ตามสัดส่วนที่ถูกตัดทอน: หยดแรกบนผ้าใบว่างโดนเพดานตัดสีได้ แต่ต้องดันน้ำเต็มแรงเท่า main (พื้นที่ช่วงแรกเท่ากัน)
+  const push = strength > 0 ? Math.max(0.1, Math.min(1, room)) : 1
   if (useShade(shade, given)) fluid.splatAtLocation(x * (window.devicePixelRatio || 1), y, dx * push, dy * push)
 }
 
@@ -263,12 +311,9 @@ const params = () => FLUID_PARAMS[props.emotion]
 
 const applyParams = () => {
   if (!fluid) return
-  const p = params()
-  fluid.setConfig({
-    curl: p.curl,
-    densityDissipation: FLUID_GLOBAL.density,
-    velocityDissipation: p.velDiss,
-  })
+  fluid.setConfig({ densityDissipation: FLUID_GLOBAL.density })
+  dryVel = null
+  applyDry()
   reportInfo()
 }
 
@@ -311,12 +356,17 @@ const dropInitial = () => {
   if (!fluid) return
   const p = params()
   const level = SPLASH_LEVELS[props.intensity] ?? SPLASH_LEVELS[1]
-  const count = Math.max(1, Math.round(INITIAL_SPLATS[props.emotion] * level.count * (p.splash?.[props.intensity] ?? 1)))
+  // จำนวนหยดต้องเป็นจำนวนเต็ม: ส่วนที่ปัดทิ้ง/เพิ่ม (want ÷ count) ไปปรับขนาดหยดแทน ให้ตัวคูณ splash ปรับพื้นที่ได้ต่อเนื่อง
+  // ปัดขึ้นเมื่อเศษ ≥ 0.8 (ไม่ใช่ 0.5): หยด 1 → 2 หยดเปลี่ยนพื้นที่เป็นก้าวใหญ่เมื่อจำนวนน้อย (เหนื่อยระดับนิดหน่อย 6% → 9%) ให้ขนาดรับส่วนที่เหลือก่อน
+  const want = INITIAL_SPLATS[props.emotion] * level.count * (p.splash?.[props.intensity] ?? 1)
+  const count = Math.max(1, Math.floor(want + 0.2))
+  const fit = Math.sqrt(want / count)
   const mag = 220 * p.speed
   const calm = Boolean(reducedMotion?.matches)
   const half = Math.min(0.46, 0.35 * level.spread) // ครึ่งช่วงของตำแหน่ง (เดิม 0.35 = 15–85%)
-  const radius = p.radius * DROP_RADIUS_SCALE * level.size
+  const radius = p.radius * DROP_RADIUS_SCALE * level.size * fit
   const span = calm ? 0 : FLUID_GLOBAL.splashMs
+  lastInputAt = simNow
 
   // สร้างรายการหยดก่อน (ตำแหน่ง ทิศ แรง) แล้วกำหนดเวลาตาม pattern
   const drops = []
@@ -352,7 +402,7 @@ const dropInitial = () => {
   if (calm && containerRef.value?.animate) containerRef.value.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 150 })
   for (const d of drops) {
     const run = () => {
-      if (fluid) dropBleed(d.x, d.y, d.dx, d.dy, { radius })
+      if (fluid) dropInk(d.x, d.y, d.dx, d.dy, { radius })
       finishSplashOne()
     }
     if (d.t <= 0) run()
@@ -490,7 +540,6 @@ const resetNote = () => {
 const clearTimers = () => {
   timers.forEach(clearTimeout)
   timers.clear()
-  bleeding = 0
   if (splashPending > 0) {
     splashPending = 0
     setSplashing(false)
@@ -551,6 +600,7 @@ const clear = async () => {
   await nextFrames(CLEAR_FRAMES)
   clearing = false
   if (!fluid) return
+  lastInputAt = simNow
   applyParams()
   if (!props.running) fluid.stop()
   tryDrop() // หยดที่รอจนล้างเสร็จ (เริ่มแผ่นใหม่ / เริ่มใหม่)
@@ -570,61 +620,9 @@ const toCanvas = (e) => {
   return { x: ((e.clientX - rect.left) / rect.width) * SIZE.w, y: ((e.clientY - rect.top) / rect.height) * SIZE.h }
 }
 
-// หยดที่ "ซึม": สีน้ำจริงไม่ประทับเป็นดวงเดียว หยดแรกลงสัดส่วน (1 − bleed) แล้วส่วนที่เหลือค่อย ๆ ซึมออกเป็นวงที่กว้างขึ้นตลอด bleedMs
-// (การดันน้ำอย่างเดียวขยับก้อนสีไปทั้งก้อน ไม่ทำให้พื้นที่สีโต) กดค้างเบา (strength < 0.5) ไม่ซึม ไม่งั้นรัวหยดทุก 120ms จะใส่งานให้ GPU มากเกินไป
-const BLEED_STEPS = 6 // ขั้นการซึมต่อหยด (เดิม 12: ภาพซึมเหมือนเดิมเพราะวงถัดกันห่างกันพอ)
-let bleeding = 0 // จำนวนขั้นซึมที่ค้างรอ ถ้าเยอะ (แตะรัว) ลดเหลือ 3 ขั้นต่อหยด กัน splat ท่วม
-const BLEED_BUSY = 36
-const dropBleed = (x, y, dx, dy, { radius, strength = 1 }) => {
-  const p = params()
-  const shade = pickShade() // เฉดเดียวตลอดการซึม ไม่งั้นขอบวงเป็นลายด่าง
-  const bleed = strength >= 0.5 && !reducedMotion?.matches ? p.bleed : 0
-  splat(x, y, dx, dy, { hex: shade, radius, strength: strength * (1 - bleed) })
-  if (strength >= 0.5) agitate(x, y, radius)
-  if (bleed <= 0) return
-  const steps = bleeding > BLEED_BUSY ? Math.ceil(BLEED_STEPS / 2) : BLEED_STEPS
-  const share = (strength * bleed) / steps
-  bleeding += steps
-  for (let i = 1; i <= steps; i++) {
-    const k = i / steps
-    const t = setTimeout(() => {
-      timers.delete(t)
-      bleeding = Math.max(0, bleeding - 1)
-      if (!fluid) return
-      splat(x, y, 0, 0, { hex: shade, radius: radius * (1 + (p.reach - 1) * k), strength: share })
-    }, FLUID_GLOBAL.bleedMs * k)
-    timers.add(t)
-  }
-}
-
-// น้ำพาสีไป (ทดลอง ปิดเป็นค่าเริ่มต้น FLUID_GLOBAL.driftOn): หลังหยดใส่แรงน้ำเบา ๆ รอบจุดตก ไม่เติมสี
-// แตกเป็น 3–5 "แขน" ทิศสุ่มต่อหยด แต่ละแขนดันออกจากจุดตกไปเรื่อย ๆ ขณะแรงอ่อนลงจนหยุดภายใน driftMs
-// ผลคือขอบสีเป็นแฉก ไม่เป็นวงกลม (สีไม่ได้เพิ่ม แค่ถูกน้ำพาไป) ใช้เฉพาะแรง (ผ่านเดียว) จึงเบา
-const DRIFT_STEPS = 8
-const agitate = (x, y, radius) => {
-  const p = params()
-  if (!FLUID_GLOBAL.driftOn || !(p.drift > 0) || reducedMotion?.matches) return
-  const blob = Math.sqrt((SIZE.w * SIZE.h * radius) / 100) // รัศมีหยดโดยประมาณเป็นพิกเซลกระดาษ
-  const arms = 3 + Math.floor(Math.random() * 3)
-  const base = rand(0, Math.PI * 2)
-  const dirs = Array.from({ length: arms }, (_, a) => base + (a * Math.PI * 2) / arms + rand(-0.45, 0.45))
-  const force = 60 * p.drift
-  for (let k = 0; k < DRIFT_STEPS; k++) {
-    const f = (1 - k / DRIFT_STEPS) ** 1.5 // อ่อนลงเรื่อย ๆ จนเกือบ 0 ที่ขั้นสุดท้าย
-    const reachPx = blob * (0.4 + (1.2 * k) / DRIFT_STEPS) // แขนยื่นออกไปเรื่อย ๆ
-    const t = setTimeout(() => {
-      timers.delete(t)
-      if (!fluid) return
-      for (const a of dirs) {
-        const angle = a + rand(-0.35, 0.35)
-        const px = x + Math.cos(a) * reachPx
-        const py = y + Math.sin(a) * reachPx
-        if (px < 0 || px > SIZE.w || py < 0 || py > SIZE.h) continue
-        pushWater(px, py, Math.cos(angle) * force * f, -Math.sin(angle) * force * f, SMEAR_RADIUS * 0.6)
-      }
-    }, (p.driftMs * k) / DRIFT_STEPS)
-    timers.add(t)
-  }
+// หยดสีหนึ่งหยด: เฉดเดียว ลงเต็มแรงทีเดียว (ไม่ซึมต่อ สีน้ำจริงไหลไปตามน้ำที่ถูกดัน ไม่ได้ขยายวงเอง)
+const dropInk = (x, y, dx, dy, { radius, strength = 1 }) => {
+  splat(x, y, dx, dy, { hex: pickShade(), radius, strength })
 }
 
 // strength < 1 ใช้กับการกดค้าง: หยดซ้ำทุก 120ms ถ้าเต็มแรงจะทับกันจนดำ
@@ -632,7 +630,7 @@ const dropAt = (x, y, strength = 1) => {
   const p = params()
   const a = rand(0, Math.PI * 2)
   const m = 60 * p.speed * strength // หยดเบา (กดค้าง) ก็ดันน้ำเบา ไม่งั้นกดค้างนาน ๆ ปั่นน้ำจนสีกระจายทั่วผ้าใบ
-  dropBleed(x, y, Math.cos(a) * m, Math.sin(a) * m, { radius: p.radius * DROP_RADIUS_SCALE, strength })
+  dropInk(x, y, Math.cos(a) * m, Math.sin(a) * m, { radius: p.radius * DROP_RADIUS_SCALE, strength })
 }
 
 const stopHold = (pointer) => {
@@ -651,6 +649,7 @@ const onDown = (e) => {
   inputRef.value.setPointerCapture?.(e.pointerId)
   sheet.started = true
   sheet.idle = 0
+  wake()
   const { x, y } = toCanvas(e)
   const pointer = { x, y, downX: x, downY: y, hold: null, holdStart: null }
   pointers.set(e.pointerId, pointer)
@@ -678,6 +677,7 @@ const onMove = (e) => {
   const dy = y - pointer.y
   pointer.x = x
   pointer.y = y
+  lastInputAt = simNow
   // ลากไกลจากจุดแตะ = ไม่ใช่กดค้าง
   if (pointer.holdStart && Math.hypot(x - pointer.downX, y - pointer.downY) > HOLD_MOVE_LIMIT) {
     clearTimeout(pointer.holdStart)
@@ -723,6 +723,8 @@ onMounted(() => {
     window.addEventListener(DEV_NOTE_RESET_EVENT, resetNote)
   }
   noteTimer = setInterval(noteTick, NOTE_TICK)
+  dryLast = performance.now()
+  dryRaf = requestAnimationFrame(dryFrame)
 })
 
 watch(
@@ -739,6 +741,8 @@ watch(
       sleeping = false
       if (fluid.simulation) fluid.simulation.paused = false
       lastImpulse = performance.now()
+      lastInputAt = simNow
+      applyDry()
       tryDrop()
     } else {
       releaseAll()
@@ -800,6 +804,7 @@ onBeforeUnmount(() => {
   stopGravity()
   clearTimers()
   clearInterval(noteTimer)
+  cancelAnimationFrame(dryRaf)
   fluid?.stop()
   fluid = null
 })

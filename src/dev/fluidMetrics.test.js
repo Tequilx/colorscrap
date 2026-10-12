@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { measureInk } from '@/dev/fluidMetrics'
+import { colorCentroids, meanAbsDiff, measureInk } from '@/dev/fluidMetrics'
 
 const make = (w, h, fill) => {
   const px = new Uint8ClampedArray(w * h * 4)
@@ -31,5 +31,28 @@ describe('measureInk', () => {
     const px = make(10, 10, (x) => (x < 5 ? [250 - d, 250 - d, 250 - d, 255] : [250, 250, 250, 255]))
     const m = measureInk(px, { width: 10, height: 10, paper, full: 100, center: { x: 0.85, y: 0.5 }, radius: 1.5 })
     expect(m.near).toBe(0)
+  })
+})
+
+describe('meanAbsDiff', () => {
+  it('ภาพเหมือนกัน = 0 และต่างกัน 10 ทุกช่องสี = 10', () => {
+    const a = make(4, 4, () => [100, 100, 100, 255])
+    const b = make(4, 4, () => [110, 90, 100, 255])
+    expect(meanAbsDiff(a, a)).toBe(0)
+    expect(meanAbsDiff(a, b)).toBeCloseTo(20 / 3, 5)
+  })
+})
+
+describe('colorCentroids', () => {
+  it('จัดพิกเซลเข้าสีที่ทิศใกล้ที่สุดแล้วคืนตำแหน่งกึ่งกลางของแต่ละสี', () => {
+    const red = [200, 50, 50]
+    const blue = [50, 50, 200]
+    // ซ้ายสีแดง (x < 4) ขวาสีน้ำเงิน (x ≥ 8) ตรงกลางเป็นกระดาษ
+    const px = make(12, 4, (x) => (x < 4 ? [...red, 255] : x >= 8 ? [...blue, 255] : [250, 250, 250, 255]))
+    const [r, b] = colorCentroids(px, { width: 12, height: 4, paper, colors: [red, blue], full: [200] })
+    expect(r.n).toBe(16)
+    expect(b.n).toBe(16)
+    expect(r.x).toBeCloseTo(1.5 / 12, 5)
+    expect(b.x).toBeCloseTo(9.5 / 12, 5)
   })
 })

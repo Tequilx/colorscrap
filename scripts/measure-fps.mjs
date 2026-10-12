@@ -2,6 +2,7 @@
 //   PLAYWRIGHT=/path/to/playwright/index.mjs node scripts/measure-fps.mjs --emotion calm --intensity 1 --label base
 // ตัวเลือก: --url (ค่าเริ่มต้น http://localhost:5199) --dpr 1|2 --debug (เปิด ?debug) --cases idle,tap,drag,splash --seconds 5
 //   --replace "ข้อความเดิม=>ข้อความใหม่" และ --module ไฟล์ (ส่วนของ path เช่น FluidCanvas.vue; ไม่ใส่ = emotions.js) ใช้ทดลองค่าโดยไม่แก้ไฟล์จริง
+//   --idle-wait ms  (รอก่อนวัด idle ค่าเริ่มต้น 6500; 15000 = วัดหลังน้ำนิ่งและการจำลองพักแล้ว)
 //   --json-out ไฟล์.json
 import { writeFileSync } from 'node:fs'
 
@@ -18,6 +19,7 @@ const cases = opt('cases', 'idle,tap,drag').split(',')
 const seconds = Number(opt('seconds', '5'))
 const dragMs = Number(opt('drag-ms', '16')) // ช่วงเวลาระหว่าง pointermove ตอนลาก (16 ≈ 60Hz, 8 ≈ 120Hz, 4 ≈ 240Hz เมาส์/แทร็กแพดเร็ว)
 const label = opt('label', '')
+const idleWait = Number(opt('idle-wait', '6500')) // ms ที่รอก่อนวัดกรณี idle (ตั้ง 15000 เพื่อวัดตอนน้ำนิ่งและการจำลองพักแล้ว)
 const debug = args.includes('--debug')
 const reps = []
 for (let i = 0; i < args.length; i++) if (args[i] === '--replace') reps.push({ module: args[i + 1 - 2] === '--module' ? args[i - 1] : 'emotions.js', pair: args[i + 1].split('=>') })
@@ -86,7 +88,7 @@ for (const kase of cases) {
     location.hash = 'paint'
   }, { emotion, intensity, kase })
   // idle: รอให้หยดเริ่มต้นและการซึมจบก่อน (≈ 6 วิ) แล้วค่อยวัดตอนนิ่ง
-  await page.waitForTimeout(kase === 'idle' ? 6500 : kase === 'splash' ? 0 : 2000)
+  await page.waitForTimeout(kase === 'idle' ? idleWait : kase === 'splash' ? 0 : 2000)
 
   const stats = await page.evaluate(
     ({ kase, seconds, dragMs, vsyncMode }) =>
