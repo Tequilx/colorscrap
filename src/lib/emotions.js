@@ -53,16 +53,17 @@ export const INTENSITY_FACTOR = [0.6, 1, 1.5]
 // brightness = ตัวคูณความเข้มของ dye (1 = จุดศูนย์กลางหยดแรกได้สีเท่า hex ของอารมณ์ เกิน 1 = เข้มกว่า) จูนต่ออารมณ์ให้สีบนผ้าใบใกล้ hex
 // (ค่าสูงสุดที่มีผลคือ INK_CAP ÷ ค่าสีสูงสุดของ hex นั้น ~1.1 แดง ถึง ~1.4 ชมพู เกินกว่านั้นถูกตัดที่เพดาน)
 // speed = ตัวคูณความเร็วหยด, velDiss = velocityDissipation (ยิ่งมาก การไหลหยุดเร็ว ~1/velDiss วินาทีต่อรอบ), radius = ขนาดหยด (splatRadius ของไลบรารี)
+// bleed = สัดส่วนสีของหยดที่ "ซึม" ออกทีหลัง (0–0.9) reach = ขนาดวงซึมสุดท้ายเทียบรัศมีหยดแรก (เท่า) ซึมต่อเนื่อง FLUID_GLOBAL.bleedMs มิลลิวินาที (SPEC §6.3)
 // pattern: burst กระจายรอบทิศ | drift ไหลช้า | fall ไหลลง (มีแรงถ่วง) | pulse พุ่งเป็นจังหวะ | scatter จุดเล็กทั่วกระดาษ | still แทบนิ่ง
 export const FLUID_PARAMS = {
-  happy: { brightness: 1.2, speed: 0.5, curl: 9, velDiss: 2.0, radius: 0.15, pattern: 'burst' },
-  calm: { brightness: 1.15, speed: 0.3, curl: 3, velDiss: 1.2, radius: 0.2, pattern: 'drift' },
-  excited: { brightness: 1.4, speed: 0.6, curl: 8, velDiss: 2.5, radius: 0.15, pattern: 'burst' },
-  warm: { brightness: 1.2, speed: 0.45, curl: 6, velDiss: 1.2, radius: 0.22, pattern: 'burst' },
-  sad: { brightness: 1.15, speed: 0.3, curl: 4, velDiss: 1.4, radius: 0.18, pattern: 'fall' },
-  angry: { brightness: 1.1, speed: 0.6, curl: 7, velDiss: 2.5, radius: 0.13, pattern: 'pulse' },
-  anxious: { brightness: 1.2, speed: 0.4, curl: 5, velDiss: 2.2, radius: 0.09, pattern: 'scatter' },
-  tired: { brightness: 1.1, speed: 0.1, curl: 2, velDiss: 1.6, radius: 0.2, pattern: 'still' },
+  happy: { brightness: 0.86, speed: 0.5, curl: 9, velDiss: 1.1, radius: 0.15, bleed: 0.3, reach: 5.5, pattern: 'burst' },
+  calm: { brightness: 0.9, speed: 0.3, curl: 3, velDiss: 0.7, radius: 0.2, bleed: 0.3, reach: 6, pattern: 'drift' },
+  excited: { brightness: 1.08, speed: 0.6, curl: 8, velDiss: 1.2, radius: 0.15, bleed: 0.3, reach: 5, pattern: 'burst' },
+  warm: { brightness: 0.95, speed: 0.45, curl: 6, velDiss: 0.7, radius: 0.22, bleed: 0.3, reach: 6, pattern: 'burst' },
+  sad: { brightness: 0.86, speed: 0.3, curl: 4, velDiss: 0.8, radius: 0.18, bleed: 0.3, reach: 5.5, pattern: 'fall' },
+  angry: { brightness: 0.8, speed: 0.6, curl: 7, velDiss: 1.2, radius: 0.13, bleed: 0.3, reach: 5, pattern: 'pulse' },
+  anxious: { brightness: 0.78, speed: 0.4, curl: 5, velDiss: 1.1, radius: 0.09, bleed: 0.3, reach: 5, pattern: 'scatter' },
+  tired: { brightness: 0.82, speed: 0.1, curl: 2, velDiss: 0.9, radius: 0.2, bleed: 0.3, reach: 5.5, pattern: 'still' },
 }
 
 // สีน้ำที่แห้งติดกระดาษ: สีไม่จางเลย ต้องเป็น 0 พอดี (ไม่ใช่ค่าเล็ก ๆ)
@@ -78,7 +79,8 @@ export const INK_CELL = 80
 export const INK_CAP = 0.85
 
 // ค่ากลางที่แผง ?debug ปรับสดได้ (FluidCanvas อ่านจากที่นี่ ไม่อ่านค่าคงที่ข้างบนโดยตรง)
-export const FLUID_GLOBAL = { density: DENSITY_DISSIPATION, inkCap: INK_CAP }
+// bleedMs = เวลาที่สีซึมออกหลังหยด (ms) ซึมเสร็จแล้วสีนิ่ง
+export const FLUID_GLOBAL = { density: DENSITY_DISSIPATION, inkCap: INK_CAP, bleedMs: 3500 }
 
 // ค่าเริ่มต้นทั้งหมด (สำเนาตอนโหลดโมดูล) ให้ปุ่ม "รีเซ็ตเป็นค่าเริ่มต้น" ในแผง ?debug คืนค่า
 const clone = (o) => JSON.parse(JSON.stringify(o))

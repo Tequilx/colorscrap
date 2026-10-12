@@ -191,7 +191,7 @@ const dropInitial = () => {
       } else if (p.pattern === 'still') {
         m = mag * rand(0, 1)
       }
-      splat(x, y, Math.cos(angle) * m, Math.sin(angle) * m, { radius: p.radius * DROP_RADIUS_SCALE })
+      dropBleed(x, y, Math.cos(angle) * m, Math.sin(angle) * m, { radius: p.radius * DROP_RADIUS_SCALE })
     }
     // angry พุ่งเป็นจังหวะ: เหลื่อมเวลาของแต่ละหยด
     if (p.pattern === 'pulse') {
@@ -379,12 +379,33 @@ const toCanvas = (e) => {
   return { x: ((e.clientX - rect.left) / rect.width) * SIZE.w, y: ((e.clientY - rect.top) / rect.height) * SIZE.h }
 }
 
+// หยดที่ "ซึม": สีน้ำจริงไม่ประทับเป็นดวงเดียว หยดแรกลงสัดส่วน (1 − bleed) แล้วส่วนที่เหลือค่อย ๆ ซึมออกเป็นวงที่กว้างขึ้นตลอด bleedMs
+// (การดันน้ำอย่างเดียวขยับก้อนสีไปทั้งก้อน ไม่ทำให้พื้นที่สีโต) กดค้างเบา (strength < 0.5) ไม่ซึม ไม่งั้นรัวหยดทุก 120ms จะใส่งานให้ GPU มากเกินไป
+const BLEED_STEPS = 12
+const dropBleed = (x, y, dx, dy, { radius, strength = 1 }) => {
+  const p = params()
+  const shade = pickShade() // เฉดเดียวตลอดการซึม ไม่งั้นขอบวงเป็นลายด่าง
+  const bleed = strength >= 0.5 ? p.bleed : 0
+  splat(x, y, dx, dy, { hex: shade, radius, strength: strength * (1 - bleed) })
+  if (bleed <= 0) return
+  const share = (strength * bleed) / BLEED_STEPS
+  for (let i = 1; i <= BLEED_STEPS; i++) {
+    const k = i / BLEED_STEPS
+    const t = setTimeout(() => {
+      timers.delete(t)
+      if (!fluid) return
+      splat(x, y, 0, 0, { hex: shade, radius: radius * (1 + (p.reach - 1) * k), strength: share })
+    }, FLUID_GLOBAL.bleedMs * k)
+    timers.add(t)
+  }
+}
+
 // strength < 1 ใช้กับการกดค้าง: หยดซ้ำทุก 120ms ถ้าเต็มแรงจะทับกันจนดำ
 const dropAt = (x, y, strength = 1) => {
   const p = params()
   const a = rand(0, Math.PI * 2)
   const m = 60 * p.speed * strength // หยดเบา (กดค้าง) ก็ดันน้ำเบา ไม่งั้นกดค้างนาน ๆ ปั่นน้ำจนสีกระจายทั่วผ้าใบ
-  splat(x, y, Math.cos(a) * m, Math.sin(a) * m, { radius: p.radius * DROP_RADIUS_SCALE, strength })
+  dropBleed(x, y, Math.cos(a) * m, Math.sin(a) * m, { radius: p.radius * DROP_RADIUS_SCALE, strength })
 }
 
 const stopHold = (pointer) => {

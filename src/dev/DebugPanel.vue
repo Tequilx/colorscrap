@@ -74,11 +74,14 @@ const FIELDS = [
   { key: 'velDiss', label: 'velDiss', min: 0, max: 2, step: 0.05 },
   { key: 'radius', label: 'ขนาดหยด', min: 0.02, max: 0.6, step: 0.01 },
   { key: 'brightness', label: 'ความเข้ม', min: 0.5, max: 4, step: 0.1 },
+  { key: 'bleed', label: 'สัดส่วนที่ซึม', min: 0, max: 0.9, step: 0.05 },
+  { key: 'reach', label: 'วงซึม (เท่า)', min: 1, max: 6, step: 0.1 },
 ]
 // ค่ากลางของผ้าใบ (FLUID_GLOBAL ใน emotions.js)
 const GLOBAL_FIELDS = [
   { key: 'inkCap', label: 'เพดานสี/ช่อง', min: 0.2, max: 1.5, step: 0.05 },
   { key: 'density', label: 'จางช้า (density)', min: 0, max: 0.01, step: 0.0005 },
+  { key: 'bleedMs', label: 'เวลาซึม (ms)', min: 500, max: 8000, step: 250 },
 ]
 const INFO_ROWS = [
   { key: 'webgl', label: 'WebGL' },
