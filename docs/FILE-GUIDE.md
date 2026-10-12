@@ -255,7 +255,14 @@ login → hello → cover → pick → paint → saved → book → photo → bo
 | `src/lib/imageStore.js` | เก็บภาพในเครื่อง (IndexedDB = ที่เก็บของเบราว์เซอร์) | saved, book |
 | `src/lib/useBlobUrl.js`, `src/lib/useEntryImage.js` | ทำลิงก์ภาพจากไฟล์ในเครื่อง หรือลิงก์ชั่วคราวจาก Supabase ให้ `<img>` ใช้ | book, photo |
 | `src/lib/useHashView.js` | ให้ปุ่มย้อนกลับของเบราว์เซอร์ทำงาน (ผูกหน้ากับ `#...` ใน URL) | ทั้งแอป |
-| `src/lib/palette.test.js`, `extractColors.test.js`, `uuid.test.js`, `flip.test.js`, `saveTimeline.test.js` | ชุดทดสอบอัตโนมัติ (รันด้วย `npm test`) | – |
+| `src/lib/mixingWell.js` | ตำแหน่งและขนาดหยดในหลุมผสมสี (ใช้ร่วมกันระหว่างหน้าสมุดกับการ์ดจานสีที่เก็บเป็นรูป) | book, รูปที่เก็บ |
+| `src/lib/share/maskName.js` | เซนเซอร์ชื่อผู้ใช้บนการ์ด (ตัวแรก • ตัวสุดท้าย นับตามตัวอักษรที่ตาเห็น) | รูปที่เก็บ |
+| `src/lib/share/formatThaiDate.js`, `fileNames.js` | วันที่ไทย พ.ศ. บนการ์ด และชื่อไฟล์ PNG | รูปที่เก็บ |
+| `src/lib/share/cardDraw.js` | เครื่องมือวาด Canvas 2D: โหลดฟอนต์, ขอบสีไม่เรียบ, เส้นประ, เทป, grain, วางข้อความตามกล่องบรรทัด | รูปที่เก็บ |
+| `src/lib/share/cards.js` | **วาดการ์ด 1080×1350**: การ์ดภาพพร้อมชาร์ตสี (7a) และการ์ดจานสีของวัน (7b) | รูปที่เก็บ |
+| `src/lib/share/exporter.js` | โหลดภาพของ entry (ในเครื่อง/จาก Supabase) แล้วสร้างรูปทั้ง 3 แบบ ทำในเครื่องทั้งหมด | รูปที่เก็บ |
+| `src/lib/share/shareOrDownload.js` | ส่งรูปให้ผู้ใช้: เปิดหน้าแชร์ (iPad) หรือดาวน์โหลด จัดการกดยกเลิก/หลุดจังหวะกด | รูปที่เก็บ |
+| `src/lib/palette.test.js`, `extractColors.test.js`, `uuid.test.js`, `flip.test.js`, `saveTimeline.test.js`, `share/*.test.js` | ชุดทดสอบอัตโนมัติ (รันด้วย `npm test`) | – |
 
 **`src/stores/` (สถานะกลาง)**
 
@@ -267,7 +274,8 @@ login → hello → cover → pick → paint → saved → book → photo → bo
 | `src/stores/auth.js` | ล็อกอิน/สมัคร/ออกจากระบบ และข้อความ error ภาษาไทย | login |
 | `src/stores/uploadQueue.js` | คิวอัปโหลดภาพขึ้น Supabase (ลองใหม่เองถ้าเน็ตหลุด) | saved |
 | `src/stores/imageUrls.js` | เก็บลิงก์ภาพชั่วคราวจาก Supabase และต่ออายุให้ | book, photo |
-| `src/stores/toast.js` | ข้อความสั้น ๆ ที่โผล่กลางล่างแล้วหายเอง | ทุกหน้า |
+| `src/stores/toast.js` | ข้อความสั้น ๆ ที่โผล่กลางล่างแล้วหายเอง (มีปุ่มเสริมได้ เช่น "แตะเพื่อบันทึก") | ทุกหน้า |
+| `src/stores/share.js` | สถานะปุ่ม "เก็บรูป" (กำลังทำรูป) และสั่งสร้าง/ส่งรูป พร้อม toast ผลลัพธ์ | photo, book |
 
 **`src/components/` (ชิ้นส่วนหน้าจอ)**
 
@@ -299,10 +307,10 @@ login → hello → cover → pick → paint → saved → book → photo → bo
 | `book/PhotoSlot.vue` | โพลารอยด์หนึ่งใบในหน้าสมุด + ปุ่มเปิดดูภาพเดี่ยว | book, saved |
 | `book/EmptySlot.vue` | ช่องเส้นประ "ภาพถัดไปของวันนี้จะมาอยู่ตรงนี้" | book, saved |
 | `book/LeafPager.vue` | ตัวเลือกแผ่น "‹ แผ่น 1 / 2 ›" | book |
-| `book/DailyPalette.vue` | หน้าขวา: จานสีประจำวัน ชื่อสี เส้นเวลา ประโยคสรุป | book |
+| `book/DailyPalette.vue` | หน้าขวา: จานสีประจำวัน ชื่อสี เส้นเวลา ประโยคสรุป + ปุ่ม "เก็บรูป" ของวันที่เปิดอยู่ | book |
 | `book/MixingWell.vue` | หลุมผสมสีกลม (หยดสีของวัน) | book |
 | `book/DayTimeline.vue` | เส้นเวลา 00:00–24:00 พร้อมหยดสีของแต่ละภาพ | book, saved |
-| `photo/PhotoView.vue` | ดูภาพเดี่ยวขยาย + การ์ดชาร์ตสี + แอนิเมชันบิน | photo |
+| `photo/PhotoView.vue` | ดูภาพเดี่ยวขยาย + การ์ดชาร์ตสี + ปุ่ม "เก็บรูปไว้" + แอนิเมชันบิน | photo |
 | `ui/HandButton.vue` | ปุ่มกรอบลายมือ (หลัก/รอง/ชิป/ไอคอน) | ทุกหน้า |
 | `ui/Polaroid.vue` | โพลารอยด์: กรอบขาว ภาพ แถบสี คำบรรยาย | book, photo, saved |
 | `ui/Tape.vue` | เทปกาว | หลายหน้า |
