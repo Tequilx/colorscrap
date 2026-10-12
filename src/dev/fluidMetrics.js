@@ -19,13 +19,17 @@ export const measureInk = (rgba, opts) => {
   let areaVisible = 0
   let areaStrong = 0
   const all = new Float32Array(n)
+  const mask = new Uint8Array(n)
   for (let i = 0; i < n; i++) {
     const o = i * 4
     const ink = dist(rgba[o], rgba[o + 1], rgba[o + 2], paper) / full
     all[i] = ink
     total += ink
     if (ink > peak) peak = ink
-    if (ink >= visible) areaVisible++
+    if (ink >= visible) {
+      areaVisible++
+      mask[i] = 1
+    }
     if (ink >= strong) areaStrong++
     const x = i % width
     const y = (i / width) | 0
@@ -38,6 +42,15 @@ export const measureInk = (rgba, opts) => {
       const lum = (0.2126 * rgba[o] + 0.7152 * rgba[o + 1] + 0.0722 * rgba[o + 2]) / 255
       if (lum < darkest) darkest = lum
     }
+  }
+  // เส้นรอบรูปของบริเวณที่เห็นสี: พิกเซลในบริเวณที่มีเพื่อนบ้าน 4 ทิศอย่างน้อย 1 อันอยู่นอกบริเวณ
+  // circ = 4π·พื้นที่ / เส้นรอบรูป² (วงกลม ≈ 1, ยิ่งเป็นแฉกหรือขอบหยักยิ่งต่ำ) ใช้เทียบ "ขอบแฉก" ก่อน/หลัง
+  let perimeter = 0
+  for (let i = 0; i < n; i++) {
+    if (!mask[i]) continue
+    const x = i % width
+    const y = (i / width) | 0
+    if (x === 0 || y === 0 || x === width - 1 || y === height - 1 || !mask[i - 1] || !mask[i + 1] || !mask[i - width] || !mask[i + width]) perimeter++
   }
   // ค่าเฉลี่ยของ 1% ที่เข้มที่สุด (ทนต่อพิกเซลเดียวที่สว่างผิดปกติได้ดีกว่า peak)
   const sorted = Float32Array.from(all).sort()
@@ -53,5 +66,7 @@ export const measureInk = (rgba, opts) => {
     total: total / n, // "ปริมาณสี" ต่อพิกเซล (เฉลี่ยทั้งผ้าใบ)
     areaVisible: areaVisible / n, // สัดส่วนผ้าใบที่เห็นว่ามีสี
     areaStrong: areaStrong / n,
+    perimeter,
+    circ: perimeter ? (4 * Math.PI * areaVisible) / (perimeter * perimeter) : 0,
   }
 }

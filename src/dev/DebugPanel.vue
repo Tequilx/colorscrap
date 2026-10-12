@@ -29,6 +29,10 @@
       </div>
 
       <div class="mt-1 border-t border-white/30 pt-1 font-bold">ค่ากลาง (ใช้ทุกอารมณ์)</div>
+      <label class="flex items-center gap-2">
+        <input type="checkbox" :checked="gv({ key: 'driftOn' })" @change="setGlobal({ key: 'driftOn' }, $event.target.checked)" />
+        <span>เปิดน้ำพาสี (ทดลอง) ขอบเป็นแฉก</span>
+      </label>
       <label v-for="g in GLOBAL_FIELDS" :key="g.key" class="flex items-center gap-2">
         <span class="w-[78px] shrink-0">{{ g.label }}</span>
         <input type="range" class="w-[88px]" :min="g.min" :max="g.max" :step="g.step" :value="gv(g)" @input="setGlobal(g, $event.target.valueAsNumber)" />
@@ -88,6 +92,8 @@ const FIELDS = [
   { key: 'splash', index: 0, label: 'สาด×นิดหน่อย', min: 0.1, max: 3, step: 0.05 },
   { key: 'splash', index: 1, label: 'สาด×พอประมาณ', min: 0.1, max: 3, step: 0.05 },
   { key: 'splash', index: 2, label: 'สาด×มากเลย', min: 0.1, max: 3, step: 0.05 },
+  { key: 'drift', label: 'น้ำพาสี (แรง)', min: 0, max: 3, step: 0.1 },
+  { key: 'driftMs', label: 'น้ำพาสี (ms)', min: 500, max: 6000, step: 250 },
   { key: 'bleed', label: 'สัดส่วนที่ซึม', min: 0, max: 0.9, step: 0.05 },
   { key: 'reach', label: 'วงซึม (เท่า)', min: 1, max: 6, step: 0.1 },
 ]
@@ -145,7 +151,7 @@ const setSplash = (i, f, v) => {
   tick.value++
 }
 const setGlobal = (g, v) => {
-  if (Number.isNaN(v)) return
+  if (typeof v === 'number' && Number.isNaN(v)) return
   FLUID_GLOBAL[g.key] = v
   window.dispatchEvent(new Event(DEV_PARAMS_EVENT))
   tick.value++

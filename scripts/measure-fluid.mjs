@@ -54,12 +54,15 @@ for (const emotion of emotions) {
       localStorage.setItem('colorscrap.profile', JSON.stringify({ displayName: 'วัดสี', avatar: 'cat', coverColor: '#9E2F2A', likes: [] }))
     }, seed)
     const page = await context.newPage()
-    for (const [from, to] of replacements) {
+    if (replacements.length) {
+      // ทุกการแทนที่ทำในเส้นทางเดียว (route ซ้อนกันจะไม่ต่อกัน เหลือแค่อันสุดท้าย)
       await page.route(`**/${process.env.MODULE || 'src/lib/emotions.js'}*`, async (route) => {
         const response = await route.fetch()
         let body = await response.text()
-        if (!body.includes(from)) console.error(`!! ไม่พบข้อความที่จะแทนที่: ${from}`)
-        body = body.replace(from, to)
+        for (const [from, to] of replacements) {
+          if (!body.includes(from)) console.error(`!! ไม่พบข้อความที่จะแทนที่: ${from}`)
+          body = body.split(from).join(to)
+        }
         await route.fulfill({ response, body })
       })
     }

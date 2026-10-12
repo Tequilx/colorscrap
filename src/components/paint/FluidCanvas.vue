@@ -580,6 +580,7 @@ const dropBleed = (x, y, dx, dy, { radius, strength = 1 }) => {
   const shade = pickShade() // เฉดเดียวตลอดการซึม ไม่งั้นขอบวงเป็นลายด่าง
   const bleed = strength >= 0.5 && !reducedMotion?.matches ? p.bleed : 0
   splat(x, y, dx, dy, { hex: shade, radius, strength: strength * (1 - bleed) })
+  if (strength >= 0.5) agitate(x, y, radius)
   if (bleed <= 0) return
   const steps = bleeding > BLEED_BUSY ? Math.ceil(BLEED_STEPS / 2) : BLEED_STEPS
   const share = (strength * bleed) / steps
@@ -592,6 +593,36 @@ const dropBleed = (x, y, dx, dy, { radius, strength = 1 }) => {
       if (!fluid) return
       splat(x, y, 0, 0, { hex: shade, radius: radius * (1 + (p.reach - 1) * k), strength: share })
     }, FLUID_GLOBAL.bleedMs * k)
+    timers.add(t)
+  }
+}
+
+// น้ำพาสีไป (ทดลอง ปิดเป็นค่าเริ่มต้น FLUID_GLOBAL.driftOn): หลังหยดใส่แรงน้ำเบา ๆ รอบจุดตก ไม่เติมสี
+// แตกเป็น 3–5 "แขน" ทิศสุ่มต่อหยด แต่ละแขนดันออกจากจุดตกไปเรื่อย ๆ ขณะแรงอ่อนลงจนหยุดภายใน driftMs
+// ผลคือขอบสีเป็นแฉก ไม่เป็นวงกลม (สีไม่ได้เพิ่ม แค่ถูกน้ำพาไป) ใช้เฉพาะแรง (ผ่านเดียว) จึงเบา
+const DRIFT_STEPS = 8
+const agitate = (x, y, radius) => {
+  const p = params()
+  if (!FLUID_GLOBAL.driftOn || !(p.drift > 0) || reducedMotion?.matches) return
+  const blob = Math.sqrt((SIZE.w * SIZE.h * radius) / 100) // รัศมีหยดโดยประมาณเป็นพิกเซลกระดาษ
+  const arms = 3 + Math.floor(Math.random() * 3)
+  const base = rand(0, Math.PI * 2)
+  const dirs = Array.from({ length: arms }, (_, a) => base + (a * Math.PI * 2) / arms + rand(-0.45, 0.45))
+  const force = 60 * p.drift
+  for (let k = 0; k < DRIFT_STEPS; k++) {
+    const f = (1 - k / DRIFT_STEPS) ** 1.5 // อ่อนลงเรื่อย ๆ จนเกือบ 0 ที่ขั้นสุดท้าย
+    const reachPx = blob * (0.4 + (1.2 * k) / DRIFT_STEPS) // แขนยื่นออกไปเรื่อย ๆ
+    const t = setTimeout(() => {
+      timers.delete(t)
+      if (!fluid) return
+      for (const a of dirs) {
+        const angle = a + rand(-0.35, 0.35)
+        const px = x + Math.cos(a) * reachPx
+        const py = y + Math.sin(a) * reachPx
+        if (px < 0 || px > SIZE.w || py < 0 || py > SIZE.h) continue
+        pushWater(px, py, Math.cos(angle) * force * f, -Math.sin(angle) * force * f, SMEAR_RADIUS * 0.6)
+      }
+    }, (p.driftMs * k) / DRIFT_STEPS)
     timers.add(t)
   }
 }

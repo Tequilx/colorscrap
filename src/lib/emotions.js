@@ -55,17 +55,18 @@ export const INTENSITY_FACTOR = [0.6, 1, 1.5]
 // speed = ตัวคูณความเร็วหยด, velDiss = velocityDissipation (ยิ่งมาก การไหลหยุดเร็ว ~1/velDiss วินาทีต่อรอบ), radius = ขนาดหยด (splatRadius ของไลบรารี)
 // bleed = สัดส่วนสีของหยดที่ "ซึม" ออกทีหลัง (0–0.9) reach = ขนาดวงซึมสุดท้ายเทียบรัศมีหยดแรก (เท่า) ซึมต่อเนื่อง FLUID_GLOBAL.bleedMs มิลลิวินาที
 // splash = ตัวคูณจำนวนหยดตอนสาดของอารมณ์นี้ [นิดหน่อย, พอประมาณ, มากเลย] (คูณกับ SPLASH_LEVELS) ใช้ปรับให้พื้นที่หลังสาดของแต่ละอารมณ์ใกล้เป้าเดียวกัน (อารมณ์ที่น้ำพาสีไปไกลอย่างตื่นเต้นใช้ค่าน้อยกว่า)
+// drift = แรงน้ำสุ่มเบา ๆ ที่พาสีออกเป็นแฉกหลังหยด (ตัวคูณ 0–3) driftMs = เวลาที่แรงค่อย ๆ อ่อนจนหยุด (ms) ใช้เมื่อเปิด FLUID_GLOBAL.driftOn (ทดลอง ปิดอยู่)
 // ปิดไว้เป็นค่าเริ่มต้น (bleed 0): วงสีที่ค่อย ๆ ขยายดูเป็น airbrush ไม่ใช่สีน้ำ (ทดสอบแล้ว)
 // pattern: burst กระจายรอบทิศ | drift ไหลช้า | fall ไหลลง (มีแรงถ่วง) | pulse พุ่งเป็นจังหวะ | scatter จุดเล็กทั่วกระดาษ | still แทบนิ่ง
 export const FLUID_PARAMS = {
-  happy: { brightness: 2.0, speed: 1.3, curl: 18, velDiss: 0.35, radius: 0.15, bleed: 0, reach: 3, splash: [1, 1, 1], pattern: 'burst' },
-  calm: { brightness: 1.8, speed: 0.5, curl: 6, velDiss: 0.5, radius: 0.2, bleed: 0, reach: 3, splash: [1.1, 1.25, 1.8], pattern: 'drift' },
-  excited: { brightness: 2.0, speed: 1.4, curl: 30, velDiss: 0.3, radius: 0.12, bleed: 0, reach: 3, splash: [0.47, 0.59, 0.35], pattern: 'burst' },
-  warm: { brightness: 2.0, speed: 1, curl: 12, velDiss: 0.4, radius: 0.22, bleed: 0, reach: 3, splash: [1, 1, 1], pattern: 'burst' },
-  sad: { brightness: 1.7, speed: 0.5, curl: 8, velDiss: 0.5, radius: 0.18, bleed: 0, reach: 3, splash: [0.9, 1.0, 1.12], pattern: 'fall' },
-  angry: { brightness: 2.0, speed: 1.3, curl: 26, velDiss: 0.3, radius: 0.13, bleed: 0, reach: 3, splash: [1, 1, 1], pattern: 'pulse' },
-  anxious: { brightness: 1.9, speed: 1, curl: 22, velDiss: 0.35, radius: 0.09, bleed: 0, reach: 3, splash: [1, 1, 1], pattern: 'scatter' },
-  tired: { brightness: 1.6, speed: 0.2, curl: 4, velDiss: 0.55, radius: 0.2, bleed: 0, reach: 3, splash: [1, 1, 1], pattern: 'still' },
+  happy: { brightness: 2.0, speed: 1.3, curl: 18, velDiss: 0.35, radius: 0.15, bleed: 0, reach: 3, splash: [1, 1, 1], drift: 0.4, driftMs: 3000, pattern: 'burst' },
+  calm: { brightness: 1.8, speed: 0.5, curl: 6, velDiss: 0.5, radius: 0.2, bleed: 0, reach: 3, splash: [1.1, 1.25, 1.8], drift: 0.4, driftMs: 3000, pattern: 'drift' },
+  excited: { brightness: 2.0, speed: 1.4, curl: 30, velDiss: 0.3, radius: 0.12, bleed: 0, reach: 3, splash: [0.47, 0.59, 0.35], drift: 0.3, driftMs: 3000, pattern: 'burst' },
+  warm: { brightness: 2.0, speed: 1, curl: 12, velDiss: 0.4, radius: 0.22, bleed: 0, reach: 3, splash: [1, 1, 1], drift: 0.4, driftMs: 3000, pattern: 'burst' },
+  sad: { brightness: 1.7, speed: 0.5, curl: 8, velDiss: 0.5, radius: 0.18, bleed: 0, reach: 3, splash: [0.9, 1.0, 1.12], drift: 0.4, driftMs: 3000, pattern: 'fall' },
+  angry: { brightness: 2.0, speed: 1.3, curl: 26, velDiss: 0.3, radius: 0.13, bleed: 0, reach: 3, splash: [1, 1, 1], drift: 0.35, driftMs: 3000, pattern: 'pulse' },
+  anxious: { brightness: 1.9, speed: 1, curl: 22, velDiss: 0.35, radius: 0.09, bleed: 0, reach: 3, splash: [1, 1, 1], drift: 0.3, driftMs: 3000, pattern: 'scatter' },
+  tired: { brightness: 1.6, speed: 0.2, curl: 4, velDiss: 0.55, radius: 0.2, bleed: 0, reach: 3, splash: [1, 1, 1], drift: 0.4, driftMs: 3000, pattern: 'still' },
 }
 
 // สีน้ำที่แห้งติดกระดาษ: สีไม่จางเลย ต้องเป็น 0 พอดี (ไม่ใช่ค่าเล็ก ๆ)
@@ -91,7 +92,7 @@ export const SPLASH_LEVELS = [
 
 // bleedMs = เวลาที่สีซึมออกหลังหยด (ms) ซึมเสร็จแล้วสีนิ่ง
 // splashMs = ช่วงเวลาที่หยดตอนสาดทยอยลง (ms) ไม่ลงพร้อมกันทั้งหมด
-export const FLUID_GLOBAL = { density: DENSITY_DISSIPATION, inkCap: INK_CAP, bleedMs: 3500, splashMs: 1000 }
+export const FLUID_GLOBAL = { density: DENSITY_DISSIPATION, inkCap: INK_CAP, bleedMs: 3500, splashMs: 1000, driftOn: false }
 
 // ค่าเริ่มต้นทั้งหมด (สำเนาตอนโหลดโมดูล) ให้ปุ่ม "รีเซ็ตเป็นค่าเริ่มต้น" ในแผง ?debug คืนค่า
 const clone = (o) => JSON.parse(JSON.stringify(o))
