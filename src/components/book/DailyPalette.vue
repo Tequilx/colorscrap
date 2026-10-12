@@ -7,9 +7,22 @@
     <div v-if="!hidden" class="absolute inset-0">
     <!-- key = bookTick: เข้า book ใหม่แล้วสร้างเนื้อหาใหม่ (แทนที่ทันที ไม่มี fade ซ้อน) เพื่อเล่นการปรากฏทีละส่วนใหม่ -->
     <div :key="app.bookTick" class="absolute inset-0">
-      <div class="absolute left-10 top-7 flex w-[412px] items-baseline justify-between">
-        <span class="whitespace-nowrap font-hand text-26 font-semibold">{{ title }}</span>
-        <span v-if="entries.length" class="whitespace-nowrap text-14 text-ink-soft">{{ entries.length }} ภาพ · {{ moodCount }} อารมณ์</span>
+      <!-- หัวข้อ + จำนวนภาพใต้หัวข้อ (ซ้าย) กับปุ่ม "เก็บรูป" ที่เก็บการ์ดจานสีของวันที่เปิดอยู่ (ขวา) วันที่ไม่มีภาพปุ่มกดไม่ได้ -->
+      <div class="absolute left-10 top-[22px] flex w-[412px] items-center justify-between">
+        <div class="flex flex-col">
+          <span class="whitespace-nowrap font-hand text-26 font-semibold leading-[1.25]">{{ title }}</span>
+          <span v-if="entries.length" class="whitespace-nowrap text-13 text-ink-soft">{{ entries.length }} ภาพ · {{ moodCount }} อารมณ์</span>
+        </div>
+        <button
+          type="button"
+          class="relative inline-flex min-h-[44px] cursor-pointer items-center gap-1.5 border-0 bg-transparent py-0 pl-2.5 pr-3.5 font-hand text-15 font-semibold text-ink aria-disabled:cursor-not-allowed aria-disabled:opacity-40"
+          aria-label="เก็บจานสีวันนี้เป็นรูป"
+          :aria-disabled="canSave ? undefined : 'true'"
+          @click="saveCard"
+        >
+          <span class="pointer-events-none absolute inset-0 rounded-[14px_18px_12px_16px] border-2 border-ink bg-white filter-wob" aria-hidden="true"></span>
+          <span class="relative inline-flex items-center gap-1.5"><Doodle name="download" :size="20" /> {{ share.busy.day ? 'กำลังทำรูป…' : 'เก็บรูป' }}</span>
+        </button>
       </div>
 
       <p v-if="!entries.length" class="pal-rise absolute left-10 top-[120px] m-0 w-[412px] text-16 leading-[1.7] text-ink-soft" :style="reveal(1, 'rise')">ยังไม่มีสีของวันนี้ ลองระบายสักภาพแล้วสีจะมารวมกันตรงนี้</p>
@@ -60,6 +73,7 @@ import { dayColor, nameOfDay } from '@/lib/palette'
 import { EMOTION_BY_KEY } from '@/lib/emotions'
 import { localDateStr, parseLocalDate, thaiDateShort } from '@/lib/dates'
 import { useAppStore } from '@/stores/app'
+import { useShareStore } from '@/stores/share'
 import { scaled } from '@/lib/motion'
 import { MOTION } from '@/lib/tokens'
 
@@ -76,6 +90,7 @@ const props = defineProps({
 defineEmits(['day'])
 
 const app = useAppStore()
+const share = useShareStore()
 
 // ปรากฏทีละส่วน: เริ่มหลังสมุดเข้าที่ (settle + lead) แล้วเรียงห่างกัน step (รวม ~850ms นับจากเริ่มส่วนแรก ไม่เกิน ~1s)
 // ลำดับ 0 หยดสีผสม (ซึมลง) → 1 ชื่อสี → 2 ข้อความสรุป → 3 timeline
@@ -98,6 +113,12 @@ const counts = computed(() => {
   return map
 })
 const moodCount = computed(() => counts.value.size)
+
+// เก็บการ์ดจานสีของวันที่เปิดดูอยู่ (ไม่มีเมนู) วันที่ไม่มีภาพ หรือกำลังทำรูปอยู่ = กดไม่ได้
+const canSave = computed(() => props.entries.length > 0 && !share.busy.day)
+const saveCard = () => {
+  if (canSave.value) share.dayCard(props.date, props.entries)
+}
 
 // ช่วงเวลาสั้น ๆ ในประโยคสรุป เช่น "ตอนบ่าย"
 const dayPart = (time) => {
