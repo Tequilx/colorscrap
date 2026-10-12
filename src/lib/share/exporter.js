@@ -3,8 +3,8 @@
 // เพื่อให้ canvas ไม่ tainted (วาด <img> ข้ามโดเมนแล้ว toBlob จะ error) โหมดจำลองไม่มีภาพจริง → null (การ์ดวาดหยดสีจำลองจากสี)
 import { signPaths } from '@/lib/remote'
 import { canvasToBlob, makeCanvas } from '@/lib/share/cardDraw'
-import { renderPhotoCard, renderPlaceholder } from '@/lib/share/cards'
-import { cardPhotoFileName, photoOnlyFileName } from '@/lib/share/fileNames'
+import { renderDayCard, renderPhotoCard, renderPlaceholder } from '@/lib/share/cards'
+import { cardPhotoFileName, dayCardFileName, photoOnlyFileName } from '@/lib/share/fileNames'
 
 // kind: 'image' (ภาพเต็ม) | 'thumb' (ภาพย่อ) → ImageBitmap | null
 export const loadEntryBitmap = async (entry, kind = 'image') => {
@@ -48,5 +48,24 @@ export const makePhotoOnly = async (entry) => {
     return { blob: await canvasToBlob(canvas), filename: photoOnlyFileName(entry) }
   } finally {
     closeBitmap(image)
+  }
+}
+
+// การ์ดจานสีของวัน (7b): entries = ภาพของวันนั้น (เรียงตามเวลา) ใช้ภาพย่อ 3 ภาพล่าสุดเท่านั้น
+export const makeDayCard = async (date, entries, userName) => {
+  const latest = [...entries].sort((a, b) => a.local_time.localeCompare(b.local_time)).slice(-3)
+  const thumbs = new Map()
+  const bitmaps = []
+  try {
+    for (const e of latest) {
+      const bmp = await loadEntryBitmap(e, 'thumb')
+      if (bmp) {
+        thumbs.set(e.id, bmp)
+        bitmaps.push(bmp)
+      }
+    }
+    return { blob: await renderDayCard({ date, entries, thumbs, userName }), filename: dayCardFileName(date) }
+  } finally {
+    bitmaps.forEach(closeBitmap)
   }
 }

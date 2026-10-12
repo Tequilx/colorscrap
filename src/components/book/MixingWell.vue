@@ -20,32 +20,13 @@
 <script setup>
 import { computed, useId } from 'vue'
 import { BLOB_PATHS } from '@/lib/doodles'
-import { colorWeightsOfDay } from '@/lib/palette'
+import { wellBlobs } from '@/lib/mixingWell'
 
 const props = defineProps({ entries: { type: Array, required: true } })
 
 const clipId = useId()
 
-// ตำแหน่งหยดสำหรับสีที่หนักที่สุดไปเบาที่สุด (จากดีไซน์ 5-book / 6-book-extra-leaf)
-const SPOTS = [
-  { x: 6, y: 24, s: 1.05 },
-  { x: 52, y: 70, s: 0.85 },
-  { x: 84, y: 38, s: 0.72 },
-  { x: 104, y: 104, s: 0.45 },
-  { x: 30, y: 100, s: 0.55 },
-  { x: 110, y: 10, s: 0.4 },
-]
+const blobs = computed(() => wellBlobs(props.entries).map((b) => ({ hex: b.hex, transform: `translate(${b.x} ${b.y}) scale(${b.scale})` })))
 
-const groups = computed(() => colorWeightsOfDay(props.entries).slice(0, SPOTS.length))
-
-const blobs = computed(() => {
-  const max = groups.value[0]?.weight ?? 1
-  return groups.value.map((g, i) => {
-    // ขนาดตามน้ำหนักรวม: สีที่เบามากเล็กลงจากตำแหน่งมาตรฐานได้ถึง 40%
-    const scale = SPOTS[i].s * (0.6 + 0.4 * (g.weight / max))
-    return { hex: g.hex, transform: `translate(${SPOTS[i].x} ${SPOTS[i].y}) scale(${scale})` }
-  })
-})
-
-const label = computed(() => `หลุมผสมสีของวัน มี ${groups.value.length} สี`)
+const label = computed(() => `หลุมผสมสีของวัน มี ${blobs.value.length} สี`)
 </script>
