@@ -60,6 +60,10 @@
         <input v-model.number="warmTune[t.key]" type="range" class="w-[88px]" :min="t.min" :max="t.max" :step="t.step" :data-tune="t.key" />
         <span class="w-9 text-right">{{ warmTune[t.key] }}</span>
       </label>
+      <label class="flex items-center gap-2">
+        <input v-model="warmTune.bloom" type="checkbox" data-tune="bloom" />
+        <span>สีอุ่นแบบบาน (ยกสีเดิม + ดันน้ำ + เบ่งบาน)</span>
+      </label>
       <button type="button" class="my-1 cursor-pointer rounded border border-white/50 bg-white/10 px-1.5 py-0.5 font-mono text-[12px] text-white" @click="resetNote">รีเซ็ตโน้ต</button>
     </div>
   </div>
@@ -122,6 +126,11 @@ const WARM_FIELDS = [
   { key: 'samples', label: 'จำนวนลองดู', min: 1, max: 10, step: 1 },
   { key: 'noteDelay', label: 'เวลาก่อนโน้ตขึ้น (วิ)', min: 3, max: 30, step: 1 },
   { key: 'noteIdle', label: 'เวลาพักมือ (วิ)', min: 0.5, max: 5, step: 0.5 },
+  { key: 'lift', label: 'ความแรงยกสี', min: 0, max: 1, step: 0.05 },
+  { key: 'liftRadius', label: 'รัศมียกสี ×', min: 0.5, max: 2, step: 0.05 },
+  { key: 'rim', label: 'ขอบเข้ม', min: 0, max: 2, step: 0.1 },
+  { key: 'push', label: 'แรงดันวงขอบ', min: 0, max: 400, step: 10 },
+  { key: 'bloomMs', label: 'เวลาบาน (ms)', min: 0, max: 2000, step: 100 },
 ]
 
 // แผงแก้ object ในโมดูล emotions.js ตรง ๆ (FluidCanvas อ่านค่าสดจากที่เดียวกัน) แล้วแจ้งให้ตั้ง curl/velDiss ใหม่

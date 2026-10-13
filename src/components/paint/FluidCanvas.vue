@@ -52,6 +52,12 @@ const HOLD_STRENGTH = 0.1
 const HOLD_MOVE_LIMIT = 8 // ขยับเกินนี้ (px) ถือว่าเป็นการลาก ไม่ใช่กดค้าง
 const SMEAR_RADIUS = 0.25
 const WARM_MIN_GIVEN = 0.02 // ต่ำกว่านี้ถือว่าลงสีอุ่นไม่ได้ (ข้าม)
+// สีอุ่นแบบบาน (ดู bloomAt): ลงสีอุ่นด้วยเพดานของสีอุ่นเอง (warmCap ตรวจช่องที่ตก) แผนที่ ink ถูกลดตามการยกสีจริง จึงไม่ถูกบล็อกจนเป็นรูขาว
+// กันลบสีเดิมหมด: แต่ละช่องยกสีได้รวมไม่เกิน LIFT_BUDGET (≈ 2 ครั้งเต็ม) หลังจากนั้นบานต่อโดยไม่ยก
+// กันกดค้างบานถี่ไป: ไม่ถี่กว่า HOLD_BLOOM_MS ขอบเข้มคูณสีเดิมของจุดนั้นแต่ไม่เกิน INK_CAP (ไม่ให้ขอบสะสมจนดำ)
+const LIFT_BUDGET = 1.4
+const HOLD_BLOOM_MS = 700
+const LIFT_GAP_MS = 500 // แตะรัวถี่กว่านี้ ไม่ยกสีซ้ำ (ลงสีอุ่นอย่างเดียว) ไม่งั้นสีอุ่นที่เพิ่งลงถูกยกทิ้งทุกครั้งจนเหลือรูขาว
 const INK_SPREAD = 1.08 // วัดแล้ว: พื้นที่หยดเดี่ยวที่ 2 วินาทีเท่า main ±8% (ไม่ใส่ = 87–96%)
 const DROP_RADIUS_SCALE = 3 // splatRadius ของ SPEC เล็กเกินไปบนกระดาษ 1112×612 ปรับให้หยดมีเนื้อสีพอ
 const SMEAR_FORCE = 1500
@@ -466,40 +472,209 @@ const markWarmDropped = () => {
   emit('shifted')
 }
 
+// ---- สีอุ่นแบบบาน (bloom / backrun ของสีน้ำจริง) ----
+// หยดน้ำสะอาดลงบนสีที่ยังเปียก ดันสีเดิมออกเป็นวงขอบเข้ม กลางวงจางลง แล้วเม็ดสีใหม่เบ่งบานตรงกลาง จึงเห็นสีอุ่นชัดแม้บนรอยสีเข้ม
+// ลำดับต่อหยด (ภายใน tune.bloomMs): ก. ดันน้ำออกแนวรัศมี  ข. ยกสีเดิม: dye ในวง × (1 − lift × gaussian) เป็น shader pass แบบคูณ (ไม่มีค่าลบ ใช้ได้กับ half float)
+// ค. ลงสีอุ่นตรงกลางด้วยเพดานของตัวเอง 3 ครั้งรัศมีโตขึ้นให้เบ่งออกช้า ๆ  ง. ลด ink ของช่องที่ถูกยกสีให้ตรงกับของจริง
+const LIFT_FRAG = `
+precision highp float;
+precision highp sampler2D;
+varying vec2 vUv;
+uniform sampler2D uTarget;
+uniform float aspectRatio;
+uniform vec2 point;
+uniform float radius;
+uniform float amount;
+uniform float rim;
+uniform float cap;
+void main () {
+  vec2 p = vUv - point.xy;
+  p.x *= aspectRatio;
+  float d2 = dot(p, p);
+  float g = exp(-d2 / radius);
+  // ขอบเข้ม: สีที่ถูกยกออกจากกลางวงไปกองเป็นวงรอบนอก (คูณสีเดิมของจุดนั้นเพิ่ม ไม่บวกค่าคงที่ จึงไม่มีสีโผล่ในที่ที่ไม่มีสี)
+  float ring = exp(-pow(sqrt(d2) - 1.6 * sqrt(radius), 2.0) / (0.35 * radius));
+  vec3 base = texture2D(uTarget, vUv).xyz;
+  // ยกสี = คูณน้อยกว่า 1 ขอบ = คูณมากกว่า 1 แต่ไม่ให้เกิน cap (ค่าเพดานเดียวกับ INK_CAP) และไม่ลดสีที่เกินอยู่แล้ว
+  vec3 boosted = base * max(0.0, 1.0 - amount * g + rim * ring);
+  gl_FragColor = vec4(min(boosted, max(base, vec3(cap))), 1.0);
+}`
+let lift = null // null = ยังไม่สร้าง, false = เครื่องนี้สร้างไม่ได้ (บานแต่ไม่ยกสี)
+const getLift = () => {
+  if (lift !== null) return lift
+  lift = false
+  try {
+    const sim = fluid?.simulation
+    const gl = sim?.gl
+    const base = sim?.programs?.splatProgram?.program
+    if (!gl || !base || !sim._dye) return lift
+    // ใช้ vertex shader ตัวเดียวกับของ splat (aPosition → vUv) เขียนเฉพาะ fragment shader ของการคูณ
+    const vs = gl.getAttachedShaders(base).find((sh) => gl.getShaderParameter(sh, gl.SHADER_TYPE) === gl.VERTEX_SHADER)
+    const fs = gl.createShader(gl.FRAGMENT_SHADER)
+    gl.shaderSource(fs, LIFT_FRAG)
+    gl.compileShader(fs)
+    if (!vs || !gl.getShaderParameter(fs, gl.COMPILE_STATUS)) return lift
+    const program = gl.createProgram()
+    gl.attachShader(program, vs)
+    gl.attachShader(program, fs)
+    gl.bindAttribLocation(program, 0, 'aPosition')
+    gl.linkProgram(program)
+    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) return lift
+    const u = {}
+    for (const name of ['uTarget', 'aspectRatio', 'point', 'radius', 'amount', 'rim', 'cap']) u[name] = gl.getUniformLocation(program, name)
+    lift = { program, u }
+  } catch (error) {
+    console.error('สร้าง shader ยกสีไม่สำเร็จ:', error)
+  }
+  return lift
+}
+const liftDye = (x, y, radius, amount, rim) => {
+  const lp = getLift()
+  if (!lp) return false
+  const sim = fluid.simulation
+  const gl = sim.gl
+  gl.useProgram(lp.program)
+  gl.uniform1i(lp.u.uTarget, sim._dye.read.attach(0))
+  gl.uniform1f(lp.u.aspectRatio, sim.canvas.width / sim.canvas.height)
+  gl.uniform2f(lp.u.point, x / SIZE.w, 1 - y / SIZE.h)
+  gl.uniform1f(lp.u.radius, sim.correctRadius(radius / 100))
+  gl.uniform1f(lp.u.amount, amount)
+  gl.uniform1f(lp.u.rim, rim)
+  gl.uniform1f(lp.u.cap, FLUID_GLOBAL.inkCap)
+  sim.blit(sim._dye.write)
+  sim._dye.swap()
+  return true
+}
+
+// ลด ink ของช่องที่ถูกยกสี (× 1 − amount × ค่าเฉลี่ย gaussian ทั้งช่อง จุดย่อย 3×3) ให้แผนที่ตรงกับสีบนผ้าใบ ไม่เพิ่มที่ขอบ (ประเมินต่ำไว้ ปลอดภัยกว่า)
+// ถ้าลดน้อยไป แผนที่จะบล็อกสีอุ่นที่ลงทีหลังจนกลางวงเป็นรูขาว (วัดแล้ว) ถ้าไม่ลดเลยก็เช่นกัน
+const lowerInk = (x, y, radius, amount) => {
+  const rho = (SIZE.w * SIZE.h * radius) / 100 // ρ ของ exp(−d²/ρ) ในหน่วยพิกเซลกระดาษ
+  const reach = Math.ceil(Math.sqrt(rho * 3) / INK_CELL) + 1
+  const cx = Math.floor(x / INK_CELL)
+  const cy = Math.floor(y / INK_CELL)
+  for (let j = Math.max(0, cy - reach); j <= Math.min(inkRows - 1, cy + reach); j++) {
+    for (let i = Math.max(0, cx - reach); i <= Math.min(inkCols - 1, cx + reach); i++) {
+      let g = 0
+      for (let sy = 0; sy < 3; sy++) {
+        for (let sx = 0; sx < 3; sx++) {
+          const dx = (i + (sx + 0.5) / 3) * INK_CELL - x
+          const dy = (j + (sy + 0.5) / 3) * INK_CELL - y
+          g += Math.exp(-(dx * dx + dy * dy) / rho)
+        }
+      }
+      g /= 9
+      if (g > 0.02) ink[j * inkCols + i] *= 1 - amount * g
+    }
+  }
+}
+// ยกสีรวมต่อช่อง (งบ LIFT_BUDGET) รีเซ็ตเมื่อล้างผ้าใบ
+const lifted = new Float32Array(inkCols * inkRows)
+
+let lastBloomAt = 0
+// strength = ความแรงสีอุ่นทั้งหยด (แบ่งลง 3 ครั้ง) gentle = ยกสีเบาลง (กดค้าง)
+const bloomAt = (x, y, hex, { strength = 1, gentle = false } = {}) => {
+  if (!fluid) return
+  const calm = Boolean(reducedMotion?.matches)
+  const total = calm ? 0 : tune.bloomMs
+  const run = (delay, fn) => {
+    if (delay <= 0) return fn()
+    const t = setTimeout(() => {
+      timers.delete(t)
+      if (fluid) fn()
+    }, delay)
+    timers.add(t)
+  }
+  const cell = Math.min(ink.length - 1, Math.floor(y / INK_CELL) * inkCols + Math.floor(x / INK_CELL))
+  const recent = lastBloomAt && performance.now() - lastBloomAt < LIFT_GAP_MS
+  const amount = recent ? 0 : tune.lift * (gentle ? 0.6 : 1) * Math.max(0, 1 - lifted[cell] / LIFT_BUDGET)
+  lifted[cell] += amount
+  lastBloomAt = performance.now()
+  // ก. ดันสีเดิมออกเป็นวง: หลายจุดรอบกลางวง ดันออกนอก (ไม่ดันตอนลดการเคลื่อนไหว)
+  if (!calm && !recent) {
+    wake()
+    const reach = Math.sqrt((SIZE.w * SIZE.h * tune.size) / 100) * 0.6
+    const arms = 6
+    const phase = rand(0, Math.PI * 2)
+    for (let k = 0; k < arms; k++) {
+      const a = phase + (k * Math.PI * 2) / arms
+      pushWater(x + Math.cos(a) * reach, y + Math.sin(a) * reach, Math.cos(a) * tune.push, -Math.sin(a) * tune.push, SMEAR_RADIUS * 0.8)
+    }
+  }
+  // ข. ยกสีเดิมกลางวง
+  if (amount > 0.01) {
+    wake()
+    const r = tune.size * tune.liftRadius * INK_SPREAD
+    if (liftDye(x, y, r, amount, amount * tune.rim)) lowerInk(x, y, r, amount)
+  }
+  // ค. ลงสีอุ่นตรงกลาง 3 ครั้ง รัศมีโตขึ้น
+  const steps = calm ? [[0, 1, 1]] : [[0.15, 0.45, 0.55], [0.4, 0.3, 0.8], [0.7, 0.25, 1]]
+  for (const [at, share, scale] of steps) {
+    run(total * at, () => {
+      const a = rand(0, Math.PI * 2)
+      const landed = splat(x, y, Math.cos(a) * WARM_TAP_SPEED * 0.5, Math.sin(a) * WARM_TAP_SPEED * 0.5, { hex, radius: tune.size * scale, strength: warmStrength(strength) * share, warm: true })
+      if (landed) markWarmDropped()
+    })
+  }
+}
+
+// จุดวางหยดตัวอย่างของ "ลองดู": บริเวณที่ผู้ใช้ระบายไว้แล้ว (ink 0.3–0.7) ใกล้กลางภาพ ไม่โดนการ์ดอารมณ์/โน้ต/ถาดเครื่องมือ
+// ถ้าไม่มีบริเวณแบบนั้นพอ ใช้ที่ว่างที่สุด (ink ต่ำสุด) แทน ห่างกันอย่างน้อย SAMPLE_SPACING
+const SAMPLE_BOX = { x0: 110, x1: 860, y0: 60, y1: 560 } // พิกัดกระดาษ: การ์ดอารมณ์/โน้ตอยู่ x > 900 ถาดอยู่ y > 598
+const SAMPLE_SPACING = 150
+const pickSamplePoints = (n) => {
+  const cells = []
+  for (let j = 0; j < inkRows; j++) {
+    for (let i = 0; i < inkCols; i++) {
+      const x = (i + 0.5) * INK_CELL
+      const y = (j + 0.5) * INK_CELL
+      if (x < SAMPLE_BOX.x0 || x > SAMPLE_BOX.x1 || y < SAMPLE_BOX.y0 || y > SAMPLE_BOX.y1) continue
+      const v = ink[j * inkCols + i]
+      const painted = v >= 0.3 && v <= 0.7
+      const centre = Math.hypot(x - SIZE.w / 2, y - SIZE.h / 2)
+      // บริเวณที่ระบายแล้วมาก่อน (ใกล้กลางภาพมาก่อน) แล้วค่อยที่ว่างที่สุด
+      cells.push({ x, y, score: painted ? centre : 10000 + v * 1000 + centre })
+    }
+  }
+  cells.sort((a, b) => a.score - b.score)
+  const out = []
+  for (const c of cells) {
+    if (out.length >= n) break
+    if (out.every((p) => Math.hypot(p.x - c.x, p.y - c.y) >= SAMPLE_SPACING)) out.push({ x: c.x + rand(-12, 12), y: c.y + rand(-12, 12) })
+  }
+  return out
+}
+
 // หยดสีอุ่นที่ตำแหน่งใดก็ได้ (ผู้ใช้แตะ หรือกดค้างเบา ๆ)
 const dropWarmAt = (x, y, hex, strength = 1) => {
+  if (tune.bloom && strength >= 0.5) {
+    bloomAt(x, y, hex, { strength })
+    return
+  }
   const a = rand(0, Math.PI * 2)
   if (splat(x, y, Math.cos(a) * WARM_TAP_SPEED, Math.sin(a) * WARM_TAP_SPEED, { hex, radius: tune.size, strength: warmStrength(strength), warm: true })) markWarmDropped()
 }
 
-// "ลองดู": หยดตัวอย่าง tune.samples หยดเรียงตามขอบกระดาษ (ห่างกันตามเส้นรอบกระดาษ เริ่มจากด้านสุ่ม) ไล่สีตาม SHIFT_TARGETS พุ่งเข้าด้านในช้า ๆ
+// "ลองดู": หยดตัวอย่าง tune.samples หยด วางบนบริเวณที่ระบายไว้แล้วใกล้กลางภาพ (pickSamplePoints) ไล่สีตาม SHIFT_TARGETS ห่างกัน WARM_SAMPLE_GAP
+// โหมดบาน: แต่ละหยดบานเต็มลำดับ (ดูหัวข้อ bloomAt) ปิดสวิตช์: หยดเดี่ยวพุ่งเข้าด้านในช้า ๆ
 const dropWarmSamples = () => {
   const targets = SHIFT_TARGETS[props.emotion]
   if (!targets || !fluid) return
-  const margin = 40
   const n = Math.round(tune.samples)
-  const perimeter = 2 * (SIZE.w + SIZE.h - 4 * margin)
-  const start = rand(0, perimeter)
+  const points = pickSamplePoints(n)
   const base = sheet.warmGestures
   sheet.warmGestures += n
-  for (let i = 0; i < n; i++) {
+  points.forEach((pt, i) => {
     const t = setTimeout(() => {
       timers.delete(t)
       if (!fluid) return
-      // ตำแหน่งบนเส้นรอบกระดาษ (วนตามเข็มจากมุมบนซ้าย) แล้วแปลงเป็นขอบกับทิศเข้ากลาง (แกน y ของไลบรารีชี้ขึ้น)
-      let d = (start + (i * perimeter) / n) % perimeter
-      const w = SIZE.w - 2 * margin
-      const h = SIZE.h - 2 * margin
-      let x, y, inward
-      if (d < w) [x, y, inward] = [margin + d, margin, Math.PI / 2]
-      else if ((d -= w) < h) [x, y, inward] = [SIZE.w - margin, margin + d, Math.PI]
-      else if ((d -= h) < w) [x, y, inward] = [SIZE.w - margin - d, SIZE.h - margin, -Math.PI / 2]
-      else [x, y, inward] = [margin, SIZE.h - margin - (d - w), 0]
-      const angle = inward + rand(-0.3, 0.3)
-      if (splat(x, y, Math.cos(angle) * SHIFT_SPEED, Math.sin(angle) * SHIFT_SPEED, { hex: targets[(base + i) % targets.length], radius: tune.size, strength: warmStrength(), warm: true })) markWarmDropped()
+      const hex = targets[(base + i) % targets.length]
+      if (tune.bloom) return bloomAt(pt.x, pt.y, hex, { strength: 1 })
+      const angle = rand(0, Math.PI * 2)
+      if (splat(pt.x, pt.y, Math.cos(angle) * SHIFT_SPEED, Math.sin(angle) * SHIFT_SPEED, { hex, radius: tune.size, strength: warmStrength(), warm: true })) markWarmDropped()
     }, i * WARM_SAMPLE_GAP)
     timers.add(t)
-  }
+  })
 }
 
 // ตัวจับเวลาของโน้ตชวน: นับเฉพาะตอนผ้าใบวิ่งอยู่ (ออกจากหน้า paint = หยุด กลับมานับต่อ)
@@ -602,6 +777,7 @@ const clear = async () => {
   clearTimers()
   sheet = newSheetState()
   ink.fill(0)
+  lifted.fill(0)
   fluid.start() // no-op ถ้ากำลังวิ่งอยู่ (ถ้าถูกสั่งล้างตอนหยุด loop จะต้องวิ่งก่อนถึงจะล้างได้)
   fluid.setConfig({ densityDissipation: 1000, velocityDissipation: 1000 })
   await nextFrames(CLEAR_FRAMES)
@@ -667,7 +843,13 @@ const onDown = (e) => {
     dropWarmAt(x, y, warm)
   } else if (props.tool === 'drop') dropAt(x, y)
   // กดค้างเกิน 400ms (เครื่องมือไหนก็ได้) = หยดต่อเนื่องที่ตำแหน่งปัจจุบัน
-  const holdDrop = () => (warm ? dropWarmAt(pointer.x, pointer.y, warm, HOLD_STRENGTH) : dropAt(pointer.x, pointer.y, HOLD_STRENGTH))
+  const holdWarm = () => {
+    // โหมดบาน: กดค้างบานต่อเนื่องแต่ไม่ถี่ (HOLD_BLOOM_MS) ช่วงที่เหลือหยดสีอุ่นเบา ๆ ของชั้น 1 กันเจาะเป็นรูขาว
+    if (tune.bloom && performance.now() - lastBloomAt >= HOLD_BLOOM_MS) return bloomAt(pointer.x, pointer.y, warm, { strength: 0.6, gentle: true })
+    const a = rand(0, Math.PI * 2)
+    if (splat(pointer.x, pointer.y, Math.cos(a) * WARM_TAP_SPEED * HOLD_STRENGTH, Math.sin(a) * WARM_TAP_SPEED * HOLD_STRENGTH, { hex: warm, radius: tune.size, strength: warmStrength(HOLD_STRENGTH), warm: true })) markWarmDropped()
+  }
+  const holdDrop = () => (warm ? holdWarm() : dropAt(pointer.x, pointer.y, HOLD_STRENGTH))
   pointer.holdStart = setTimeout(() => {
     holdDrop()
     pointer.hold = setInterval(holdDrop, warm && reducedMotion?.matches ? HOLD_INTERVAL * 2 : HOLD_INTERVAL)
