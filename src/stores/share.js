@@ -55,7 +55,7 @@ export const useShareStore = defineStore('share', () => {
   const photoOnly = (entry) => run('photo-only', () => makePhotoOnly(entry))
   const dayCard = (date, entries) => run('day', () => makeDayCard(date, entries, profile.shownName))
 
-  // true = เครื่องนี้เปิดหน้าแชร์ไฟล์ได้ (ข้อความกำกับใต้ปุ่มต่างกัน) ตัดสินครั้งเดียวด้วยไฟล์เปล่า ๆ
+  // true = เครื่องนี้เปิดหน้าแชร์ไฟล์ได้ (จอสัมผัสที่ navigator.canShare รับไฟล์) ไม่งั้นดาวน์โหลด ข้อความใต้ปุ่มจึงต่างกัน
   const canShare = () => canShareFile(new File([''], 'x.png', { type: 'image/png' }))
 
   return { busy, canShare, photoCard, photoOnly, dayCard }

@@ -25,7 +25,7 @@ afterEach(() => {
 describe('shareOrDownload', () => {
   it('แชร์ได้: เรียก navigator.share ด้วยไฟล์เดียวและไม่ดาวน์โหลด', async () => {
     const share = vi.fn().mockResolvedValue(undefined)
-    vi.stubGlobal('navigator', { share, canShare: vi.fn(() => true) })
+    vi.stubGlobal('navigator', { share, canShare: vi.fn(() => true), maxTouchPoints: 5 })
     expect(await shareOrDownload(blob, 'a.png')).toBe('shared')
     expect(share).toHaveBeenCalledTimes(1)
     const [{ files }] = share.mock.calls[0]
@@ -36,13 +36,13 @@ describe('shareOrDownload', () => {
   })
 
   it('ผู้ใช้กดยกเลิก (AbortError): เงียบ ไม่ดาวน์โหลด ไม่โยน error', async () => {
-    vi.stubGlobal('navigator', { share: vi.fn().mockRejectedValue(domError('AbortError')), canShare: () => true })
+    vi.stubGlobal('navigator', { share: vi.fn().mockRejectedValue(domError('AbortError')), canShare: () => true, maxTouchPoints: 5 })
     expect(await shareOrDownload(blob, 'a.png')).toBe('cancelled')
     expect(anchor.click).not.toHaveBeenCalled()
   })
 
   it('NotAllowedError: คืน blocked ให้ UI เก็บไฟล์ไว้ ไม่ดาวน์โหลดเอง', async () => {
-    vi.stubGlobal('navigator', { share: vi.fn().mockRejectedValue(domError('NotAllowedError')), canShare: () => true })
+    vi.stubGlobal('navigator', { share: vi.fn().mockRejectedValue(domError('NotAllowedError')), canShare: () => true, maxTouchPoints: 5 })
     expect(await shareOrDownload(blob, 'a.png')).toBe('blocked')
     expect(anchor.click).not.toHaveBeenCalled()
   })
@@ -60,14 +60,38 @@ describe('shareOrDownload', () => {
 
   it('มี share แต่ canShare บอกว่าแชร์ไฟล์ไม่ได้ (desktop): ดาวน์โหลด', async () => {
     const share = vi.fn()
-    vi.stubGlobal('navigator', { share, canShare: () => false })
+    vi.stubGlobal('navigator', { share, canShare: () => false, maxTouchPoints: 5 })
     expect(await shareOrDownload(blob, 'a.png')).toBe('downloaded')
     expect(share).not.toHaveBeenCalled()
     expect(anchor.click).toHaveBeenCalledTimes(1)
   })
 
   it('error อื่นโยนต่อ (ให้ UI ขึ้น "ทำรูปไม่สำเร็จ")', async () => {
-    vi.stubGlobal('navigator', { share: vi.fn().mockRejectedValue(domError('DataError')), canShare: () => true })
+    vi.stubGlobal('navigator', { share: vi.fn().mockRejectedValue(domError('DataError')), canShare: () => true, maxTouchPoints: 5 })
     await expect(shareOrDownload(blob, 'a.png')).rejects.toThrow('DataError')
+  })
+
+  it('คอมพิวเตอร์ที่ใช้เมาส์: ดาวน์โหลดเสมอ แม้มี navigator.share (Mac)', async () => {
+    const share = vi.fn().mockResolvedValue(undefined)
+    vi.stubGlobal('navigator', { share, canShare: () => true, maxTouchPoints: 0 })
+    vi.stubGlobal('matchMedia', () => ({ matches: false }))
+    expect(await shareOrDownload(blob, 'a.png')).toBe('downloaded')
+    expect(share).not.toHaveBeenCalled()
+    expect(anchor.click).toHaveBeenCalledTimes(1)
+  })
+
+  it('iPad ที่รายงานตัวเป็น Mac (maxTouchPoints 5): ใช้หน้าแชร์', async () => {
+    const share = vi.fn().mockResolvedValue(undefined)
+    vi.stubGlobal('navigator', { share, canShare: () => true, maxTouchPoints: 5, platform: 'MacIntel' })
+    vi.stubGlobal('matchMedia', () => ({ matches: false }))
+    expect(await shareOrDownload(blob, 'a.png')).toBe('shared')
+    expect(anchor.click).not.toHaveBeenCalled()
+  })
+
+  it('pointer: coarse (maxTouchPoints ไม่รายงาน): ใช้หน้าแชร์', async () => {
+    const share = vi.fn().mockResolvedValue(undefined)
+    vi.stubGlobal('navigator', { share, canShare: () => true })
+    vi.stubGlobal('matchMedia', (q) => ({ matches: q === '(pointer: coarse)' }))
+    expect(await shareOrDownload(blob, 'a.png')).toBe('shared')
   })
 })

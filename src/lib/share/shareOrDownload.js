@@ -1,4 +1,4 @@
-// ส่งรูปให้ผู้ใช้ (SPEC ส่วนที่ 2 §9): แชร์ได้ → Web Share (iPad เปิดหน้าแชร์ ให้กด "บันทึกรูปภาพ") ไม่ได้ → ดาวน์โหลดเป็นไฟล์
+// ส่งรูปให้ผู้ใช้ (SPEC ส่วนที่ 2 §9): จอสัมผัสที่แชร์ไฟล์ได้ → Web Share (iPad เปิดหน้าแชร์ ให้กด "บันทึกรูปภาพ") นอกนั้น → ดาวน์โหลดเป็นไฟล์
 // คืนสถานะให้ UI ตัดสินใจ: 'shared' | 'cancelled' | 'downloaded' | 'blocked'
 //   cancelled = ผู้ใช้กดยกเลิกหน้าแชร์ (เงียบ ไม่ขึ้น error)
 //   blocked = NotAllowedError: การแชร์หลุดจากจังหวะที่ผู้ใช้กด (ทำรูปนานเกินกว่าที่เบราว์เซอร์ยอมให้ถือสิทธิ์ไว้) UI เก็บไฟล์ไว้
@@ -7,9 +7,21 @@
 
 export const makeFile = (blob, filename) => new File([blob], filename, { type: blob.type || 'image/png' })
 
+// จอสัมผัส: maxTouchPoints > 1 (iPad ที่รายงานตัวเป็น Mac ก็ได้ค่านี้) หรือ pointer: coarse
+// คอมพิวเตอร์ที่ใช้เมาส์ดาวน์โหลดไฟล์เสมอ แม้ Chrome/Safari บน Mac จะมี navigator.share ก็ตาม
+export const isTouchDevice = () => {
+  if (typeof navigator === 'undefined') return false
+  if ((navigator.maxTouchPoints ?? 0) > 1) return true
+  try {
+    return Boolean(globalThis.matchMedia?.('(pointer: coarse)')?.matches)
+  } catch {
+    return false
+  }
+}
+
 export const canShareFile = (file) => {
   try {
-    return typeof navigator !== 'undefined' && typeof navigator.share === 'function' && Boolean(navigator.canShare?.({ files: [file] }))
+    return isTouchDevice() && typeof navigator.share === 'function' && Boolean(navigator.canShare?.({ files: [file] }))
   } catch {
     return false
   }
