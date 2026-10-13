@@ -51,6 +51,7 @@ const HOLD_INTERVAL = 120
 const HOLD_STRENGTH = 0.1
 const HOLD_MOVE_LIMIT = 8 // ขยับเกินนี้ (px) ถือว่าเป็นการลาก ไม่ใช่กดค้าง
 const SMEAR_RADIUS = 0.25
+const WARM_MIN_GIVEN = 0.02 // ต่ำกว่านี้ถือว่าลงสีอุ่นไม่ได้ (ข้าม)
 const INK_SPREAD = 1.08 // วัดแล้ว: พื้นที่หยดเดี่ยวที่ 2 วินาทีเท่า main ±8% (ไม่ใส่ = 87–96%)
 const DROP_RADIUS_SCALE = 3 // splatRadius ของ SPEC เล็กเกินไปบนกระดาษ 1112×612 ปรับให้หยดมีเนื้อสีพอ
 const SMEAR_FORCE = 1500
@@ -106,7 +107,8 @@ const inkCols = Math.ceil(SIZE.w / INK_CELL)
 const inkRows = Math.ceil(SIZE.h / INK_CELL)
 let ink = new Float32Array(inkCols * inkRows)
 const dyePeak = (hex) => Math.max(...[1, 3, 5].map((i) => 1 - parseInt(hex.slice(i, i + 2), 16) / 255))
-const takeInk = (x, y, strength, hex, radius) => {
+// opts.cap = เพดานที่ใช้ (ค่าเริ่มต้น INK_CAP) opts.centreOnly = ตรวจเฉพาะช่องที่หยดตก (สีอุ่น: ไม่ให้ช่องข้างเคียงที่เต็มบล็อกหยดทั้งหมด)
+const takeInk = (x, y, strength, hex, radius, { cap = FLUID_GLOBAL.inkCap, centreOnly = false } = {}) => {
   const unit = params().brightness * INTENSITY_FACTOR[props.intensity] * dyePeak(hex)
   if (unit <= 0) return { given: 0, room: 0 }
   // ρ ของ exp(−d²/ρ) ในหน่วยพิกเซลกระดาษ: ไลบรารีใช้ (splatRadius/100) × aspect บน UV ที่ x ถูกคูณ aspect อยู่แล้ว
@@ -132,9 +134,11 @@ const takeInk = (x, y, strength, hex, radius) => {
   }
   let allowed = strength * unit
   let room = 1
+  const centreIndex = Math.min(ink.length - 1, cy * inkCols + cx)
   for (const h of hit) {
-    allowed = Math.min(allowed, Math.max(0, FLUID_GLOBAL.inkCap - ink[h.index]) / h.weight)
-    room = Math.min(room, Math.max(0, FLUID_GLOBAL.inkCap - ink[h.index]) / FLUID_GLOBAL.inkCap)
+    if (centreOnly && h.index !== centreIndex) continue
+    allowed = Math.min(allowed, Math.max(0, cap - ink[h.index]) / h.weight)
+    room = Math.min(room, Math.max(0, cap - ink[h.index]) / cap)
   }
   for (const h of hit) ink[h.index] += allowed * h.weight
   return { given: allowed / unit, room }
@@ -290,21 +294,26 @@ const pushWater = (x, y, dx, dy, radius, auto = false) => {
 }
 
 // พิกัด css px บนกระดาษ (0..SIZE) → ไลบรารี (x เป็น px จริง ×dpr, y เป็น css px และกลับแกนเอง)
-const splat = (x, y, dx, dy, { hex, radius, noColor, strength = 1 } = {}) => {
-  if (!fluid) return
+// warm = หยดสีอุ่นของผู้ใช้: เพดานแยก (FLUID_GLOBAL.warmCap) ตรวจช่องที่ตกอย่างเดียว และถ้าลงสีไม่ได้เลย (given = 0) ข้ามทั้งหมด
+// ไม่ส่ง splat สีศูนย์ที่ยังดันน้ำ (เดิมดูเหมือนหยดแล้วสีไม่ออก แต่น้ำขยับ) คืน true ถ้าลงสีจริง
+const splat = (x, y, dx, dy, { hex, radius, noColor, strength = 1, warm = false } = {}) => {
+  if (!fluid) return false
   if (noColor) {
     pushWater(x, y, dx, dy, radius, true)
-    return
+    return false
   }
-  wake()
   const shade = hex ?? pickShade()
-  const { given, room } = takeInk(x, y, strength, shade, radius)
+  const { given, room } = takeInk(x, y, strength, shade, radius, warm ? { cap: FLUID_GLOBAL.warmCap, centreOnly: true } : undefined)
+  if (warm && given < WARM_MIN_GIVEN) return false
+  wake()
   // เพดานสีตัดยอดหยดให้เตี้ยลง สีที่ถูกตัดไปจึงกระจายออกข้างแทน (ปริมาณสีไม่หายไปเฉย ๆ) ขอบวงกว้างขึ้นเล็กน้อยให้พื้นที่ช่วงแรกใกล้ main
   fluid.setConfig({ splatRadius: radius * INK_SPREAD })
   // ช่องที่สีเต็มเพดานแล้วไม่ควรดันน้ำเต็มแรงอีก (ไม่งั้นแตะจุดเดิมรัว ๆ ปั่นสีเดิมให้กระจายทั่วผ้าใบ) ดันตามที่ว่างเหลือ ขั้นต่ำ 10%
   // ดันตามที่ว่าง ไม่ใช่ตามสัดส่วนที่ถูกตัดทอน: หยดแรกบนผ้าใบว่างโดนเพดานตัดสีได้ แต่ต้องดันน้ำเต็มแรงเท่า main (พื้นที่ช่วงแรกเท่ากัน)
   const push = strength > 0 ? Math.max(0.1, Math.min(1, room)) : 1
-  if (useShade(shade, given)) fluid.splatAtLocation(x * (window.devicePixelRatio || 1), y, dx * push, dy * push)
+  if (!useShade(shade, given)) return false
+  fluid.splatAtLocation(x * (window.devicePixelRatio || 1), y, dx * push, dy * push)
+  return true
 }
 
 const params = () => FLUID_PARAMS[props.emotion]
@@ -460,8 +469,7 @@ const markWarmDropped = () => {
 // หยดสีอุ่นที่ตำแหน่งใดก็ได้ (ผู้ใช้แตะ หรือกดค้างเบา ๆ)
 const dropWarmAt = (x, y, hex, strength = 1) => {
   const a = rand(0, Math.PI * 2)
-  splat(x, y, Math.cos(a) * WARM_TAP_SPEED, Math.sin(a) * WARM_TAP_SPEED, { hex, radius: tune.size, strength: warmStrength(strength) })
-  markWarmDropped()
+  if (splat(x, y, Math.cos(a) * WARM_TAP_SPEED, Math.sin(a) * WARM_TAP_SPEED, { hex, radius: tune.size, strength: warmStrength(strength), warm: true })) markWarmDropped()
 }
 
 // "ลองดู": หยดตัวอย่าง tune.samples หยดเรียงตามขอบกระดาษ (ห่างกันตามเส้นรอบกระดาษ เริ่มจากด้านสุ่ม) ไล่สีตาม SHIFT_TARGETS พุ่งเข้าด้านในช้า ๆ
@@ -488,8 +496,7 @@ const dropWarmSamples = () => {
       else if ((d -= h) < w) [x, y, inward] = [SIZE.w - margin - d, SIZE.h - margin, -Math.PI / 2]
       else [x, y, inward] = [margin, SIZE.h - margin - (d - w), 0]
       const angle = inward + rand(-0.3, 0.3)
-      splat(x, y, Math.cos(angle) * SHIFT_SPEED, Math.sin(angle) * SHIFT_SPEED, { hex: targets[(base + i) % targets.length], radius: tune.size, strength: warmStrength() })
-      markWarmDropped()
+      if (splat(x, y, Math.cos(angle) * SHIFT_SPEED, Math.sin(angle) * SHIFT_SPEED, { hex: targets[(base + i) % targets.length], radius: tune.size, strength: warmStrength(), warm: true })) markWarmDropped()
     }, i * WARM_SAMPLE_GAP)
     timers.add(t)
   }

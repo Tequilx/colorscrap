@@ -78,6 +78,9 @@ export const DENSITY_DISSIPATION = 0
 // ปริมาณรวมต่อช่องไม่เกิน INK_CAP (หยดที่เหลือที่ว่างไม่พอจะถูกลดแรงลงให้พอดีเพดาน) 0.85 ≈ เข้มสุดที่ยังเห็นเป็นสี ไม่ดำ
 export const INK_CELL = 80
 export const INK_CAP = 0.85
+// เพดานของสีอุ่นแยกจากสีอารมณ์ และตรวจเฉพาะช่องที่หยดตก (ไม่ใช่ทุกช่องที่แตะ): ผู้ใช้เป็นคนหยดเอง ต้องเห็นสีอุ่นแม้ทับรอยสีเข้ม
+// แผนที่ ink ประเมินสูงกว่าสีจริง (นับค่าสูงสุดที่เป็นไปได้ในช่อง ไม่ตามสีที่น้ำพาไป) เพดาน 1.1 จึงยังไม่ดำ (วัดแล้ว ดู SPEC §6.4)
+export const WARM_INK_CAP = 1.1
 
 // ค่ากลางที่แผง ?debug ปรับสดได้ (FluidCanvas อ่านจากที่นี่ ไม่อ่านค่าคงที่ข้างบนโดยตรง)
 // การสาดตอนเข้าหน้า paint แยกตามระดับอารมณ์ (นิดหน่อย / พอประมาณ / มากเลย) แยกจาก INTENSITY_FACTOR ที่ยังคุมความเข้มสีต่อหยด
@@ -91,7 +94,7 @@ export const SPLASH_LEVELS = [
 // splashMs = ช่วงเวลาที่หยดตอนสาดทยอยลง (ms) ไม่ลงพร้อมกันทั้งหมด
 // สีน้ำที่ค่อย ๆ แห้ง (ดู FluidCanvas): flowTime = วินาทีหลัง input ล่าสุดที่น้ำไหลปกติ (velDiss ของอารมณ์) หลังจากนั้นเพิ่ม velocityDissipation
 // แบบ ease-in-out จนถึง dryDamp ที่ dryTime วินาที (นับจาก input ล่าสุด) น้ำจึงสงบเอง ไม่แตะ density จึงไม่ทำให้สีจาง
-export const FLUID_GLOBAL = { density: DENSITY_DISSIPATION, inkCap: INK_CAP, splashMs: 1000, flowTime: 2.5, dryTime: 10, dryDamp: 6 }
+export const FLUID_GLOBAL = { density: DENSITY_DISSIPATION, inkCap: INK_CAP, warmCap: WARM_INK_CAP, splashMs: 1000, flowTime: 2.5, dryTime: 10, dryDamp: 6 }
 
 // ค่าเริ่มต้นทั้งหมด (สำเนาตอนโหลดโมดูล) ให้ปุ่ม "รีเซ็ตเป็นค่าเริ่มต้น" ในแผง ?debug คืนค่า
 const clone = (o) => JSON.parse(JSON.stringify(o))
@@ -121,13 +124,16 @@ export const emotionShades = (key) => {
   }
 }
 
-// สีปลายทางเมื่ออารมณ์ลบถูกปรับไปทางบวก (SPEC §3.2)
+// สีปลายทางเมื่ออารมณ์ลบถูกปรับไปทางบวก (SPEC §3.2) เรียง "สีอุ่นก่อน": ผู้ใช้หนึ่งการแตะ/กดค้าง/ลองดู ได้สีแรกของรายการ
+// เดิมเรียงเป็น "สีสะพาน → สีอุ่น" (ฟ้า/ชมพู/ฟ้าอ่อน ก่อน แล้วค่อยเหลือง/พีช/เขียวอ่อน) เพราะสมัยที่แอปหยดให้เองเป็นช่วง ๆ สีไหลเข้ามาทีละสี
+// จากใกล้อารมณ์เดิมไปหาสีอุ่น แต่ตอนนี้ผู้ใช้เป็นคนหยดเอง การแตะครั้งแรกจึงได้ฟ้าซึ่งทับรอยน้ำเงินของ "เศร้า" แล้วดูเป็นสีเดิมเข้มขึ้น
+// ไม่เห็นเป็นสีอุ่น (ชุดสีเดิมทั้งหมด เปลี่ยนแค่ลำดับ)
 export const SHIFT_TARGETS = {
-  sad: ['#5FA3C8', '#F7DE99'],
-  angry: ['#E2688A', '#F4C9A2'],
-  anxious: ['#5FA3C8', '#B9D7A4'],
-  tired: ['#9CC3D8', '#F7DE99'],
+  sad: ['#F7DE99', '#5FA3C8'],
+  angry: ['#F4C9A2', '#E2688A'],
+  anxious: ['#B9D7A4', '#5FA3C8'],
+  tired: ['#F7DE99', '#9CC3D8'],
 }
 
-// ไล่สีของไอคอนหยดสีอุ่น: เหลือง (สีสุดท้ายของ sad/tired) → พีช (สีสุดท้ายของ angry)
-export const WARM_GRADIENT = [SHIFT_TARGETS.sad[1], SHIFT_TARGETS.angry[1]]
+// ไล่สีของไอคอนหยดสีอุ่น: เหลือง (สีอุ่นของ sad/tired) → พีช (สีอุ่นของ angry)
+export const WARM_GRADIENT = [SHIFT_TARGETS.sad[0], SHIFT_TARGETS.angry[0]]
