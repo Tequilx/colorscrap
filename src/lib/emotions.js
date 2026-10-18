@@ -1,6 +1,7 @@
 // ข้อมูลอารมณ์ 8 แบบ (SPEC §3.2, §11.1) สีดึงจาก tokens.js ที่เดียว
 import { EMOTION_COLORS } from '@/lib/tokens'
 import { mixRgb } from '@/lib/color'
+import { DYE_LIMIT } from '@/lib/dyeLimit'
 
 const DOT_EYES = 'M38 46 L38 46.1 M62 46 L62 46.1'
 
@@ -57,14 +58,14 @@ export const INTENSITY_FACTOR = [0.6, 1, 1.5]
 // ค่าไหล (brightness/speed/curl/velDiss/radius/pattern) เท่ากับ main ทุกตัว ความต่างจาก main คือ splash กับการแห้งของน้ำ (FLUID_GLOBAL.flowTime/dryTime)
 // pattern: burst กระจายรอบทิศ | drift ไหลช้า | fall ไหลลง (มีแรงถ่วง) | pulse พุ่งเป็นจังหวะ | scatter จุดเล็กทั่วกระดาษ | still แทบนิ่ง
 export const FLUID_PARAMS = {
-  happy: { brightness: 2.0, speed: 1.3, curl: 18, velDiss: 0.35, radius: 0.15, splash: [1.48, 1.64, 1.16], pattern: 'burst' },
-  calm: { brightness: 1.8, speed: 0.5, curl: 6, velDiss: 0.5, radius: 0.2, splash: [1.15, 1.28, 1.86], pattern: 'drift' },
-  excited: { brightness: 2.0, speed: 1.4, curl: 30, velDiss: 0.3, radius: 0.12, splash: [0.48, 0.52, 0.45], pattern: 'burst' },
-  warm: { brightness: 2.0, speed: 1, curl: 12, velDiss: 0.4, radius: 0.22, splash: [1.47, 1.04, 1.73], pattern: 'burst' },
-  sad: { brightness: 1.7, speed: 0.5, curl: 8, velDiss: 0.5, radius: 0.18, splash: [0.91, 0.97, 1.27], pattern: 'fall' },
-  angry: { brightness: 2.0, speed: 1.3, curl: 26, velDiss: 0.3, radius: 0.13, splash: [1.3, 0.98, 1.43], pattern: 'pulse' },
-  anxious: { brightness: 1.9, speed: 1, curl: 22, velDiss: 0.35, radius: 0.09, splash: [1.14, 1.23, 1.8], pattern: 'scatter' },
-  tired: { brightness: 1.6, speed: 0.2, curl: 4, velDiss: 0.55, radius: 0.2, splash: [0.59, 0.49, 0.36], pattern: 'still' },
+  happy: { brightness: 2.0, speed: 1.3, curl: 18, velDiss: 0.35, radius: 0.15, splash: [1.06, 0.65, 0.43], pattern: 'burst' },
+  calm: { brightness: 1.8, speed: 0.5, curl: 6, velDiss: 0.5, radius: 0.2, splash: [1.01, 0.92, 0.76], pattern: 'drift' },
+  excited: { brightness: 2.0, speed: 1.4, curl: 30, velDiss: 0.3, radius: 0.12, splash: [0.62, 0.42, 0.33], pattern: 'burst' },
+  warm: { brightness: 2.0, speed: 1, curl: 12, velDiss: 0.4, radius: 0.22, splash: [0.93, 0.71, 0.67], pattern: 'burst' },
+  sad: { brightness: 1.7, speed: 0.5, curl: 8, velDiss: 0.5, radius: 0.18, splash: [0.92, 0.8, 0.78], pattern: 'fall' },
+  angry: { brightness: 2.0, speed: 1.3, curl: 26, velDiss: 0.3, radius: 0.13, splash: [1.04, 0.73, 0.64], pattern: 'pulse' },
+  anxious: { brightness: 1.9, speed: 1, curl: 22, velDiss: 0.35, radius: 0.09, splash: [0.77, 0.75, 0.54], pattern: 'scatter' },
+  tired: { brightness: 1.6, speed: 0.2, curl: 4, velDiss: 0.55, radius: 0.2, splash: [0.55, 0.52, 0.3], pattern: 'still' },
 }
 
 // สีน้ำที่แห้งติดกระดาษ: สีไม่จางเลย ต้องเป็น 0 พอดี (ไม่ใช่ค่าเล็ก ๆ)
@@ -94,7 +95,9 @@ export const SPLASH_LEVELS = [
 // splashMs = ช่วงเวลาที่หยดตอนสาดทยอยลง (ms) ไม่ลงพร้อมกันทั้งหมด
 // สีน้ำที่ค่อย ๆ แห้ง (ดู FluidCanvas): flowTime = วินาทีหลัง input ล่าสุดที่น้ำไหลปกติ (velDiss ของอารมณ์) หลังจากนั้นเพิ่ม velocityDissipation
 // แบบ ease-in-out จนถึง dryDamp ที่ dryTime วินาที (นับจาก input ล่าสุด) น้ำจึงสงบเอง ไม่แตะ density จึงไม่ทำให้สีจาง
-export const FLUID_GLOBAL = { density: DENSITY_DISSIPATION, inkCap: INK_CAP, warmCap: WARM_INK_CAP, splashMs: 1000, flowTime: 2.5, dryTime: 10, dryDamp: 6 }
+// ตัวกันดำ: 'gpu' = จำกัด dye ที่พิกเซลใน shader ลงสี (gpuCap/minLight/knee ดู lib/dyeLimit.js) 'cpu' = แบบเก่า (แผนที่ ink บล็อกหยด inkCap/warmCap)
+// สวิตช์ใน ?debug ไว้เทียบ จะลบแบบเก่าทีหลัง
+export const FLUID_GLOBAL = { blackGuard: 'gpu', gpuCap: DYE_LIMIT.cap, minLight: DYE_LIMIT.minLight, knee: DYE_LIMIT.knee, density: DENSITY_DISSIPATION, inkCap: INK_CAP, warmCap: WARM_INK_CAP, splashMs: 1000, flowTime: 2.5, dryTime: 10, dryDamp: 6 }
 
 // ค่าเริ่มต้นทั้งหมด (สำเนาตอนโหลดโมดูล) ให้ปุ่ม "รีเซ็ตเป็นค่าเริ่มต้น" ในแผง ?debug คืนค่า
 const clone = (o) => JSON.parse(JSON.stringify(o))

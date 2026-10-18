@@ -23,6 +23,7 @@ import WebGLFluid from 'webgl-fluid-enhanced'
 import { emotionShades, FLUID_PARAMS, FLUID_GLOBAL, SPLASH_LEVELS, INK_CELL, INITIAL_SPLATS, INTENSITY_FACTOR, SHIFT_TARGETS } from '@/lib/emotions'
 import { PALETTE } from '@/lib/tokens'
 import { dyeSetting, invertedHex } from '@/lib/dye'
+import { DYE_SPLAT_FRAG, PAPER_LIGHT } from '@/lib/dyeLimit'
 import { warmTune as tune, noteDebug as debug, fluidInfo, DEV_PARAMS_EVENT, DEV_NOTE_RESET_EVENT } from '@/lib/devState'
 
 const props = defineProps({
@@ -113,10 +114,8 @@ const inkCols = Math.ceil(SIZE.w / INK_CELL)
 const inkRows = Math.ceil(SIZE.h / INK_CELL)
 let ink = new Float32Array(inkCols * inkRows)
 const dyePeak = (hex) => Math.max(...[1, 3, 5].map((i) => 1 - parseInt(hex.slice(i, i + 2), 16) / 255))
-// opts.cap = เพดานที่ใช้ (ค่าเริ่มต้น INK_CAP) opts.centreOnly = ตรวจเฉพาะช่องที่หยดตก (สีอุ่น: ไม่ให้ช่องข้างเคียงที่เต็มบล็อกหยดทั้งหมด)
-const takeInk = (x, y, strength, hex, radius, { cap = FLUID_GLOBAL.inkCap, centreOnly = false } = {}) => {
-  const unit = params().brightness * INTENSITY_FACTOR[props.intensity] * dyePeak(hex)
-  if (unit <= 0) return { given: 0, room: 0 }
+// ช่องของแผนที่ ink ที่หยดรัศมี radius ที่ (x, y) แตะ: [{ index, weight }] weight = ค่าสูงสุดของ Gaussian ในช่องนั้น (0..1) และช่องที่หยดตก
+const inkCells = (x, y, radius) => {
   // ρ ของ exp(−d²/ρ) ในหน่วยพิกเซลกระดาษ: ไลบรารีใช้ (splatRadius/100) × aspect บน UV ที่ x ถูกคูณ aspect อยู่แล้ว
   const rho = (SIZE.w * SIZE.h * radius) / 100
   const reach = Math.ceil(Math.sqrt(rho * 3) / INK_CELL) + 1 // 3ρ ≈ ค่าตกเหลือ e^-3 (5%) +1 ช่องเผื่อขอบ
@@ -138,9 +137,21 @@ const takeInk = (x, y, strength, hex, radius, { cap = FLUID_GLOBAL.inkCap, centr
     const i = Math.min(ink.length - 1, cy * inkCols + cx)
     hit.push({ index: Math.max(0, i), weight: 1 })
   }
+  return { hit, centreIndex: Math.min(ink.length - 1, cy * inkCols + cx) }
+}
+// ตัวกันดำแบบ GPU ไม่ใช้แผนที่บล็อกหยดแล้ว แผนที่นี้เหลือไว้ประเมินว่าตรงไหนมีสีมากน้อย (ใช้หาที่วาง "ลองดู") กับงบการยกสีของสีอุ่นแบบบาน
+// ค่าสะสมประมาณ (ไม่ตามสีที่น้ำพาไป) จึงจำกัดไว้ที่ 1 ต่อช่อง
+const depositInk = (x, y, amount, radius) => {
+  const { hit } = inkCells(x, y, radius)
+  for (const h of hit) ink[h.index] = Math.min(1, ink[h.index] + amount * h.weight)
+}
+// (แบบเก่า CPU) opts.cap = เพดานที่ใช้ (ค่าเริ่มต้น INK_CAP) opts.centreOnly = ตรวจเฉพาะช่องที่หยดตก (สีอุ่น: ไม่ให้ช่องข้างเคียงที่เต็มบล็อกหยดทั้งหมด)
+const takeInk = (x, y, strength, hex, radius, { cap = FLUID_GLOBAL.inkCap, centreOnly = false } = {}) => {
+  const unit = params().brightness * INTENSITY_FACTOR[props.intensity] * dyePeak(hex)
+  if (unit <= 0) return { given: 0, room: 0 }
+  const { hit, centreIndex } = inkCells(x, y, radius)
   let allowed = strength * unit
   let room = 1
-  const centreIndex = Math.min(ink.length - 1, cy * inkCols + cx)
   for (const h of hit) {
     if (centreOnly && h.index !== centreIndex) continue
     allowed = Math.min(allowed, Math.max(0, cap - ink[h.index]) / h.weight)
@@ -299,6 +310,51 @@ const pushWater = (x, y, dx, dy, radius, auto = false) => {
   fluid.splatAtLocation(x * (window.devicePixelRatio || 1), y, dx, dy, '#000000')
 }
 
+// ลง dye หนึ่งหยดด้วย shader ตัวกันดำ: dye = เวกเตอร์สีที่ขอลง (หน่วยเดียวกับ dye ของไลบรารี)
+const dyeSplat = (x, y, radius, dye) => {
+  const dp = getDyeProgram()
+  if (!dp) return false
+  const sim = fluid.simulation
+  const gl = sim.gl
+  gl.useProgram(dp.program)
+  gl.uniform1i(dp.u.uTarget, sim._dye.read.attach(0))
+  gl.uniform1f(dp.u.aspectRatio, sim.canvas.width / sim.canvas.height)
+  gl.uniform3f(dp.u.color, dye[0], dye[1], dye[2])
+  gl.uniform2f(dp.u.point, x / SIZE.w, 1 - y / SIZE.h)
+  gl.uniform1f(dp.u.radius, sim.correctRadius(radius / 100))
+  gl.uniform1f(dp.u.cap, FLUID_GLOBAL.gpuCap)
+  gl.uniform1f(dp.u.dmax, Math.max(0.05, PAPER_LIGHT - FLUID_GLOBAL.minLight))
+  gl.uniform1f(dp.u.knee, FLUID_GLOBAL.knee)
+  sim.blit(sim._dye.write)
+  sim._dye.swap()
+  return true
+}
+
+// dye (เวกเตอร์ 1 − rgb/255) ของเฉดสี × ความเข้มของอารมณ์/ระดับ × strength ตรงกับที่ไลบรารีคำนวณจาก colorPalette + brightness (lib/dye.js)
+const dyeOf = (hex, strength) => {
+  const gain = params().brightness * INTENSITY_FACTOR[props.intensity] * strength
+  return [1, 3, 5].map((i) => (1 - parseInt(hex.slice(i, i + 2), 16) / 255) * gain)
+}
+
+// หยดสีหนึ่งหยดแบบ GPU: ดันน้ำ (ผ่านความเร็วของไลบรารี) + ลง dye ผ่าน shader ตัวกันดำ ลงสีเสมอ ไม่มีการข้ามหรือบล็อกจากแผนที่ ink
+// ใกล้เพดานสีที่ลงจริงลดลงเอง (นุ่มนวล) แรงดันน้ำไปพร้อมสีเสมอ ไม่มีดันน้ำโดยไม่มีสี
+const splatGpu = (x, y, dx, dy, { hex, radius, strength = 1 }) => {
+  const shade = hex ?? pickShade()
+  let dye = dyeOf(shade, strength)
+  const peak = Math.max(...dye)
+  if (peak < 0.003) return false
+  // หยดเดียวไม่ให้ยอดสูงเกิน cap: ลดทั้งหยดตามสัดส่วน (รูปทรง Gaussian เดิม ไม่ตัดยอดแบน) เหมือนที่แบบเก่าทำกับหยดแรก หน้าตาหยดเดี่ยวจึงเท่าเดิม
+  // ส่วนการซ้อนของหยดหลายหยดที่จุดเดียวกันให้ shader ตัวกันดำจัดการ (ตรงที่สีจริงเต็มแล้วเท่านั้น)
+  if (peak > FLUID_GLOBAL.gpuCap) dye = dye.map((v) => (v * FLUID_GLOBAL.gpuCap) / peak)
+  if (!getDyeProgram()) return null
+  wake()
+  const r = radius * INK_SPREAD
+  pushWater(x, y, dx, dy, r)
+  dyeSplat(x, y, r, dye)
+  depositInk(x, y, Math.max(...dye), radius)
+  return true
+}
+
 // พิกัด css px บนกระดาษ (0..SIZE) → ไลบรารี (x เป็น px จริง ×dpr, y เป็น css px และกลับแกนเอง)
 // warm = หยดสีอุ่นของผู้ใช้: เพดานแยก (FLUID_GLOBAL.warmCap) ตรวจช่องที่ตกอย่างเดียว และถ้าลงสีไม่ได้เลย (given = 0) ข้ามทั้งหมด
 // ไม่ส่ง splat สีศูนย์ที่ยังดันน้ำ (เดิมดูเหมือนหยดแล้วสีไม่ออก แต่น้ำขยับ) คืน true ถ้าลงสีจริง
@@ -307,6 +363,10 @@ const splat = (x, y, dx, dy, { hex, radius, noColor, strength = 1, warm = false 
   if (noColor) {
     pushWater(x, y, dx, dy, radius, true)
     return false
+  }
+  if (FLUID_GLOBAL.blackGuard === 'gpu') {
+    const done = splatGpu(x, y, dx, dy, { hex, radius, strength })
+    if (done !== null) return done // null = เครื่องนี้ใช้ shader ตัวกันดำไม่ได้ → ถอยไปแบบ CPU ด้านล่าง
   }
   const shade = hex ?? pickShade()
   const { given, room } = takeInk(x, y, strength, shade, radius, warm ? { cap: FLUID_GLOBAL.warmCap, centreOnly: true } : undefined)
@@ -499,35 +559,45 @@ void main () {
   vec3 boosted = base * max(0.0, 1.0 - amount * g + rim * ring);
   gl_FragColor = vec4(min(boosted, max(base, vec3(cap))), 1.0);
 }`
-let lift = null // null = ยังไม่สร้าง, false = เครื่องนี้สร้างไม่ได้ (บานแต่ไม่ยกสี)
-const getLift = () => {
-  if (lift !== null) return lift
-  lift = false
+// โปรแกรม shader ของเราเอง: ใช้ vertex shader ตัวเดียวกับ splat ของไลบรารี (aPosition → vUv) เขียนเฉพาะ fragment shader
+// คืน { program, u } หรือ false ถ้าเครื่องนี้คอมไพล์/ลิงก์ไม่ได้ (ผู้เรียกถอยกลับไปทางเดิม) ลองเฉพาะ GLSL ES 1.00 จึงใช้ได้ทั้ง WebGL1/2
+const buildProgram = (frag, names) => {
   try {
     const sim = fluid?.simulation
     const gl = sim?.gl
     const base = sim?.programs?.splatProgram?.program
-    if (!gl || !base || !sim._dye) return lift
-    // ใช้ vertex shader ตัวเดียวกับของ splat (aPosition → vUv) เขียนเฉพาะ fragment shader ของการคูณ
+    if (!gl || !base || !sim._dye) return false
     const vs = gl.getAttachedShaders(base).find((sh) => gl.getShaderParameter(sh, gl.SHADER_TYPE) === gl.VERTEX_SHADER)
     const fs = gl.createShader(gl.FRAGMENT_SHADER)
-    gl.shaderSource(fs, LIFT_FRAG)
+    gl.shaderSource(fs, frag)
     gl.compileShader(fs)
-    if (!vs || !gl.getShaderParameter(fs, gl.COMPILE_STATUS)) return lift
+    if (!vs || !gl.getShaderParameter(fs, gl.COMPILE_STATUS)) {
+      console.error('คอมไพล์ shader ไม่สำเร็จ:', gl.getShaderInfoLog(fs))
+      return false
+    }
     const program = gl.createProgram()
     gl.attachShader(program, vs)
     gl.attachShader(program, fs)
     gl.bindAttribLocation(program, 0, 'aPosition')
     gl.linkProgram(program)
-    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) return lift
+    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+      console.error('ลิงก์ shader ไม่สำเร็จ:', gl.getProgramInfoLog(program))
+      return false
+    }
     const u = {}
-    for (const name of ['uTarget', 'aspectRatio', 'point', 'radius', 'amount', 'rim', 'cap']) u[name] = gl.getUniformLocation(program, name)
-    lift = { program, u }
+    for (const name of names) u[name] = gl.getUniformLocation(program, name)
+    return { program, u }
   } catch (error) {
-    console.error('สร้าง shader ยกสีไม่สำเร็จ:', error)
+    console.error('สร้าง shader ไม่สำเร็จ:', error)
+    return false
   }
-  return lift
 }
+let lift = null // null = ยังไม่สร้าง, false = เครื่องนี้สร้างไม่ได้ (บานแต่ไม่ยกสี)
+const getLift = () => (lift === null ? (lift = buildProgram(LIFT_FRAG, ['uTarget', 'aspectRatio', 'point', 'radius', 'amount', 'rim', 'cap'])) : lift)
+// ลงสีด้วย shader ตัวกันดำ GPU (lib/dyeLimit.js) null/false = ใช้ไม่ได้ → ถอยไปแบบ CPU เก่า
+let dyeProgram = null
+const getDyeProgram = () => (dyeProgram === null ? (dyeProgram = buildProgram(DYE_SPLAT_FRAG, ['uTarget', 'aspectRatio', 'color', 'point', 'radius', 'cap', 'dmax', 'knee'])) : dyeProgram)
+if (typeof window !== 'undefined' && DEBUG) window.__dyeProgramOk = () => Boolean(getDyeProgram())
 const liftDye = (x, y, radius, amount, rim) => {
   const lp = getLift()
   if (!lp) return false

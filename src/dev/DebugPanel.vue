@@ -29,6 +29,14 @@
       </div>
 
       <div class="mt-1 border-t border-white/30 pt-1 font-bold">ค่ากลาง (ใช้ทุกอารมณ์)</div>
+      <!-- ตัวกันดำ: สลับเทียบแบบเก่า (แผนที่ ink บล็อกหยดที่ CPU) กับแบบใหม่ (จำกัด dye ที่พิกเซลใน shader) เก็บไว้ชั่วคราว -->
+      <label class="flex items-center gap-2">
+        <span class="w-[78px] shrink-0">ตัวกันดำ</span>
+        <select class="w-[150px] text-black" data-global="blackGuard" :value="gv({ key: 'blackGuard' })" @change="setGlobal({ key: 'blackGuard' }, $event.target.value)">
+          <option value="gpu">แบบใหม่ (GPU)</option>
+          <option value="cpu">แบบเก่า (CPU)</option>
+        </select>
+      </label>
       <label v-for="g in GLOBAL_FIELDS" :key="g.key" class="flex items-center gap-2">
         <span class="w-[78px] shrink-0">{{ g.label }}</span>
         <input type="range" class="w-[88px]" :min="g.min" :max="g.max" :step="g.step" :value="gv(g)" @input="setGlobal(g, $event.target.valueAsNumber)" />
@@ -95,7 +103,10 @@ const FIELDS = [
 ]
 // ค่ากลางของผ้าใบ (FLUID_GLOBAL ใน emotions.js)
 const GLOBAL_FIELDS = [
-  { key: 'inkCap', label: 'เพดานสี/ช่อง', min: 0.2, max: 1.5, step: 0.05 },
+  { key: 'inkCap', label: 'เพดานสี/ช่อง (CPU)', min: 0.2, max: 1.5, step: 0.05 },
+  { key: 'gpuCap', label: 'CAP (GPU)', min: 0.4, max: 1, step: 0.01 },
+  { key: 'minLight', label: 'MIN_LIGHT (GPU)', min: 0, max: 0.5, step: 0.01 },
+  { key: 'knee', label: 'knee (GPU)', min: 0.2, max: 0.95, step: 0.01 },
   { key: 'density', label: 'จางช้า (density)', min: 0, max: 0.01, step: 0.0005 },
   { key: 'dryTime', label: 'เวลาจนแห้ง (วินาที)', min: 4, max: 30, step: 1 },
   { key: 'flowTime', label: 'ไหลปกติก่อนเริ่มแห้ง (วินาที)', min: 0.5, max: 8, step: 0.5 },
