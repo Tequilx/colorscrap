@@ -56,6 +56,7 @@ for (const emotion of emotions) {
       }
       localStorage.setItem('colorscrap.profile', JSON.stringify({ displayName: 'วัดสี', avatar: 'cat', coverColor: '#9E2F2A', likes: [] }))
     }, seed)
+    await context.route(/fonts\.(googleapis|gstatic)\.com/, (r) => r.abort()) // ฟอนต์ภายนอกบล็อกการโหลดหน้าเมื่อออฟไลน์ ไม่เกี่ยวกับผ้าใบ
     const page = await context.newPage()
     if (replacements.length) {
       // ทุกการแทนที่ทำในเส้นทางเดียว (route ซ้อนกันจะไม่ต่อกัน เหลือแค่อันสุดท้าย)
@@ -71,7 +72,7 @@ for (const emotion of emotions) {
     }
     const errors = []
     page.on('pageerror', (e) => errors.push(e.message))
-    await page.goto(`${url}/?debug`)
+    await page.goto(`${url}/?debug`, { waitUntil: 'domcontentloaded' }) // ไม่รอฟอนต์จาก Google (ออฟไลน์ก็วัดได้)
     await page.waitForTimeout(800)
 
     const params = await page.evaluate(async (key) => {

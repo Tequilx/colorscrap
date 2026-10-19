@@ -67,6 +67,7 @@ for (const kase of cases) {
     }
     localStorage.setItem('colorscrap.profile', JSON.stringify({ displayName: 'วัด', avatar: 'cat', coverColor: '#9E2F2A', likes: [] }))
   })
+  await context.route(/fonts\.(googleapis|gstatic)\.com/, (r) => r.abort()) // ฟอนต์ภายนอกบล็อกการโหลดหน้าเมื่อออฟไลน์ ไม่เกี่ยวกับผ้าใบ
   const page = await context.newPage()
   for (const [mod, pairs] of modules) {
     await page.route(`**/${mod}*`, async (route) => {
@@ -79,7 +80,7 @@ for (const kase of cases) {
       await route.fulfill({ response, body })
     })
   }
-  await page.goto(`${url}/${debug ? '?debug' : ''}`)
+  await page.goto(`${url}/${debug ? '?debug' : ''}`, { waitUntil: 'domcontentloaded' })
   await page.waitForTimeout(800)
   await page.evaluate(({ emotion, intensity, kase, tool }) => {
     const app = document.querySelector('#app').__vue_app__.config.globalProperties.$pinia._s.get('app')

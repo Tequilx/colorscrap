@@ -8,7 +8,7 @@
 // metric m = ค่าที่วัด ÷ เพดาน (1 = ถึงเพดาน) m0 = ก่อนลงสี, m1 = ถ้าลงเต็มที่ขอ → m ใหม่ = u0 + H(1 − e^(−(ส่วนเกิน knee)/H)) โดย H = 1 − u0
 // แล้ว s = (m ใหม่ − m0) ÷ (m1 − m0) คือสัดส่วนของสีที่ขอที่ลงจริง (ไม่ลดสีเดิม ไม่เกิน 1)
 
-export const DYE_LIMIT = { cap: 0.85, minLight: 0.2, knee: 0.55 }
+export const DYE_LIMIT = { cap: 0.85, minLight: 0.3, knee: 0.8 }
 // ความสว่างของกระดาษ (ค่าถ่วงน้ำหนัก rec.709 ของ PALETTE.paper #FBFAF6) ใช้หา "ความมืดสูงสุดที่ยอมได้" dmax = paperLight − minLight
 export const PAPER_LIGHT = 0.9796
 export const LUMA = [0.2126, 0.7152, 0.0722]

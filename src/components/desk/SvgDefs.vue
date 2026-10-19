@@ -2,11 +2,6 @@
   <!-- SVG filter ทั้งหมด วางครั้งเดียวที่ root แล้วอ้างผ่าน filter: url(#id) -->
   <svg width="0" height="0" class="absolute" aria-hidden="true">
     <defs>
-      <!-- ไล่สีไอคอนหยดสีอุ่น (เครื่องมือ "สีอุ่น" และโน้ตชวน) -->
-      <linearGradient id="warmGrad" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0" :stop-color="WARM_GRADIENT[0]" />
-        <stop offset="1" :stop-color="WARM_GRADIENT[1]" />
-      </linearGradient>
       <!-- ขอบทรงลายมือ: ห้ามใส่กับพื้นที่ใหญ่ ของที่ขยับตลอด หรือ element ที่มีตัวหนังสือยาว -->
       <filter id="wob">
         <feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="2" />
@@ -47,5 +42,4 @@
 </template>
 
 <script setup>
-import { WARM_GRADIENT } from '@/lib/emotions'
 </script>
