@@ -4,7 +4,7 @@
     :class="palette.length ? 'pb-[46px]' : 'pb-8'" :style="{ transform: `rotate(${rotate}deg)` }">
     <Tape v-if="tape" class="left-[56px] top-[-11px]" :rotate="tapeRotate" />
     <!-- ช่องภาพสัดส่วนเท่ากระดาษวาด 1112:612 ภาพจริงจึงไม่ถูกตัดขอบ (178×~98) -->
-    <div class="aspect-[1112/612] w-[178px] overflow-hidden bg-paper">
+    <div data-wet-target class="aspect-[1112/612] w-[178px] overflow-hidden bg-paper">
       <!-- ภาพจริงของผู้ใช้: สัดส่วนเดียวกับช่อง -->
       <img v-if="src" :src="src" :alt="alt" draggable="false" class="block h-full w-full object-cover" />
       <slot v-else>

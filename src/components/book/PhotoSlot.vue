@@ -17,12 +17,13 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import Polaroid from '@/components/ui/Polaroid.vue'
 import { EMOTION_BY_KEY, emotionLabel } from '@/lib/emotions'
 import { photoRotation } from '@/lib/photos'
 import { useEntryImage } from '@/lib/useEntryImage'
 import { centerInStage } from '@/lib/flip'
+import { startWet } from '@/lib/wetPhoto'
 import { useAppStore } from '@/stores/app'
 
 const props = defineProps({
@@ -42,6 +43,14 @@ const open = () => {
   const center = root.value && centerInStage(root.value.querySelector('figure'))
   emit('open', { id: props.entry.id, origin: center ? { ...center, rotate: rot.value.rotate } : null })
 }
+
+// ภาพที่เพิ่งแปะ: ตอนการ์ดขึ้น (savePhase = card) พลิ้วเบา ๆ เหมือนสียังไม่แห้ง ~3 วิ (reduced-motion/หลายภาพพร้อมกัน: lib/wetPhoto.js จัดการ)
+watch(
+  () => app.savePhase,
+  (phase) => {
+    if (phase === 'card' && props.isNew) startWet(root.value?.querySelector('[data-wet-target]'))
+  },
+)
 
 const emotion = computed(() => EMOTION_BY_KEY[props.entry.emotion])
 // โพลารอยด์ในสมุดใช้ thumb (ไม่มี = mock แสดงหยดสีจำลอง)

@@ -36,6 +36,11 @@
         <feComposite in="ga" in2="b" operator="in" result="gin" />
         <feMerge><feMergeNode in="b" /><feMergeNode in="gin" /></feMerge>
       </filter>
+      <!-- ภาพยังเปียก (lib/wetPhoto.js ตั้ง scale/baseFrequency ทุกเฟรมช่วง 3 วิแรก แล้วถอดฟิลเตอร์ออก) scale 0 = ไม่บิดเลย -->
+      <filter id="wet" x="-4%" y="-4%" width="108%" height="108%">
+        <feTurbulence id="wet-turb" type="fractalNoise" baseFrequency="0.012 0.018" numOctaves="2" seed="11" result="n" />
+        <feDisplacementMap id="wet-disp" in="SourceGraphic" in2="n" scale="0" xChannelSelector="R" yChannelSelector="G" />
+      </filter>
       <!-- หยดสีขนาดเล็กที่ชิปความเข้ม -->
       <filter id="wcs" x="-30%" y="-30%" width="160%" height="160%">
         <feTurbulence type="fractalNoise" baseFrequency="0.05" numOctaves="2" seed="8" result="n" />

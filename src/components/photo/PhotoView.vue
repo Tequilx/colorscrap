@@ -79,6 +79,7 @@ import { photoRotation } from '@/lib/photos'
 import { centerInStage, flightTransforms } from '@/lib/flip'
 import { ms, reducedMotion } from '@/lib/motion'
 import { MOTION } from '@/lib/tokens'
+import { startWet, stopWet } from '@/lib/wetPhoto'
 import { useAppStore } from '@/stores/app'
 import { useEntriesStore } from '@/stores/entries'
 import { useShareStore } from '@/stores/share'
@@ -147,6 +148,7 @@ const play = (node, frames, options) => {
   return a.finished
 }
 const onCancel = () => {
+  stopWet()
   running.forEach((a) => a.cancel())
   running = []
   app.photoFlying = false
@@ -198,11 +200,14 @@ const onEnter = (el, done) => {
   fly(el, () => {
     done()
     showFull()
+    // ภาพที่เปิดดูเดี่ยวพลิ้วเบา ๆ ~3 วิหลังลอยลงที่ (ภาพที่เพิ่งแปะถูกหยุดอัตโนมัติ: เล่นทีละภาพเท่านั้น)
+    startWet(el.querySelector('[data-wet-target]'))
   }, true)
 }
 
 // ออก: ซ่อนช่องในสมุดไว้จนภาพบินถึง แล้วค่อยเลิกซ่อนพร้อมถอดภาพบิน (เฟรมเดียวกัน) แล้วคืนโฟกัสให้ปุ่มที่เปิด
 const onLeave = (el, done) => {
+  stopWet() // ปิดภาพ: เลิกพลิ้วทันที (ถอดฟิลเตอร์ก่อนภาพบินกลับ)
   app.photoHiddenId = app.photoEntryId
   fly(el, () => {
     app.photoHiddenId = null
