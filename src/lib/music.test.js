@@ -1,0 +1,32 @@
+import { describe, it, expect } from 'vitest'
+import { CROSSFADE_MS, FADE_IN_MS, candidates, trackOf } from './music'
+import { MASTER_GAIN, MUSIC_BASE, MUSIC_DUCK, readEnabled } from './sound'
+
+describe('music tracks', () => {
+  it('กลางวันและเย็นใช้ day กลางคืนใช้ night (ช่วงเวลาเดียวกับ DeskLight)', () => {
+    expect(trackOf('day')).toBe('day')
+    expect(trackOf('dusk')).toBe('day')
+    expect(trackOf('night')).toBe('night')
+  })
+  it('ลอง mp3 ก่อน wav', () => {
+    expect(candidates('day')).toEqual(['/audio/music-day.mp3', '/audio/music-day.wav'])
+    expect(candidates('night')[0]).toMatch(/music-night\.mp3$/)
+  })
+  it('เวลา fade: เข้า 3 วิ สลับช่วง 4 วิ', () => {
+    expect(FADE_IN_MS).toBe(3000)
+    expect(CROSSFADE_MS).toBe(4000)
+  })
+})
+
+describe('music levels', () => {
+  it('เพลงเบากว่าเอฟเฟกต์ ~20 dB และลดเหลือครึ่งหนึ่งตอน duck', () => {
+    expect(MUSIC_BASE).toBeLessThan(MASTER_GAIN / 10)
+    expect(MUSIC_DUCK).toBe(0.5)
+  })
+  it('เปิด/ปิดเพลงจำแยกจากเอฟเฟกต์ (คนละ key) ค่าเริ่มต้นเปิด', () => {
+    const store = { 'colorscrap.sound': '0' }
+    const storage = { getItem: (k) => store[k] ?? null }
+    expect(readEnabled(storage, 'colorscrap.sound')).toBe(false)
+    expect(readEnabled(storage, 'colorscrap.music')).toBe(true)
+  })
+})

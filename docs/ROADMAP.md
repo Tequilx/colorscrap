@@ -85,3 +85,19 @@
 - `lib/wetPhoto.js` (`startWet`/`stopWet`, singleton = เล่นทีละภาพ) + `lib/wetCurve.js` (`wetStrength` = peak·(1−u)² ease-out ถึง 0 ที่ 3 วิ; ฟังก์ชันล้วน เทสต์ `wetPhoto.test.js` 3 ตัว) + filter `#wet` ใน `SvgDefs.vue` (feTurbulence + feDisplacementMap ตั้ง `scale`/`baseFrequency` ทุกเฟรม แล้ว **ถอด `style.filter` ออก**) · ที่ใช้: `PhotoSlot.vue` (ภาพใหม่ ตอน `savePhase === 'card'`) และ `PhotoView.vue` (หลังภาพลอยลงที่ตอนเปิด หยุดทันทีตอนปิด/ถูกตัด) · เป้าคือ `[data-wet-target]` ที่ `Polaroid.vue`
 - วัด (Chrome): ภาพที่เพิ่งแปะ FPS **60.3** (เฟรมช้าสุด 17 ms) · เปิดภาพเดี่ยว FPS **60.3** (17 ms) · **พิกเซลช่องภาพหลังนิ่ง = ก่อนเล่นทุกไบต์** (sha256 เท่ากัน; ระหว่างเล่นต่างจริง) · PhotoView หลังนิ่ง = หลังถอดฟิลเตอร์ด้วยมือ · filter ไม่ค้างบน DOM · เริ่มภาพที่สองแล้วภาพแรกหยุดทันที · reduced-motion: ไม่เล่น (`wetActive` false, filter ว่างทุกภาพ)
 - ภาพ: `scripts/out/screens/wet/montage.png` (ก่อน / ระหว่าง / หลัง / PhotoView) + `contact-sheet.png` · **ความแรง (peak 7px) เป็นค่าที่เลือกเอง ควรดูด้วยตาว่าเบาพอดีไหม**
+
+
+---
+
+# สาย 3 (ข้อ 11–13)
+
+- [x] **11. ตัวเล่นเพลงคลอ (mock-up รอไฟล์จริง)** — ดูผลด้านล่าง
+- [ ] **12. พู่กันในหน้าเลือกความรู้สึก วาดใหม่ให้ใหญ่และไม่แหลม** (SVG 60×300 แสดง ~66×330, ขนบานตอนแตะน้ำ ~55% ของท่าจุ่ม, เงาตกขวาล่าง, ไม่บังชื่ออารมณ์ของช่องที่เลือก, reduced = เปลี่ยนสีปลายอย่างเดียว)
+- [ ] **13. เก็บงาน** ย้าย filter `wcr` และสี `#FFFDF8` เข้า tailwind config/tokens ให้ถูกที่ (รีสตาร์ท dev server) + ฮาโลจางกว้าง/เบลอด้านหลัง DayRibbon (ป้ายต้องไม่ทับกัน)
+
+### 11. เพลงคลอ — ผ่าน (tag `pre-music`)
+- `lib/music.js` (โหลด `public/audio/music-{day,night}.mp3` ก่อน ไม่มีใช้ `.wav` ไม่มีทั้งคู่เงียบ; `AudioBufferSourceNode.loop` วนไม่มีช่องว่าง; day=กลางวัน+เย็น night=กลางคืน ตาม `lib/daylight.js`; crossfade 4 วิ; fade in 3 วิหลังแตะครั้งแรก) + `lib/sound.js` (บัสเพลง `musicBus` เข้าคอมเพรสเซอร์/ตัวจำกัดตัวเดียวกับเอฟเฟกต์, `MUSIC_BASE`, `duckMusic`, `setMusic`, `onAudioReady`, suspend/resume ตาม `visibilitychange`) + `SoundToggle.vue` 2 ปุ่ม (เพลง/เอฟเฟกต์ เปิดปิดและจำแยก `colorscrap.music` / `colorscrap.sound`, ไอคอน `music`/`musicOff` ใหม่) · ย้ายปุ่มตั้งค่าหน้า cover ลง 12 px (`top-10`) กันทับปุ่มเสียง
+- ลดเสียงเพลง 50% ระหว่างลำดับบันทึก (`runSaveSequence`) และระหว่างแต้มแสงบาน (`sound.bloom`) แล้วคืนช้า ๆ · ห้ามเปลี่ยนเพลงตามอารมณ์ (ไม่มีโค้ดผูก)
+- `scripts/make-placeholder-music.mjs` เขียน WAV เอง (คอร์ดแพด 24 วิ 22.05 kHz mono ต่อกันเนียน: ความถี่ครบรอบพอดี + หน้าต่าง cos² วงกลม; ตรวจรอยวนท้าย→ต้นเท่ากับความต่างตัวอย่างข้างเคียง) ได้ `public/audio/music-day.wav`, `music-night.wav` (ไฟล์ละ ~1 MB commit ไว้เป็น placeholder) · วิธีเปลี่ยนเพลงอยู่ที่ `docs/FILE-GUIDE.md` หัวข้อ "เพลงคลอ"
+- วัด (Chrome headless, `?debug`): เพลงอย่างเดียวยอด **−22.6 dBFS** (เอฟเฟกต์ −3.4 dBFS → ต่าง ~19 dB; ตั้ง `MUSIC_BASE` 0.04 หลังวัดรอบแรกที่ 0.1 ได้ −14.7 ซึ่งดังเกิน) · ปิดเพลง: ยอด **0.0000**, busGain 0 · แตะรัวพร้อมเพลง 60 วิ (545 ครั้ง สลับหยด/แต้มแสง/ปาด): ยอด **−3.43 dBFS (< 0)** FPS 60 เฟรมช้าสุด 23 ms · crossfade day→night: แทร็กเปลี่ยน · duck: บัสเพลงระหว่างบันทึก/ปกติ = **0.50** แล้วคืน 0.0399 · pageerror 0 · **ไม่มีไฟล์เพลงเลย** (บังคับ 404): pageerror 0 และไม่มี `console.error` จากโค้ดเรา (เหลือเฉพาะบรรทัด "Failed to load resource 404" ของเบราว์เซอร์เอง 2 บรรทัด ซึ่งเลี่ยงไม่ได้เมื่อโฮสต์ตอบ 404; dev server/`vite preview` ตอบ index.html 200 จึงไม่ขึ้น)
+- เทสต์ `music.test.js` 5 ตัว · ภาพ: `scripts/out/screens/music/contact-sheet.png` · **ยังไม่ได้ฟังเพลงด้วยหู/บน Safari**

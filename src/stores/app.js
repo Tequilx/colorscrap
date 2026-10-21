@@ -10,7 +10,7 @@ import { EMOTION_COLORS, MOTION } from '@/lib/tokens'
 import { NEGATIVE_EMOTIONS } from '@/lib/emotions'
 import { reducedMotion, sequenceActive, TIME_SCALE } from '@/lib/motion'
 import { POLAROID, saveSchedule, slotCenter } from '@/lib/saveTimeline'
-import { sound } from '@/lib/sound'
+import { sound, duckMusic } from '@/lib/sound'
 
 // สถานะของโต๊ะ (SPEC §4.1) แทนการใช้ router
 export const VIEWS = Object.freeze({
@@ -335,6 +335,7 @@ export const useAppStore = defineStore('app', () => {
       settleLeaf()
       enter(VIEWS.saved)
       sound.tape()
+      duckMusic(MOTION.fade + 900)
       savePhase.value = 'card'
       at(MOTION.fade, () => {
         savePhase.value = 'idle'
@@ -353,6 +354,7 @@ export const useAppStore = defineStore('app', () => {
       schedule: sch,
     }
     savePhase.value = 'shrink'
+    duckMusic(sch.total) // ลดเสียงเพลงครึ่งหนึ่งตลอดลำดับบันทึก
     sound.paperRise(MOTION.save.shrink + MOTION.save.bookAt)
     at(32, clearPaper) // ให้ภาพบินขึ้นจอก่อนค่อยล้างผ้าใบ (ไม่เห็นกะพริบ)
     at(sch.book[0], () => {

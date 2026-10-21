@@ -11,21 +11,27 @@ export const MASTER_GAIN = 0.6
 export const SOFT_CEILING = 0.89 // ≈ −1 dBFS
 
 // อ่านค่าที่จำไว้ ค่าเริ่มต้นเปิด (ใช้ storage ที่ส่งเข้ามาได้เพื่อทดสอบ; ถ้าอ่านไม่ได้ เช่น private mode ถือว่าเปิด)
-export const readEnabled = (storage = globalThis.localStorage) => {
+export const readEnabled = (storage = globalThis.localStorage, key = KEY) => {
   try {
-    return storage?.getItem(KEY) !== '0'
+    return storage?.getItem(key) !== '0'
   } catch {
     return true
   }
 }
-const writeEnabled = (on) => {
+const writeEnabled = (on, key = KEY) => {
   try {
-    globalThis.localStorage?.setItem(KEY, on ? '1' : '0')
+    globalThis.localStorage?.setItem(key, on ? '1' : '0')
   } catch {
     /* ไม่มีที่เก็บ = ไม่จำ */
   }
 }
 export const soundOn = ref(readEnabled())
+
+// เพลงคลอ (lib/music.js) เปิด/ปิดแยกจากเอฟเฟกต์ จำค่าแยก ค่าเริ่มต้นเปิดทั้งคู่
+const MUSIC_KEY = 'colorscrap.music'
+export const MUSIC_BASE = 0.04 // วัดแล้วยอดเพลงอยู่ราว −22 dBFS เทียบยอดเอฟเฟกต์ −3.4 dBFS (ต่าง ~ −19 dB) ผ่านคอมเพรสเซอร์ที่ชดเชยระดับให้เอง
+export const MUSIC_DUCK = 0.5 // ลดเหลือครึ่งหนึ่งระหว่างลำดับบันทึก/แต้มแสงบาน
+export const musicOn = ref(readEnabled(globalThis.localStorage, MUSIC_KEY))
 
 // อารมณ์ช้า (เศร้า เหนื่อย สงบ) ทุ้มกว่า อารมณ์เร็วแหลมกว่า
 const PITCH = { sad: 0.7, tired: 0.62, calm: 0.8, warm: 0.92, angry: 0.88, anxious: 1.12, happy: 1.15, excited: 1.28 }
@@ -81,6 +87,9 @@ const DEBUG = import.meta.env?.DEV && typeof location !== 'undefined' && new URL
 
 let ctx = null
 let master = null
+let musicBus = null
+let duckDepth = 0
+const readyCallbacks = []
 let noiseBuffer = null
 let attached = false
 let lastDropAt = 0
@@ -109,6 +118,10 @@ const build = () => {
   const clip = ctx.createWaveShaper()
   clip.curve = softClipCurve()
   clip.oversample = '2x'
+  // เพลงคลอเข้าคอมเพรสเซอร์/ตัวจำกัดตัวเดียวกับเอฟเฟกต์ (ยอดรวมไม่เกินเพดาน) ผ่านบัสของตัวเอง ระดับ ≈ −20 dB เทียบเอฟเฟกต์
+  musicBus = ctx.createGain()
+  musicBus.gain.value = 0
+  musicBus.connect(comp)
   master.connect(comp)
   comp.connect(clip)
   clip.connect(ctx.destination)
@@ -133,15 +146,30 @@ const build = () => {
   }
 }
 
+// สร้าง AudioContext ครั้งแรก (ต้องอยู่ในเหตุการณ์ของผู้ใช้) แล้วแจ้งผู้รอ (เพลงคลอ) — ใช้ทั้งตอนแตะครั้งแรกและตอนกดปุ่มเปิดเสียง
+const ensureCtx = () => {
+  if (ctx) return
+  build()
+  if (!ctx) return
+  applyMusicGain(true)
+  readyCallbacks.splice(0).forEach((cb) => cb())
+}
+
 // เรียกครั้งเดียวตอนเริ่มแอป: รอแตะ/กดครั้งแรกแล้วค่อยสร้าง AudioContext (iOS ต้องสร้าง/resume ในเหตุการณ์ของผู้ใช้)
 export const attachSound = () => {
   if (attached || typeof window === 'undefined') return
   attached = true
   const unlock = () => {
-    if (!ctx) build()
+    ensureCtx()
     ctx?.resume?.()
   }
   for (const type of ['pointerdown', 'touchend', 'keydown']) window.addEventListener(type, unlock, { passive: true })
+  // แท็บถูกซ่อน/จอพับ: หยุดเสียงทั้งหมด (suspend) กลับมาแล้วเล่นต่อ
+  document.addEventListener('visibilitychange', () => {
+    if (!ctx) return
+    if (document.hidden) ctx.suspend?.()
+    else if (soundOn.value || musicOn.value) ctx.resume?.()
+  })
 }
 
 export const setSound = (on) => {
@@ -157,10 +185,43 @@ export const setSound = (on) => {
   }
   if (on) {
     // เปิดเสียงด้วยการแตะปุ่ม = มี gesture อยู่แล้ว สร้าง/ปลุก context ตรงนี้ด้วย
-    if (!ctx) build()
+    ensureCtx()
     ctx?.resume?.()
   }
 }
+
+// ---- เพลงคลอ: บัส + ลดเสียงอัตโนมัติ (ใช้โดย lib/music.js) ----
+const applyMusicGain = (instant = false) => {
+  if (!musicBus || !ctx) return
+  const target = musicOn.value ? MUSIC_BASE * (duckDepth > 0 ? MUSIC_DUCK : 1) : 0
+  musicBus.gain.cancelScheduledValues(ctx.currentTime)
+  // ลง (duck/ปิด) เร็วหน่อย ขึ้น (คืนเสียง) ช้า ๆ
+  const tc = instant ? 0.001 : target < musicBus.gain.value ? 0.15 : 0.6
+  musicBus.gain.setTargetAtTime(target, ctx.currentTime, tc)
+}
+export const setMusic = (on) => {
+  musicOn.value = on
+  writeEnabled(on, MUSIC_KEY)
+  if (on) ensureCtx()
+  applyMusicGain()
+  if (on) ctx?.resume?.()
+}
+// ลดเสียงเพลงลงครึ่งหนึ่งนาน ms แล้วคืน (ซ้อนกันได้: นับเป็นชั้น)
+export const duckMusic = (ms) => {
+  if (!ctx) return
+  duckDepth++
+  applyMusicGain()
+  setTimeout(() => {
+    duckDepth = Math.max(0, duckDepth - 1)
+    applyMusicGain()
+  }, ms)
+}
+// ให้ lib/music.js ขอ context/บัสเมื่อพร้อม (หลังแตะครั้งแรก) cb เรียกครั้งเดียวทันทีถ้าพร้อมอยู่แล้ว
+export const onAudioReady = (cb) => {
+  if (ctx) cb()
+  else readyCallbacks.push(cb)
+}
+export const getMusicOutput = () => (ctx && musicBus ? { ctx, bus: musicBus } : null)
 
 // ---------- ตัวช่วยสร้างเสียง ----------
 const noiseSource = (loop = true) => {
@@ -293,6 +354,7 @@ export const sound = {
   // แต้มแสงบาน: เสียงอุ่นนุ่มฟุ้งขึ้นแล้วจางตามเส้นโค้งเดียวกับการบาน (ms = ความยาวเส้นโค้ง) gentle = กดค้าง เบาและสั้น
   bloom({ ms = 3000, gentle = false } = {}) {
     if (!ready()) return
+    duckMusic(ms)
     const t = ctx.currentTime
     const dur = ms / 1000
     const vol = gentle ? 0.035 : 0.06
