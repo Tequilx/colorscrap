@@ -59,6 +59,19 @@ describe('layoutRibbon', () => {
   })
 })
 
+describe('segmentColors', () => {
+  it('ภาพแต้มแสงที่สีเด่นที่สุดคือสีแต้มแสงเอง: ใช้สีเด่นที่ห่างจากสีแต้มแสงเป็นสีหลัก (ไม่ไล่เหลือง→เหลือง)', () => {
+    const e = { ...mk(0, '08:00', 'tired', 1, true), colors: [{ hex: '#F7DE99', ratio: 0.5 }, { hex: '#5B6773', ratio: 0.5 }] }
+    const [s] = layoutRibbon([e], 300)
+    expect(s.main).toBe('#5B6773')
+    expect(s.to).toBe('#F7DE99')
+  })
+  it('ไม่มีสีที่ห่างพอ: ใช้สีเด่นสุดตามเดิม', () => {
+    const e = { ...mk(0, '08:00', 'tired', 1, true), colors: [{ hex: '#F7DE99', ratio: 1 }] }
+    expect(layoutRibbon([e], 300)[0].main).toBe('#F7DE99')
+  })
+})
+
 describe('helpers', () => {
   it('ไอคอนช่วงเวลา และคำบรรยาย', () => {
     expect(timeIcon('01:07')).toBe('moon')

@@ -2,6 +2,14 @@
 // 1 ภาพ = 1 ช่วง เรียงตามเวลาจากซ้ายไปขวา (ตามลำดับ ไม่ใช่แกน 24 ชม.) ความกว้างช่วง ∝ น้ำหนักภาพ (palette.js entryWeight)
 import { EMOTION_BY_KEY, WARM_TONES, emotionLabel } from '@/lib/emotions'
 import { entryWeight, rankedColors } from '@/lib/palette'
+import { hexToRgb } from '@/lib/color'
+
+const FAR_FROM_TONE = 70 // ระยะ RGB ที่ถือว่า "ไม่ใช่สีแต้มแสง"
+const colorDistance = (a, b) => {
+  const [r1, g1, b1] = hexToRgb(a)
+  const [r2, g2, b2] = hexToRgb(b)
+  return Math.hypot(r1 - r2, g1 - g2, b1 - b2)
+}
 
 export const BLEND_FRAC = 0.035 // รอยต่อซึมเข้าหากัน ~3.5% ของความกว้างทั้งแถบ
 export const LABEL_FULL_MIN = 90 // ช่วงแคบกว่านี้แสดงแค่เวลา
@@ -23,10 +31,12 @@ export const ribbonCaption = (entry) => `${emotionLabel(entry)}${entry.shifted ?
 
 // สีของช่วง: สีหลักของภาพ (rankedColors: สัดส่วน × ความอิ่มสี ไม่เอาสีใกล้กระดาษเพราะ extractColors ตัดออกแล้ว) ภาพที่ shifted ไล่ไปสีแต้มแสงของอารมณ์นั้น
 export const segmentColors = (entry) => {
-  const main = rankedColors(entry.colors)[0].hex
-  if (!entry.shifted) return { main, to: null }
+  const ranked = rankedColors(entry.colors)
+  if (!entry.shifted) return { main: ranked[0].hex, to: null }
   const tone = WARM_TONES[entry.emotion] ?? WARM_TONES[entry.emotions?.[0]] ?? null
-  return { main, to: tone }
+  // ภาพที่แต้มแสง: สีแต้มแสงเองมักเป็นสีสด/เด่นอยู่ใน colors แล้ว ถ้าเอามาเป็นสีหลักแถบจะไม่ไล่ (เหลือง→เหลือง) จึงเลือกสีเด่นที่ห่างจากสีแต้มแสงก่อน
+  const base = tone ? ranked.find((c) => colorDistance(c.hex, tone) > FAR_FROM_TONE) : null
+  return { main: (base ?? ranked[0]).hex, to: tone }
 }
 
 // ช่วงทั้งหมดของแถบกว้าง width: [{ entry, id, x, w, cx, time, icon, caption, main, to, level, box }]

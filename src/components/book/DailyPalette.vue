@@ -28,24 +28,26 @@
       <p v-if="!entries.length" class="pal-rise absolute left-10 top-[120px] m-0 w-[412px] text-16 leading-[1.7] text-ink-soft" :style="reveal(1, 'rise')">ยังไม่มีสีของวันนี้ ลองระบายสักภาพแล้วสีจะมารวมกันตรงนี้</p>
 
       <template v-else>
-        <div class="absolute left-[34px] top-[82px] flex w-[418px] items-center gap-5">
-          <MixingWell class="pal-seep" :style="reveal(0, 'seep')" :entries="entries" />
-          <div class="pal-rise flex min-w-0 flex-col gap-1.5" :style="reveal(1, 'rise')">
+        <!-- สีของวัน: ก้อนสีน้ำก้อนเดียว (สีผสมของวัน ก้อนเล็กข้างในเป็นสีเด่น) + ชื่อสี + hex (แบบ 11-book-v2) -->
+        <div class="absolute left-10 top-[88px] flex w-[412px] items-center gap-5">
+          <div class="pal-seep relative h-[112px] w-[150px] shrink-0 bg-paper-deep" :style="reveal(0, 'seep')">
+            <WatercolorBlob class="absolute left-[6px] top-[2px]" :color="mix" :width="138" :height="98" :opacity="0.85" />
+            <WatercolorBlob v-if="dominant" class="absolute left-[44px] top-[30px]" :color="dominant" :width="62" :height="44" :opacity="0.7" />
+          </div>
+          <div class="pal-rise flex min-w-0 flex-col gap-1" :style="reveal(1, 'rise')">
             <span class="text-13 text-ink-soft">{{ isToday ? 'สีของวันนี้' : 'สีของวัน' }}</span>
             <span class="font-hand text-26 font-semibold leading-[1.25]">{{ name.colorPart }}<br />{{ name.periodPart }}</span>
-            <svg width="170" height="36" viewBox="0 0 170 36" aria-hidden="true">
-              <g class="filter-wct"><path d="M10 20 C50 12 110 26 160 16" fill="none" :stroke="mix" stroke-width="20" stroke-linecap="round" /></g>
-            </svg>
             <code class="font-mono text-13 text-ink-soft">{{ mix.toUpperCase() }}</code>
           </div>
         </div>
 
-        <div class="pal-fade absolute left-10 top-[306px] flex w-[412px] flex-col gap-1" :style="reveal(3, 'fade')">
-          <span class="font-hand text-17 font-semibold">ช่วงเวลาของวัน</span>
-          <DayTimeline :entries="entries" :new-id="newId" />
+        <!-- แถบสีของวันตามลำดับเวลา: ไล่จากซ้ายไปขวาตอนเข้าสมุด (DayRibbon animate reveal ตาม bookTick เหมือน stagger เดิม) -->
+        <div class="absolute left-10 top-[230px] flex w-[412px] flex-col gap-2">
+          <span class="pal-fade font-hand text-17 font-semibold" :style="reveal(3, 'fade')">สีของวันตามลำดับเวลา</span>
+          <DayRibbon :entries="entries" animate="reveal" :delay="ribbonDelay" :width="412" />
         </div>
 
-        <p class="pal-rise absolute left-10 top-[458px] m-0 w-[412px] text-16 leading-[1.7] text-ink-2" :style="reveal(2, 'rise')">{{ summary }}</p>
+        <p class="pal-rise absolute left-10 top-[472px] m-0 w-[412px] text-16 leading-[1.7] text-ink-2" :style="reveal(2, 'rise')">{{ summary }}</p>
       </template>
 
       <div class="absolute inset-x-10 bottom-[22px] flex items-center justify-between border-t-[1.5px] border-dashed border-line pt-2">
@@ -66,15 +68,15 @@
 
 <script setup>
 import { computed } from 'vue'
-import MixingWell from '@/components/book/MixingWell.vue'
-import DayTimeline from '@/components/book/DayTimeline.vue'
+import DayRibbon from '@/components/book/DayRibbon.vue'
+import WatercolorBlob from '@/components/ui/WatercolorBlob.vue'
 import Doodle from '@/components/ui/Doodle.vue'
-import { dayColor, nameOfDay } from '@/lib/palette'
+import { dayColor, dominantColorOfDay, nameOfDay } from '@/lib/palette'
 import { EMOTION_BY_KEY } from '@/lib/emotions'
 import { localDateStr, parseLocalDate, thaiDateShort } from '@/lib/dates'
 import { useAppStore } from '@/stores/app'
 import { useShareStore } from '@/stores/share'
-import { scaled } from '@/lib/motion'
+import { ms, scaled } from '@/lib/motion'
 import { MOTION } from '@/lib/tokens'
 
 const props = defineProps({
@@ -98,6 +100,10 @@ const reveal = (order, kind) => ({
   '--d': scaled(MOTION.settle + MOTION.reveal.lead + order * MOTION.reveal.step),
   '--dur': scaled(MOTION.reveal[kind]),
 })
+
+// แถบสีเริ่มไล่หลังลำดับที่ 3 ของ stagger (หัวข้อ "สีของวันตามลำดับเวลา" ขึ้นพร้อมกัน)
+const ribbonDelay = ms(MOTION.settle + MOTION.reveal.lead + 3 * MOTION.reveal.step)
+const dominant = computed(() => dominantColorOfDay(props.entries))
 
 const isToday = computed(() => props.date === localDateStr())
 const title = computed(() => (isToday.value ? 'จานสีของวันนี้' : `จานสีของ ${thaiDateShort(parseLocalDate(props.date))}`))

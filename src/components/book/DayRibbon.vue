@@ -29,7 +29,7 @@
         :key="'l' + s.id"
         data-ribbon-label
         class="absolute top-0 flex -translate-x-1/2 flex-col items-center whitespace-nowrap leading-tight transition-opacity duration-450 ease-desk"
-        :class="[lastHighlight(s) ? 'text-ink' : 'text-ink-2', labelsHidden && s === segs.at(-1) ? 'opacity-0' : 'opacity-100']"
+        :class="[lastHighlight(s) ? 'text-ink' : 'text-ink-2', labelsAllHidden || (labelsHidden && s === segs.at(-1)) ? 'opacity-0' : 'opacity-100']"
         :style="{ left: s.cx + 'px' }"
       >
         <span class="mb-1 h-[7px] w-px bg-ink-soft"></span>
@@ -110,7 +110,8 @@ const shape = (s, h) => {
 
 // ---- อนิเมชัน ----
 const offsets = jaggedOffsets()
-const labelsHidden = ref(false)
+const labelsHidden = ref(false) // paintLast: ป้ายช่วงสุดท้ายรอให้การปาดผ่านก่อน
+const labelsAllHidden = ref(false) // reveal: ป้ายทั้งหมดรอให้แถบไล่ผ่านไปก่อนค่อยจางเข้า
 let anim = null
 let timers = []
 
@@ -134,12 +135,14 @@ const startPaint = () => {
   const delay = last ? 500 : props.delay
   el.style.clipPath = sweepPolygon(from, HEIGHT, offsets)
   if (last) labelsHidden.value = true
+  else labelsAllHidden.value = true
   anim = el.animate([{ clipPath: sweepPolygon(from, HEIGHT, offsets) }, { clipPath: sweepPolygon(to, HEIGHT, offsets) }], {
     duration,
     delay,
     easing: 'cubic-bezier(0.45, 0.1, 0.3, 1)',
     fill: 'both',
   })
+  if (!last) timers.push(setTimeout(() => (labelsAllHidden.value = false), delay + duration * 0.55))
   if (last) {
     timers.push(setTimeout(() => sound.stroke(duration), delay))
     timers.push(setTimeout(() => (labelsHidden.value = false), delay + duration * 0.7))
