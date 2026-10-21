@@ -26,6 +26,16 @@
         <feDisplacementMap in="SourceGraphic" in2="n" scale="7" result="d" />
         <feGaussianBlur in="d" stdDeviation="0.5" />
       </filter>
+      <!-- แถบสีของวัน (DayRibbon): ขอบบิดแนวนอนมากกว่าแนวตั้งแบบรอยพู่กัน + เกรนเม็ดสีเฉพาะบนรอยสี (ใช้กับกลุ่มที่เล็กกว่า ~480×90px) -->
+      <filter id="wcr" x="-6%" y="-60%" width="112%" height="220%">
+        <feTurbulence type="fractalNoise" baseFrequency="0.028 0.07" numOctaves="3" seed="6" result="n" />
+        <feDisplacementMap in="SourceGraphic" in2="n" scale="15" result="d" />
+        <feGaussianBlur in="d" stdDeviation="0.9" result="b" />
+        <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="9" result="g" />
+        <feColorMatrix in="g" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.16 0" result="ga" />
+        <feComposite in="ga" in2="b" operator="in" result="gin" />
+        <feMerge><feMergeNode in="b" /><feMergeNode in="gin" /></feMerge>
+      </filter>
       <!-- หยดสีขนาดเล็กที่ชิปความเข้ม -->
       <filter id="wcs" x="-30%" y="-30%" width="160%" height="160%">
         <feTurbulence type="fractalNoise" baseFrequency="0.05" numOctaves="2" seed="8" result="n" />

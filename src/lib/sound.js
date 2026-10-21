@@ -427,6 +427,31 @@ export const sound = {
     voice([osc, sw], t + 0.4)
   },
 
+  // ปาดพู่กันครั้งเดียว (แถบสีของวัน DayRibbon paintLast): เสียงเสียดสีไล่ขึ้นแล้วเบาลงตลอด ms
+  stroke(ms = 1100) {
+    if (!ready()) return
+    const t = ctx.currentTime
+    const dur = ms / 1000
+    const src = noiseSource(true)
+    const bp = ctx.createBiquadFilter()
+    bp.type = 'bandpass'
+    bp.Q.value = 0.9
+    bp.frequency.setValueAtTime(900, t)
+    bp.frequency.linearRampToValueAtTime(2300, t + dur * 0.55)
+    bp.frequency.linearRampToValueAtTime(1300, t + dur)
+    const lp = ctx.createBiquadFilter()
+    lp.type = 'lowpass'
+    lp.frequency.value = 3800
+    const g = ctx.createGain()
+    g.gain.setValueAtTime(0.0001, t)
+    g.gain.linearRampToValueAtTime(0.11, t + dur * 0.3)
+    g.gain.linearRampToValueAtTime(0.07, t + dur * 0.8)
+    g.gain.linearRampToValueAtTime(0.0001, t + dur)
+    src.connect(bp).connect(lp).connect(g).connect(master)
+    src.start(t)
+    voice([src], t + dur + 0.03)
+  },
+
   // แตะปุ่ม: เสียงแตะกระดาษเบามาก
   tap() {
     if (!ready()) return

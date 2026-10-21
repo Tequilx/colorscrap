@@ -88,6 +88,18 @@
         </div>
       </div>
     </section>
+
+    <!-- DayRibbon: 1–8 ภาพ (ตรวจป้ายไม่ทับกัน) + ปาดช่วงสุดท้าย -->
+    <section class="mb-10" data-kit-ribbon>
+      <h2 class="mb-3 font-hand text-26 font-semibold">DayRibbon (1–8 ภาพ)</h2>
+      <div v-for="n in 8" :key="n" class="mb-3 flex items-start gap-4" :data-ribbon-n="n">
+        <span class="w-6 font-mono text-13 text-ink-soft">{{ n }}</span>
+        <DayRibbon :entries="ribbonEntries(n)" highlight-last :width="362" />
+      </div>
+      <h3 class="mb-2 mt-6 font-hand text-19 font-semibold">paintLast</h3>
+      <DayRibbon :key="ribbonKey" :entries="ribbonEntries(4)" highlight-last animate="paintLast" :width="362" />
+      <HandButton variant="secondary" class="mt-3" @click="ribbonKey++">เล่นอีกครั้ง</HandButton>
+    </section>
   </div>
 </template>
 
@@ -103,6 +115,7 @@ import { EMOTIONS } from '@/lib/emotions'
 import { AVATARS, ICONS } from '@/lib/doodles'
 import { COVER_COLORS } from '@/lib/tokens'
 import { coverSpine, coverStrap } from '@/lib/color'
+import DayRibbon from '@/components/book/DayRibbon.vue'
 
 const likes = ['เพลง', 'แมว', 'กาแฟ', 'การนอน', 'เดินเล่น', 'วาดรูป', 'เกม', 'ทะเล']
 const chosen = ref(['เพลง', 'แมว'])
@@ -112,4 +125,20 @@ const toggle = (l) => {
 const pickedEmotion = ref('calm')
 const pickedAvatar = ref('cat')
 const iconNames = Object.keys(ICONS)
+
+// ชุดตัวอย่างสำหรับ DayRibbon (เวลา/อารมณ์/ความเข้มสลับกัน ภาพที่ 2, 5, 8 ปรับแต้มแสง)
+const RIBBON_TIMES = ['00:45', '01:07', '01:59', '08:10', '12:30', '15:00', '18:20', '22:40']
+const RIBBON_EMOTIONS = ['calm', 'tired', 'sad', 'happy', 'excited', 'angry', 'anxious', 'warm']
+const RIBBON_COLORS = { calm: '#5FA3C8', tired: '#5B6773', sad: '#4256A8', happy: '#F1BE48', excited: '#E2688A', angry: '#D6453A', anxious: '#6E4FA0', warm: '#CF8A4A' }
+const ribbonEntries = (n) =>
+  Array.from({ length: n }, (_, i) => ({
+    id: `r${n}-${i}`,
+    local_time: RIBBON_TIMES[i],
+    emotion: RIBBON_EMOTIONS[i],
+    emotions: [RIBBON_EMOTIONS[i]],
+    intensity: [1, 2, 0, 1, 2, 0, 1, 1][i],
+    shifted: [1, 4, 7].includes(i) && ['tired', 'angry', 'anxious', 'sad'].includes(RIBBON_EMOTIONS[i]),
+    colors: [{ hex: RIBBON_COLORS[RIBBON_EMOTIONS[i]], ratio: 0.7 }, { hex: '#C9CDE6', ratio: 0.3 }],
+  }))
+const ribbonKey = ref(0)
 </script>
