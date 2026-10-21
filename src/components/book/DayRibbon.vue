@@ -1,47 +1,54 @@
 <template>
-  <!-- แถบสีของวัน: รอยพู่กันแนวนอนเส้นเดียว 1 ภาพ = 1 ช่วง เรียงตามเวลาจากซ้ายไปขวา กว้าง ∝ น้ำหนักภาพ รอยต่อซึมเข้าหากัน
-       ป้ายเวลา (ไอคอนพระจันทร์/ดวงอาทิตย์) + อารมณ์ใต้กลางแต่ละช่วง ซ่อนตามความกว้าง/กันไม่ให้ทับ (lib/dayRibbon.js)
+  <!-- แถบสีของวัน: รอยพู่กันแนวนอนเส้นเดียว ภาพที่อยู่ติดกัน อารมณ์เดียวกัน รวมเป็นช่วงเดียว กว้าง ∝ น้ำหนัก รอยต่อซึมเข้าหากัน
+       วาด 3 ชั้น (ไม่มีชั้นอื่น): ฮาโลจางซึมออก (#wcrh) → ตัวแถบเป็นรอยพู่กัน (#wcr) → เกรนกระดาษบาง ๆ gradient เส้นเดียวตลอดแถบ ช่วงละไม่เกิน 2 สีไล่นุ่ม ๆ
+       ป้ายเวลา + อารมณ์ใต้กลางช่วง ป้ายที่ชนกันเยื้องเป็นแถวล่างแทนการซ่อน (ซ่อนเฉพาะช่วงที่แคบกว่า 40px) lib/dayRibbon.js
        animate: 'none' | 'reveal' (ไล่จากซ้ายไปขวา) | 'paintLast' (ปาดเฉพาะช่วงสุดท้าย) ขอบนำสั่นแบบรอยพู่กัน (clip-path polygon เคลื่อนด้วย WAAPI)
        reduced-motion: ไม่ปาด จางเข้า 150ms -->
   <div class="relative" :style="{ width: width + 'px' }" role="img" :aria-label="aria">
     <div ref="paintRef" class="relative" :style="{ width: width + 'px', height: HEIGHT + 'px' }">
-      <svg :width="width" :height="HEIGHT" :viewBox="`0 0 ${width} ${HEIGHT}`" aria-hidden="true">
+      <svg :width="width" :height="HEIGHT" :viewBox="`0 0 ${width} ${HEIGHT}`" style="overflow: visible" aria-hidden="true">
         <defs>
-          <linearGradient v-for="g in gradients" :id="`${uid}-${g.id}`" :key="g.id" gradientUnits="userSpaceOnUse" :x1="g.x0" y1="0" :x2="g.x1" y2="0">
-            <stop v-for="(st, i) in g.stops" :key="i" :offset="st.o" :stop-color="st.c" :stop-opacity="st.a" />
+          <linearGradient :id="gid" gradientUnits="userSpaceOnUse" x1="0" y1="0" :x2="width" y2="0">
+            <stop v-for="(st, i) in stops" :key="i" :offset="st.offset" :stop-color="st.color" />
           </linearGradient>
+          <clipPath :id="clipId"><rect :x="0" :y="MAIN_Y" :width="width" :height="MAIN_H" :rx="MAIN_H * 0.4" /></clipPath>
         </defs>
-        <!-- ฮาโลจางกว้างและเบลอที่สุดอยู่หลังสุด ให้รอยต่อระหว่างช่วงนุ่มเหมือนสีน้ำซึม (ไม่กระทบป้าย: ป้ายอยู่นอก SVG) -->
-        <g class="filter-wcrh" opacity="0.2">
-          <path v-for="s in segs" :key="'h' + s.id" :d="shape(s, HALO_H)" :fill="`url(#${uid}-${s.id})`" />
+        <!-- 1. ฮาโล: ใหญ่กว่าแถบ 4px ทุกด้าน -->
+        <g class="filter-wcrh" opacity="0.35">
+          <rect :x="-4" :y="HALO_Y" :width="width + 8" :height="HALO_H" :rx="HALO_H * 0.4" :fill="`url(#${gid})`" />
         </g>
-        <!-- ชั้นจางกว้างกว่าด้านหลัง -->
-        <g class="filter-wcr" opacity="0.3">
-          <path v-for="s in segs" :key="'b' + s.id" :d="shape(s, BACK_H)" :fill="`url(#${uid}-${s.id})`" />
+        <!-- 2. ตัวแถบ: เว้นบนล่างข้างละ 4px -->
+        <g class="filter-wcr" opacity="0.85">
+          <rect :x="0" :y="MAIN_Y" :width="width" :height="MAIN_H" :rx="MAIN_H * 0.4" :fill="`url(#${gid})`" />
         </g>
-        <!-- ชั้นสีหลัก -->
-        <g class="filter-wcr" opacity="0.92">
-          <path v-for="s in segs" :key="s.id" :d="shape(s, BAR_H)" :fill="`url(#${uid}-${s.id})`" />
+        <!-- 3. เกรนกระดาษทับบาง ๆ (filter grain ชุดเดียวกับที่ใช้ทั่วแอป) -->
+        <g :clip-path="`url(#${clipId})`" opacity="0.5">
+          <rect :x="0" :y="MAIN_Y" :width="width" :height="MAIN_H" fill="transparent" style="filter: url(#grain)" />
         </g>
       </svg>
     </div>
 
-    <!-- ป้าย: ขีดบอกกลางช่วง + เวลา + อารมณ์ -->
-    <div class="relative h-[64px]" :style="{ width: width + 'px' }">
-      <div
-        v-for="(s, i) in labelled"
-        :key="'l' + s.id"
-        data-ribbon-label
-        class="absolute top-0 flex -translate-x-1/2 flex-col items-center whitespace-nowrap leading-tight transition-opacity duration-450 ease-desk"
-        :class="[lastHighlight(s) ? 'text-ink' : 'text-ink-2', labelsAllHidden || (labelsHidden && s === segs.at(-1)) ? 'opacity-0' : 'opacity-100']"
-        :style="{ left: s.cx + 'px' }"
-      >
-        <span class="mb-1 h-[7px] w-px bg-ink-soft"></span>
-        <span class="inline-flex items-center gap-1 font-body text-14" :class="lastHighlight(s) ? 'font-semibold' : 'font-normal text-ink-soft'">
-          <Doodle :name="s.icon" :size="14" /> {{ s.time }}
-        </span>
-        <span v-if="s.level === 2" class="mt-0.5 font-hand text-16" :class="lastHighlight(s) ? 'font-bold' : 'font-semibold'">{{ s.caption }}</span>
-      </div>
+    <!-- ป้าย: ขีดบอกกลางช่วง + เวลา + อารมณ์ (เยื้องเป็นแถวเมื่อชนกัน) -->
+    <div class="relative" :style="{ width: width + 'px', height: labelsH + 'px' }">
+      <template v-for="s in labelled" :key="'l' + s.id">
+        <span
+          data-ribbon-tick
+          class="absolute w-px bg-ink-soft transition-opacity duration-450 ease-desk"
+          :class="hiddenLabel(s) ? 'opacity-0' : 'opacity-100'"
+          :style="{ left: s.cx + 'px', top: '0px', height: s.box.y0 + 'px' }"
+        ></span>
+        <div
+          data-ribbon-label
+          class="absolute flex -translate-x-1/2 flex-col items-center whitespace-nowrap leading-tight transition-opacity duration-450 ease-desk"
+          :class="[lastHighlight(s) ? 'text-ink' : 'text-ink-2', hiddenLabel(s) ? 'opacity-0' : 'opacity-100']"
+          :style="{ left: (s.box.x0 + s.box.x1) / 2 + 'px', top: s.box.y0 + 'px' }"
+        >
+          <span class="inline-flex items-center gap-1 font-body text-14" :class="lastHighlight(s) ? 'font-semibold' : 'font-normal text-ink-soft'">
+            <Doodle :name="s.icon" :size="14" /> {{ s.time }}
+          </span>
+          <span v-if="s.level === 2" class="mt-0.5 font-hand text-15" :class="lastHighlight(s) ? 'font-bold' : 'font-semibold'">{{ s.caption }}</span>
+        </div>
+      </template>
     </div>
   </div>
 </template>
@@ -49,7 +56,7 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref, useId } from 'vue'
 import Doodle from '@/components/ui/Doodle.vue'
-import { BLEND_FRAC, jaggedOffsets, layoutRibbon, sweepPolygon } from '@/lib/dayRibbon'
+import { BLEND_FRAC, gradientStops, jaggedOffsets, labelsHeight, layoutRibbon, sweepPolygon } from '@/lib/dayRibbon'
 import { MOTION } from '@/lib/tokens'
 import { reducedMotion } from '@/lib/motion'
 import { sound } from '@/lib/sound'
@@ -63,60 +70,30 @@ const props = defineProps({
   delay: { type: Number, default: 0 },
 })
 
+// เรขาคณิตแนวตั้ง: แถบสูง BAR_H กลางพื้นที่ HEIGHT ฮาโล = แถบ +4px ทุกด้าน ตัวแถบ = แถบ −4px ทุกด้าน (สูงน้อยกว่า 8px)
 const HEIGHT = 84
-const BAR_H = 46
-const BACK_H = 64
-const HALO_H = 80
+const BAR_H = 56
+const HALO_H = BAR_H + 8
+const MAIN_H = BAR_H - 8
+const HALO_Y = (HEIGHT - HALO_H) / 2
+const MAIN_Y = (HEIGHT - MAIN_H) / 2
 const uid = useId()
+const gid = `${uid}-g`
+const clipId = `${uid}-c`
 const paintRef = ref(null)
 
 const segs = computed(() => layoutRibbon(props.entries, props.width))
 const labelled = computed(() => segs.value.filter((s) => s.level > 0))
+const stops = computed(() => gradientStops(segs.value, props.width))
+const labelsH = computed(() => labelsHeight(segs.value))
 const lastHighlight = (s) => props.highlightLast && s === segs.value.at(-1)
 const aria = computed(() => segs.value.map((s) => `${s.time} ${s.caption}`).join(', '))
-
-// รอยต่อซึม: แต่ละช่วงวาดกว้างออกไปครึ่งหนึ่งของรอยต่อทั้งสองข้าง ขอบในไล่โปร่งใส → ช่วงข้างเคียงซ้อนกันเป็นสีผสม
-const blend = computed(() => props.width * BLEND_FRAC)
-const edges = (s, i) => {
-  const b = blend.value / 2
-  return { x0: i === 0 ? s.x : s.x - b, x1: i === segs.value.length - 1 ? s.x + s.w : s.x + s.w + b }
-}
-const gradients = computed(() =>
-  segs.value.map((s, i) => {
-    const { x0, x1 } = edges(s, i)
-    const span = x1 - x0
-    const fade = (blend.value / span) * 1
-    const first = i === 0
-    const last = i === segs.value.length - 1
-    const toColor = s.to ?? s.main
-    // ช่วงที่มีแต้มแสง: สีหลักค้างครึ่งแรกแล้วไล่ไปสีแต้มแสง
-    const stops = [
-      { o: 0, c: s.main, a: first ? 1 : 0 },
-      ...(first ? [] : [{ o: Math.min(fade, 0.45), c: s.main, a: 1 }]),
-      ...(s.to ? [{ o: 0.5, c: s.main, a: 1 }, { o: last ? 1 : 1 - Math.min(fade, 0.45), c: toColor, a: 1 }] : [{ o: last ? 1 : 1 - Math.min(fade, 0.45), c: s.main, a: 1 }]),
-      { o: 1, c: toColor, a: last ? 1 : 0 },
-    ]
-    return { id: s.id, x0, x1, stops }
-  }),
-)
-// รูปทรงของช่วง: ปลายซ้ายสุด/ขวาสุดมนแบบปลายพู่กัน ด้านในเหลี่ยม (ถูกไล่ความโปร่งแสงกลืนกับช่วงข้างเคียง)
-const shape = (s, h) => {
-  const i = segs.value.indexOf(s)
-  const { x0, x1 } = edges(s, i)
-  const y0 = (HEIGHT - h) / 2
-  const y1 = y0 + h
-  const r = h / 2
-  const first = i === 0
-  const last = i === segs.value.length - 1
-  const L = first ? `M${x0 + r} ${y0} A${r} ${r} 0 0 0 ${x0 + r} ${y1}` : `M${x0} ${y0} V${y1}`
-  const R = last ? `H${x1 - r} A${r} ${r} 0 0 0 ${x1 - r} ${y0} Z` : `H${x1} V${y0} Z`
-  return `${L} ${R}`
-}
 
 // ---- อนิเมชัน ----
 const offsets = jaggedOffsets()
 const labelsHidden = ref(false) // paintLast: ป้ายช่วงสุดท้ายรอให้การปาดผ่านก่อน
 const labelsAllHidden = ref(false) // reveal: ป้ายทั้งหมดรอให้แถบไล่ผ่านไปก่อนค่อยจางเข้า
+const hiddenLabel = (s) => labelsAllHidden.value || (labelsHidden.value && s === segs.value.at(-1))
 let anim = null
 let timers = []
 
@@ -134,7 +111,8 @@ const startPaint = () => {
   }
   const last = props.animate === 'paintLast'
   const amp = 8
-  const from = last ? Math.max(0, edges(segs.value.at(-1), segs.value.length - 1).x0) - amp - 2 : -amp - 4
+  const lastSeg = segs.value.at(-1)
+  const from = last ? Math.max(0, lastSeg.x - props.width * BLEND_FRAC * 0.5) - amp - 6 : -amp - 12
   const to = props.width + amp + 24
   const duration = last ? 1100 : 1000
   const delay = last ? 500 : props.delay

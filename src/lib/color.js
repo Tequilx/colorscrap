@@ -36,3 +36,11 @@ const contrast = (a, b) => {
 
 export const readableOn = (bg) =>
   contrast(bg, '#FFFFFF') >= contrast(bg, PALETTE.ink) ? '#FFFFFF' : PALETTE.ink
+
+// ความสว่าง HSL (0..1) = (max + min) / 2 ใช้ตัดสินว่าสีจางจนกลืนกระดาษ (> PALE_L) ต้องใส่ขอบจาง ๆ ให้เห็นบนกระดาษ
+export const lightnessOf = (hex) => {
+  const [r, g, b] = hexToRgb(hex)
+  return (Math.max(r, g, b) + Math.min(r, g, b)) / 510
+}
+export const PALE_L = 0.9
+export const isPale = (hex) => lightnessOf(hex) > PALE_L

@@ -96,6 +96,11 @@
         <span class="w-6 font-mono text-13 text-ink-soft">{{ n }}</span>
         <DayRibbon :entries="ribbonEntries(n)" highlight-last :width="362" />
       </div>
+      <!-- กรณีเทียบกับแบบ 10–11: ref3 = ข้อมูลเดียวกับแบบ, dup8 = 8 ภาพที่มีอารมณ์ซ้ำติดกัน -->
+      <div v-for="c in ribbonCases" :key="c.key" class="mb-3 flex items-start gap-4" :data-ribbon-case="c.key">
+        <span class="w-14 font-mono text-13 text-ink-soft">{{ c.key }}</span>
+        <DayRibbon :entries="c.entries" highlight-last :width="412" />
+      </div>
       <h3 class="mb-2 mt-6 font-hand text-19 font-semibold">paintLast</h3>
       <DayRibbon :key="ribbonKey" :entries="ribbonEntries(4)" highlight-last animate="paintLast" :width="362" />
       <HandButton variant="secondary" class="mt-3" @click="ribbonKey++">เล่นอีกครั้ง</HandButton>
@@ -141,4 +146,28 @@ const ribbonEntries = (n) =>
     colors: [{ hex: RIBBON_COLORS[RIBBON_EMOTIONS[i]], ratio: 0.7 }, { hex: '#C9CDE6', ratio: 0.3 }],
   }))
 const ribbonKey = ref(0)
+const mkRibbon = (id, time, emotion, intensity, shifted, colors, emotions) => ({ id, local_time: time, emotion, emotions: emotions ?? [emotion], intensity, shifted, colors })
+const ribbonCases = [
+  {
+    key: 'ref3',
+    entries: [
+      mkRibbon('c0', '00:45', 'calm', 1, false, [{ hex: '#6FA5C9', ratio: 0.6 }, { hex: '#B9D3E6', ratio: 0.4 }]),
+      mkRibbon('c1', '01:07', 'tired', 1, true, [{ hex: '#5B6773', ratio: 0.55 }, { hex: '#F7DE99', ratio: 0.45 }]),
+      mkRibbon('c2', '01:59', 'sad', 1, true, [{ hex: '#4256A8', ratio: 0.5 }, { hex: '#9AA3D6', ratio: 0.3 }, { hex: '#F7DE99', ratio: 0.2 }]),
+    ],
+  },
+  {
+    key: 'dup8',
+    entries: [
+      mkRibbon('d0', '04:05', 'excited', 1, false, [{ hex: '#E2688A', ratio: 0.7 }, { hex: '#F2B5C6', ratio: 0.3 }]),
+      mkRibbon('d1', '04:06', 'excited', 2, false, [{ hex: '#E2688A', ratio: 0.7 }, { hex: '#F2B5C6', ratio: 0.3 }]),
+      mkRibbon('d2', '04:08', 'excited', 1, false, [{ hex: '#E0577D', ratio: 0.7 }, { hex: '#F2B5C6', ratio: 0.3 }]),
+      mkRibbon('d3', '04:20', 'calm', 1, false, [{ hex: '#5FA3C8', ratio: 0.7 }, { hex: '#B9D3E6', ratio: 0.3 }]),
+      mkRibbon('d4', '05:10', 'sad', 1, false, [{ hex: '#4256A8', ratio: 0.7 }, { hex: '#9AA3D6', ratio: 0.3 }]),
+      mkRibbon('d5', '05:12', 'sad', 1, true, [{ hex: '#4256A8', ratio: 0.55 }, { hex: '#F7DE99', ratio: 0.45 }]),
+      mkRibbon('d6', '05:40', 'tired', 0, false, [{ hex: '#5B6773', ratio: 0.8 }, { hex: '#A9B1BA', ratio: 0.2 }]),
+      mkRibbon('d7', '06:10', 'happy', 1, false, [{ hex: '#F1BE48', ratio: 0.7 }, { hex: '#F7DE99', ratio: 0.3 }]),
+    ],
+  },
+]
 </script>

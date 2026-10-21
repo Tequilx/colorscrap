@@ -1,22 +1,25 @@
 // เรขาคณิตของแถบสีของวัน (components/book/DayRibbon.vue) ฟังก์ชันล้วน ทดสอบได้
-// 1 ภาพ = 1 ช่วง เรียงตามเวลาจากซ้ายไปขวา (ตามลำดับ ไม่ใช่แกน 24 ชม.) ความกว้างช่วง ∝ น้ำหนักภาพ (palette.js entryWeight)
-import { EMOTION_BY_KEY, WARM_TONES, emotionLabel } from '@/lib/emotions'
+// เรียงตามเวลาจากซ้ายไปขวา (ตามลำดับ ไม่ใช่แกน 24 ชม.) ความกว้างช่วง ∝ น้ำหนัก (palette.js entryWeight)
+// ภาพที่อยู่ติดกัน อารมณ์เดียวกัน และสถานะ shifted เหมือนกัน "รวมเป็นช่วงเดียว" น้ำหนักรวมกัน (เป็นการแสดงผลเท่านั้น ไม่แก้ข้อมูลในสมุด)
+import { WARM_TONES, emotionLabel } from '@/lib/emotions'
 import { entryWeight, rankedColors } from '@/lib/palette'
 import { hexToRgb } from '@/lib/color'
 
-const FAR_FROM_TONE = 70 // ระยะ RGB ที่ถือว่า "ไม่ใช่สีแต้มแสง"
-const colorDistance = (a, b) => {
-  const [r1, g1, b1] = hexToRgb(a)
-  const [r2, g2, b2] = hexToRgb(b)
-  return Math.hypot(r1 - r2, g1 - g2, b1 - b2)
-}
+export const BLEND_FRAC = 0.07 // รอยต่อซึมเข้าหากัน ~7% ของความกว้างแถบ (สองฝั่งรวมกัน)
+export const LABEL_FULL_MIN = 90 // ช่วงแคบกว่านี้ใช้ป้ายเวลาอย่างเดียว (ระดับ 1)
+export const LABEL_NONE_MIN = 40 // ซ่อนป้ายได้เฉพาะช่วงที่แคบกว่านี้
+export const LABEL_GAP = 2 // ระยะห่างขั้นต่ำระหว่างป้าย (px) ความกว้างที่ประมาณเผื่อไว้เกินจริง ~2–6px อยู่แล้ว ระยะจริงจึง ≥ 4px
+export const LABEL_TOP = 8 // ขอบบนของป้ายแถวแรก นับจากใต้แถบ (ที่ว่างสำหรับขีดบอกกลางช่วง)
+export const ROW_STEP = 24 // ป้ายเยื้องกันทีละแถว (วางสลับบน/ล่างแทนการซ่อน)
+export const MAX_ROWS = 4
+export const H1 = 20 // สูงของป้ายเวลาอย่างเดียว
+export const H2 = 42 // สูงของป้ายเวลา + อารมณ์
+export const CHAR_W = 10 // ความกว้างต่อ 1 ตัวอักษรฐานที่ 15px Mali ตัวหนา (วัดที่ 16px ได้ 9.8–11.3 → ที่ 15px ราว 9.2–10.6; สระ/วรรณยุกต์ที่ซ้อนอยู่ไม่นับ)
+export const TIME_W = 66 // ไอคอน + HH:MM
+export const RANGE_W = 112 // ไอคอน + HH:MM–HH:MM
 
-export const BLEND_FRAC = 0.035 // รอยต่อซึมเข้าหากัน ~3.5% ของความกว้างทั้งแถบ
-export const LABEL_FULL_MIN = 90 // ช่วงแคบกว่านี้แสดงแค่เวลา
-export const LABEL_NONE_MIN = 50 // ช่วงแคบกว่านี้ไม่มีป้าย
-export const LABEL_GAP = 6 // ระยะห่างขั้นต่ำระหว่างป้ายข้างเคียง (px)
-export const TIME_BOX = 66 // ไอคอน + HH:MM (px ประมาณที่ 14px)
-export const CHAR_W = 9 // ความกว้างตัวอักษรไทยต่อ 1 ตัวที่ 16px (ประมาณ)
+// ความกว้างข้อความโดยประมาณ: นับเฉพาะตัวอักษรฐาน (ไม่นับสระบน/ล่างและวรรณยุกต์ของภาษาไทยที่ไม่กินความกว้าง)
+export const textWidth = (str) => [...str].filter((c) => !/[\u0E31\u0E34-\u0E3A\u0E47-\u0E4E]/.test(c)).length * CHAR_W
 
 export const sortedByTime = (entries) => [...entries].sort((a, b) => a.local_time.localeCompare(b.local_time))
 
@@ -26,50 +29,102 @@ export const timeIcon = (time) => {
   return h >= 6 && h < 19 ? 'sun' : 'moon'
 }
 
-// ข้อความบรรทัดที่ 2 ของป้าย: "เหนื่อย → มีแสงขึ้น" (ภาพที่ปรับด้วยแต้มแสงต่อท้าย "→ มีแสงขึ้น")
+// ข้อความบรรทัดที่ 2 ของภาพเดียว: "เหนื่อย → มีแสงขึ้น" (ภาพที่ปรับด้วยแต้มแสงต่อท้าย "→ มีแสงขึ้น")
 export const ribbonCaption = (entry) => `${emotionLabel(entry)}${entry.shifted ? ' → มีแสงขึ้น' : ''}`
 
-// สีของช่วง: สีหลักของภาพ (rankedColors: สัดส่วน × ความอิ่มสี ไม่เอาสีใกล้กระดาษเพราะ extractColors ตัดออกแล้ว) ภาพที่ shifted ไล่ไปสีแต้มแสงของอารมณ์นั้น
-export const segmentColors = (entry) => {
+// รวมภาพติดกันที่อารมณ์เดียวกันและ shifted เหมือนกัน → [{ entries, weight, count }]
+export const groupRuns = (entries) => {
+  const groups = []
+  for (const entry of sortedByTime(entries)) {
+    const last = groups.at(-1)
+    const lastEntry = last?.entries.at(-1)
+    if (last && lastEntry.emotion === entry.emotion && Boolean(lastEntry.shifted) === Boolean(entry.shifted)) {
+      last.entries.push(entry)
+      last.weight += entryWeight(entry)
+      last.count++
+    } else groups.push({ entries: [entry], weight: entryWeight(entry), count: 1 })
+  }
+  return groups
+}
+
+const colorDistance = (a, b) => {
+  const [r1, g1, b1] = hexToRgb(a)
+  const [r2, g2, b2] = hexToRgb(b)
+  return Math.hypot(r1 - r2, g1 - g2, b1 - b2)
+}
+const FAR_FROM_TONE = 70 // ระยะ RGB ที่ถือว่า "ไม่ใช่สีแต้มแสง"
+
+// สีของภาพหนึ่งภาพ: สีหลัก (rankedColors: สัดส่วน × ความอิ่มสี สีใกล้กระดาษถูกตัดโดย extractColors แล้ว) + (shifted) สีแต้มแสงของอารมณ์
+export const entryColors = (entry) => {
   const ranked = rankedColors(entry.colors)
   if (!entry.shifted) return { main: ranked[0].hex, to: null }
   const tone = WARM_TONES[entry.emotion] ?? WARM_TONES[entry.emotions?.[0]] ?? null
-  // ภาพที่แต้มแสง: สีแต้มแสงเองมักเป็นสีสด/เด่นอยู่ใน colors แล้ว ถ้าเอามาเป็นสีหลักแถบจะไม่ไล่ (เหลือง→เหลือง) จึงเลือกสีเด่นที่ห่างจากสีแต้มแสงก่อน
+  // สีแต้มแสงเองมักเป็นสีสดที่เด่นอยู่ใน colors แล้ว ถ้าเอามาเป็นสีหลักแถบจะไม่ไล่ (เหลือง→เหลือง) จึงเลือกสีเด่นที่ห่างจากสีแต้มแสงก่อน
   const base = tone ? ranked.find((c) => colorDistance(c.hex, tone) > FAR_FROM_TONE) : null
   return { main: (base ?? ranked[0]).hex, to: tone }
 }
 
-// ช่วงทั้งหมดของแถบกว้าง width: [{ entry, id, x, w, cx, time, icon, caption, main, to, level, box }]
-// level ของป้าย: 2 = เวลา + อารมณ์, 1 = เวลาอย่างเดียว, 0 = ไม่มีป้าย box = ช่วง x ของป้าย [x0, x1] (ว่าง ถ้า level 0)
+// สีของช่วง (รวมหลายภาพ): ใช้สีของภาพที่หนักที่สุดในช่วง (เท่ากันใช้ภาพล่าสุด) ได้อย่างมาก 2 สี: สีหลัก (+ สีแต้มแสงถ้า shifted)
+export const segmentColors = (group) => {
+  const entry = group.entries.reduce((best, e) => (entryWeight(e) >= entryWeight(best) ? e : best), group.entries[0])
+  return entryColors(entry)
+}
+
+// ข้อความป้ายของช่วง: ภาพเดียว "04:05" + "ตื่นเต้น" · หลายภาพ "04:05–04:08" + "ตื่นเต้น ×3"
+export const groupLabel = (group) => {
+  const first = group.entries[0]
+  const last = group.entries.at(-1)
+  const time = group.count > 1 && first.local_time !== last.local_time ? `${first.local_time}–${last.local_time}` : first.local_time
+  const caption = group.count > 1 ? `${ribbonCaption(last)} ×${group.count}` : ribbonCaption(first)
+  return { time, caption, icon: timeIcon(first.local_time) }
+}
+
+// ช่วงทั้งหมดของแถบกว้าง width: [{ group, id, x, w, cx, time, icon, caption, count, main, to, level, row, box, tick }]
+// level ของป้าย: 2 = เวลา + อารมณ์, 1 = เวลาอย่างเดียว, 0 = ไม่มีป้าย (เฉพาะช่วงที่แคบกว่า LABEL_NONE_MIN จนวางไม่ได้)
+// ป้ายที่ชนกันจะเยื้องลงเป็นแถวถัดไป (row) แทนการซ่อน box = { x0, x1, y0, y1 } (y นับจากใต้แถบ) tick = ขีดจากแถบลงถึงป้าย
 export const layoutRibbon = (entries, width, { measure } = {}) => {
-  const list = sortedByTime(entries)
-  const total = list.reduce((s, e) => s + entryWeight(e), 0) || 1
+  const groups = groupRuns(entries)
+  const total = groups.reduce((s, g) => s + g.weight, 0) || 1
   let x = 0
-  const segs = list.map((entry) => {
-    const w = (width * entryWeight(entry)) / total
-    const seg = { entry, id: entry.id, x, w, cx: x + w / 2, time: entry.local_time, icon: timeIcon(entry.local_time), caption: ribbonCaption(entry), ...segmentColors(entry), level: 0, box: null }
+  const segs = groups.map((group) => {
+    const w = (width * group.weight) / total
+    const label = groupLabel(group)
+    const seg = { group, id: group.entries[0].id, x, w, cx: x + w / 2, count: group.count, ...label, ...segmentColors(group), level: 0, row: 0, box: null, tick: null }
     x += w
     return seg
   })
-  const boxWidth = measure ?? ((seg, level) => (level === 2 ? Math.max(TIME_BOX, seg.caption.length * CHAR_W) : TIME_BOX))
-  const wanted = (seg) => (seg.w >= LABEL_FULL_MIN ? 2 : seg.w >= LABEL_NONE_MIN ? 1 : 0)
-  // ตัดสินจากขวาไปซ้าย: ช่วงล่าสุดได้ป้ายก่อน ถ้าทับกับป้ายที่ได้ไปแล้วลดระดับลงจนไม่ทับ (ไม่ทับกันทุกกรณี)
+  const boxWidth = measure ?? ((seg, level) => (level === 2 ? Math.max(seg.time.includes('–') ? RANGE_W : TIME_W, textWidth(seg.caption)) : seg.time.includes('–') ? RANGE_W : TIME_W))
+  const wanted = (seg) => (seg.w >= LABEL_FULL_MIN ? 2 : 1)
+  const hit = (a, b, gap) => !(a.x1 + gap <= b.x0 || a.x0 >= b.x1 + gap || a.y1 + gap <= b.y0 || a.y0 >= b.y1 + gap)
   const taken = []
+  // ตัดสินจากขวาไปซ้าย (ช่วงล่าสุดเลือกที่ก่อน): ระดับสูงสุดที่ทำได้ ลองแถวบนสุดก่อน ไม่ทับป้ายและขีดของช่วงอื่น (2 มิติ)
   for (let i = segs.length - 1; i >= 0; i--) {
     const seg = segs[i]
-    for (let level = wanted(seg); level > 0; level--) {
+    if (seg.w < LABEL_NONE_MIN) continue
+    placing: for (let level = wanted(seg); level >= 1; level--) {
       const half = boxWidth(seg, level) / 2
-      const box = [seg.cx - half, seg.cx + half]
-      if (taken.every(([a, b]) => box[1] + LABEL_GAP <= a || box[0] >= b + LABEL_GAP)) {
-        seg.level = level
-        seg.box = box
-        taken.push(box)
-        break
+      // ป้ายอยู่ในแถบเสมอ (ชิดขอบแถบถ้าช่วงอยู่ริม) ขีดบอกยังอยู่กลางช่วง
+      const cxBox = Math.min(Math.max(seg.cx, half), Math.max(half, width - half))
+      for (let row = 0; row < MAX_ROWS; row++) {
+        const y0 = LABEL_TOP + row * ROW_STEP
+        const box = { x0: cxBox - half, x1: cxBox + half, y0, y1: y0 + (level === 2 ? H2 : H1) }
+        const tick = { x0: seg.cx - 1, x1: seg.cx + 1, y0: 0, y1: y0 }
+        if (taken.every((t) => !hit(box, t, LABEL_GAP) && !hit(tick, t, 0))) {
+          seg.level = level
+          seg.row = row
+          seg.box = box
+          seg.tick = tick
+          taken.push(box, tick)
+          break placing
+        }
       }
     }
   }
   return segs
 }
+
+// ความสูงของพื้นที่ป้ายใต้แถบ (px) ตามป้ายที่วางจริง
+export const labelsHeight = (segs) => Math.max(0, ...segs.filter((s) => s.box).map((s) => s.box.y1)) + 4
 
 // ขอบนำสั่นแบบรอยพู่กัน: ค่าเยื้อง x ของแต่ละจุดตามความสูง (px) ผลคงที่ (ไม่สุ่มใหม่ทุกครั้ง) ใช้กับ clip-path polygon
 export const jaggedOffsets = (teeth = 14, amp = 7) =>
@@ -84,4 +139,23 @@ export const sweepPolygon = (x, h, offsets) => {
   return `polygon(${pts.join(', ')})`
 }
 
-export { EMOTION_BY_KEY }
+// จุดหยุดของ gradient แนวนอนเส้นเดียวตลอดแถบ: แต่ละช่วงมีสีไม่เกิน 2 สี (สีหลัก → สีแต้มแสงถ้า shifted) ไล่นุ่ม ๆ ตลอดช่วง
+// รอยต่อระหว่างช่วงซึมกันกว้าง blend (px, สองฝั่งรวม) ไม่มีแถบสีตัดคม คืน [{ offset 0..1, color }]
+export const gradientStops = (segs, width) => {
+  const b = width * BLEND_FRAC
+  const stops = []
+  segs.forEach((s, i) => {
+    const first = i === 0
+    const last = i === segs.length - 1
+    const mid = s.x + s.w / 2
+    // ปลายช่วงที่ซึมเข้าหาช่วงข้างเคียงถอยเข้า b/2 (ช่วงที่แคบกว่า b ยุบเหลือจุดกลาง)
+    const a = first ? s.x : Math.min(s.x + b / 2, mid)
+    const e = last ? s.x + s.w : Math.max(s.x + s.w - b / 2, mid)
+    stops.push({ offset: a / width, color: s.main })
+    stops.push({ offset: e / width, color: s.to ?? s.main })
+  })
+  // offset ต้องไม่ลดลง (ช่วงบางมากอาจทำให้ซ้อนกัน)
+  stops.forEach((st) => (st.offset = Math.min(1, Math.max(0, st.offset))))
+  for (let i = 1; i < stops.length; i++) stops[i].offset = Math.max(stops[i].offset, stops[i - 1].offset)
+  return stops
+}
