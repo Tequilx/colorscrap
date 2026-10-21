@@ -5,7 +5,7 @@
 - [x] **1. เสียง** (`src/lib/sound.js`, Web Audio สังเคราะห์ ไม่ใช้ไฟล์)
   - หยดสี / ปาดสี / สาด / สีอุ่นบาน / บันทึก (ลม + เทป) / พลิกแผ่น-เปิดสมุด / แตะปุ่ม, ปุ่มเปิด-ปิดเสียงมุมขวาบน (localStorage), ไม่เกิน 6 เสียงพร้อมกัน + master volume
   - เกณฑ์: ปิดแล้วเงียบสนิท · แตะรัว 2 นาที peak < 0 dBFS และ FPS ไม่ลด · ใช้ได้ Chrome + Safari
-- [ ] **2. แสงตามเวลาจริง** (overlay บนพื้นโต๊ะ ใต้กระดาษ)
+- [x] **2. แสงตามเวลาจริง** (overlay บนพื้นโต๊ะ ใต้กระดาษ)
   - กลางวัน 06–17 / เย็น 17–19 / กลางคืน 19–06, crossfade 2 วิ, `?time=day|dusk|night`, reduced-motion: ฝุ่นนิ่ง
   - เกณฑ์: สีที่ดึงจากภาพเหมือนเดิมทุกช่วงเวลา · FPS ระหว่างระบายไม่ลด · screens ครบ 3 ช่วงเวลา
 - [ ] **3. พู่กันจุ่มสีในหน้าเลือกความรู้สึก**
@@ -24,3 +24,8 @@
 - วัด (headless Chrome, `--autoplay-policy=no-user-gesture-required`, `?debug`): แตะรัวสลับหยด/สีอุ่น/ปาด 120 วิ (1090 ครั้ง) **ยอดสัญญาณหลังตัวจำกัด −3.4 dBFS** (< 0), เสียงพร้อมกันสูงสุด 6, **FPS 60 เท่ากับตอนปิดเสียง** (เฟรมช้าสุด 20 ms ทั้งสองแบบ); ปิดเสียง → ยอด 0 (เงียบสนิท)
 - Safari: ใช้เฉพาะ API มาตรฐาน (`webkitAudioContext` สำรอง, สร้าง/resume หลัง pointerdown/touchend/keydown, ไม่ซ้อน `setValueAtTime` กับ `setValueCurveAtTime`) **ยังไม่ได้ลองบน Safari จริง** (ต้องเช็กด้วยหู/เครื่องจริง)
 - ภาพ: `scripts/out/screens/sound/contact-sheet.png`
+
+### 2. แสงตามเวลาจริง — ผ่าน (tag `pre-light`)
+- `components/desk/DeskLight.vue` (ชั้นแรกสุดใน `Stage.vue` ใต้เวทีทั้งหมด จึงอยู่ใต้กระดาษ/ผ้าใบ/สมุด/การ์ดเสมอ) + `lib/daylight.js` (`periodOf`, `?time=day|dusk|night` ใช้ได้ทั้ง production) + สีแสงใน `lib/tokens.js` `LIGHT` · สามชั้นสลับด้วย opacity อย่างเดียว crossfade 2 วิ (reduced-motion: 150ms ตาม `app.css` และฝุ่นนิ่ง/ไม่มี animation) · เทสต์ `daylight.test.js` 2 ตัว
+- วัด: ภาพผ้าใบ (พิกเซลจริงบนจอ) ต่างกัน **0** ระหว่าง day/dusk/night และสีที่ดึงจากภาพ (`extractColors`) **เหมือนกันทุกช่วงเวลา** (5 สีเท่ากันทุกค่า) · แตะสีอุ่นรัว 60 วิ: FPS **59.9 ทั้ง day/dusk/night** (เฟรมสะดุดครั้งเดียว ~150 ms ที่แตะครั้งแรกคือคอมไพล์ shader ยกสี มีอยู่ก่อนแล้ว เกิดเหมือนกันทุกช่วงเวลา)
+- ภาพ: `scripts/out/screens/light-time=day|dusk|night/contact-sheet.png`

@@ -1,6 +1,8 @@
 <template>
   <!-- พื้นโต๊ะเต็มจอ พร้อมผิวกระดาษซ้ำเป็นภาพเดียว -->
   <div class="relative h-full w-full overflow-hidden bg-desk" :style="{ backgroundImage: grain }">
+    <!-- แสงตามเวลาจริง: ชั้นแรกสุด อยู่ใต้ stage ทั้งหมด -->
+    <DeskLight />
     <!-- stage ขนาดคงที่ 1280×800 ย่อ/ขยายทั้งก้อน วางกึ่งกลาง (SPEC §4.2) -->
     <div
       ref="stageRef"
@@ -20,6 +22,7 @@
 <script setup>
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { STAGE } from '@/lib/tokens'
+import DeskLight from '@/components/desk/DeskLight.vue'
 
 const stageRef = ref(null)
 const scale = ref(1)
