@@ -93,7 +93,7 @@
 
 - [x] **11. ตัวเล่นเพลงคลอ (mock-up รอไฟล์จริง)** — ดูผลด้านล่าง
 - [x] **12. พู่กันในหน้าเลือกความรู้สึก วาดใหม่ให้ใหญ่และไม่แหลม** (SVG 60×300 แสดง ~66×330, ขนบานตอนแตะน้ำ ~55% ของท่าจุ่ม, เงาตกขวาล่าง, ไม่บังชื่ออารมณ์ของช่องที่เลือก, reduced = เปลี่ยนสีปลายอย่างเดียว)
-- [ ] **13. เก็บงาน** ย้าย filter `wcr` และสี `#FFFDF8` เข้า tailwind config/tokens ให้ถูกที่ (รีสตาร์ท dev server) + ฮาโลจางกว้าง/เบลอด้านหลัง DayRibbon (ป้ายต้องไม่ทับกัน)
+- [x] **13. เก็บงาน** ย้าย filter `wcr` และสี `#FFFDF8` เข้า tailwind config/tokens ให้ถูกที่ (รีสตาร์ท dev server) + ฮาโลจางกว้าง/เบลอด้านหลัง DayRibbon (ป้ายต้องไม่ทับกัน)
 
 ### 11. เพลงคลอ — ผ่าน (tag `pre-music`)
 - `lib/music.js` (โหลด `public/audio/music-{day,night}.mp3` ก่อน ไม่มีใช้ `.wav` ไม่มีทั้งคู่เงียบ; `AudioBufferSourceNode.loop` วนไม่มีช่องว่าง; day=กลางวัน+เย็น night=กลางคืน ตาม `lib/daylight.js`; crossfade 4 วิ; fade in 3 วิหลังแตะครั้งแรก) + `lib/sound.js` (บัสเพลง `musicBus` เข้าคอมเพรสเซอร์/ตัวจำกัดตัวเดียวกับเอฟเฟกต์, `MUSIC_BASE`, `duckMusic`, `setMusic`, `onAudioReady`, suspend/resume ตาม `visibilitychange`) + `SoundToggle.vue` 2 ปุ่ม (เพลง/เอฟเฟกต์ เปิดปิดและจำแยก `colorscrap.music` / `colorscrap.sound`, ไอคอน `music`/`musicOff` ใหม่) · ย้ายปุ่มตั้งค่าหน้า cover ลง 12 px (`top-10`) กันทับปุ่มเสียง
@@ -107,3 +107,8 @@
 - แตะน้ำที่ **55% ของท่าจุ่ม** (`TOUCH_AT`): ปลายขนเปลี่ยนสี + วงน้ำ + เสียง + กลุ่ม `.bristles` บาน `scale(1.12, 0.9)` จากปลายขน (`transform-origin: 30px 299px`) 340 ms แล้วคืนรูป (WAAPI)
 - ด้ามชี้ออกด้านนอก: คอลัมน์ซ้าย (0–1) เอียงซ้าย ขวา (2–3) เอียงขวา; **คอลัมน์ซ้ายสุดเอียงน้อยลง (14°)** เพราะ 30° ทำให้ด้ามพาดทับปุ่ม "หน้าแรก" (เห็นจากภาพจริง) · เช็กภาพ 8 ช่อง: ไม่บังชื่ออารมณ์ของช่องที่เลือก (ด้ามอยู่เหนือปลายขน ชื่ออยู่ใต้) ด้ามพาดทับการ์ดข้างเคียงบางส่วนซึ่งเลี่ยงไม่ได้เมื่อยาว 330 px · reduced-motion: อยู่นิ่งขวากล่อง เปลี่ยนสีปลายอย่างเดียว (ตรวจจากภาพ)
 - ภาพ 3 จังหวะ (ยก / แตะน้ำ / หลังจุ่ม): `scripts/out/screens/brush2/brush-3-phases.png` · ช่องอื่น/reduced-motion: `scripts/out/screens/brush2/*.png`, `reduced/` · contact sheet: `scripts/out/screens/brush2/contact-sheet.png`
+
+### 13. เก็บงาน — ผ่าน (tag `pre-cleanup`)
+- `tailwind.config.js`: เพิ่ม utility `.filter-wcr` และ `.filter-wcrh` (ฟิลเตอร์ `#wcr`, `#wcrh` อยู่ใน `SvgDefs.vue`) · `DayRibbon.vue` ใช้คลาสแทน `style="filter:url(...)"` · `SavedCard.vue` ใช้ `bg-card` (`PALETTE.card` #FFFDF8 มีใน `tokens.js` อยู่แล้ว ไม่ใช้ inline แล้ว) · **รีสตาร์ท dev server แล้ว** (พอร์ต 5199: kill แล้ว `npx vite --port 5199`) ตรวจ computed style: `filter-wcr`/`filter-wcrh` ติด, พื้นการ์ด = `rgb(255, 253, 248)`
+- ฮาโลจางหลังริบบิ้น: ชั้นใหม่ `#wcrh` (กว้าง 80px, บิด 18, เบลอ σ=5, opacity .2) หลังสุด · ตรวจ bounding box ป้ายใน `?kit` 1–8 ภาพ: ทับกัน **0** ทุกกรณี · ภาพ: `scripts/out/screens/cleanup/ribbons-halo.png`
+- หมายเหตุ: ถ้ามีใครรัน dev server ค้างไว้ก่อนดึง commit นี้ ต้องรีสตาร์ทเอง (config เปลี่ยน)

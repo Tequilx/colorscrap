@@ -11,12 +11,16 @@
             <stop v-for="(st, i) in g.stops" :key="i" :offset="st.o" :stop-color="st.c" :stop-opacity="st.a" />
           </linearGradient>
         </defs>
+        <!-- ฮาโลจางกว้างและเบลอที่สุดอยู่หลังสุด ให้รอยต่อระหว่างช่วงนุ่มเหมือนสีน้ำซึม (ไม่กระทบป้าย: ป้ายอยู่นอก SVG) -->
+        <g class="filter-wcrh" opacity="0.2">
+          <path v-for="s in segs" :key="'h' + s.id" :d="shape(s, HALO_H)" :fill="`url(#${uid}-${s.id})`" />
+        </g>
         <!-- ชั้นจางกว้างกว่าด้านหลัง -->
-        <g style="filter: url(#wcr)" opacity="0.3">
+        <g class="filter-wcr" opacity="0.3">
           <path v-for="s in segs" :key="'b' + s.id" :d="shape(s, BACK_H)" :fill="`url(#${uid}-${s.id})`" />
         </g>
         <!-- ชั้นสีหลัก -->
-        <g style="filter: url(#wcr)" opacity="0.92">
+        <g class="filter-wcr" opacity="0.92">
           <path v-for="s in segs" :key="s.id" :d="shape(s, BAR_H)" :fill="`url(#${uid}-${s.id})`" />
         </g>
       </svg>
@@ -62,6 +66,7 @@ const props = defineProps({
 const HEIGHT = 84
 const BAR_H = 46
 const BACK_H = 64
+const HALO_H = 80
 const uid = useId()
 const paintRef = ref(null)
 

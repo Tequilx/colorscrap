@@ -1,9 +1,9 @@
 <template>
   <!-- การ์ดหลังบันทึก (SPEC §5.4, แบบ 10-saved-v2) อยู่ในหน้าขวาของสมุดที่ซูมอยู่ทั้งหมด (หน้าขวา = x 622–1188, y 48–752 ในพิกัด stage) -->
   <div
-    class="absolute box-border flex flex-col rounded-hand border-2 border-ink px-[30px] pb-[24px] pt-[26px] shadow-card"
+    class="absolute box-border flex flex-col rounded-hand border-2 border-ink bg-card px-[30px] pb-[24px] pt-[26px] shadow-card"
     :class="app.savePhase === 'idle' ? '' : 'pointer-events-none'"
-    :style="{ left: CARD.x + 'px', top: CARD.y + 'px', width: CARD.w + 'px', background: PALETTE.card }"
+    :style="{ left: CARD.x + 'px', top: CARD.y + 'px', width: CARD.w + 'px' }"
   >
     <!-- 1. เครื่องหมายถูกในวงหมึกวาดมือ (สีปกสมุด) + หัวข้อ + เวลา · อารมณ์ · ระดับ -->
     <div class="flex items-center gap-3.5 pb-[22px]">
