@@ -11,6 +11,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 No linter is configured.
 
+## กติกาทำงาน (งานคิวบน feature/polish)
+
+- ก่อนเริ่มแต่ละข้อ ติด tag `pre-<งาน>` (เช่น `pre-sound`) แล้วค่อยทำ; `npm test` + `npm run build` ต้องผ่านก่อน commit
+- ห้ามแตะ `main`, ห้าม force push, ห้ามอ่าน `.env.local`, ห้าม merge เอง
+- ใช้ token สไตล์เดิมเท่านั้น (`lib/tokens.js` / tailwind utilities) ห้ามฮาร์ดโค้ดสีใหม่ในคอมโพเนนต์
+- ทุกแอนิเมชันต้องมีทางเลือก reduced-motion (`lib/motion.js` `reducedMotion`/`ms()`, `app.css`)
+- ห้ามเปลี่ยนสีบนผ้าใบ ภาพในสมุด และสีที่ดึงจากภาพ (`extractColors`) — เอฟเฟกต์ใหม่ต้องอยู่ใต้กระดาษ/นอกผ้าใบ และต้องวัดซ้ำว่าสีที่ดึงเหมือนเดิม
+- หลังทำแต่ละข้อรัน `scripts/screens.mjs <งาน>` (ภาพลง `scripts/out/screens/<งาน>/` + contact sheet) แล้วค่อย commit + push `feature/polish`; รายการงานอยู่ที่ `docs/ROADMAP.md`
+
 ## Architecture
 
 ColorScrap is a Vue 3 + Vite + Tailwind 3 (PostCSS) app, a university AI final project: a watercolour mood sketchbook. **`docs/SPEC.md` is the source of truth** (read it before building a screen); reference mockups are in `docs/design/screens/` and `docs/design/style-board.html`. Plain JavaScript only (no TypeScript), `<script setup>`. UI text is in Thai, and so are code comments — keep that convention. `@` aliases `src/` (vite.config.js, jsconfig.json).
