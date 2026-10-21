@@ -24,23 +24,8 @@
 
     <div class="flex flex-col gap-2.5 border-t-[1.5px] border-dashed border-line pt-4">
       <span class="font-hand text-17 font-semibold">{{ !before.length ? 'สีแรกของวันนี้' : unchanged ? 'สีของวันนี้ยังคงเดิม' : 'สีของวันนี้เปลี่ยนไปนิดหนึ่ง' }}</span>
-      <!-- หยดสีตกลงหลุมผสมสี มีวงคลื่นกระจาย -->
-      <!-- หลุมผสมสีย่อลง (80%) ให้การ์ดที่มีหัวข้อสีในภาพนี้เพิ่มยังสูงไม่เกินพื้นที่ -->
-      <svg width="272" height="125" viewBox="0 0 340 156" class="self-center" role="img" :aria-label="`หยดสี${emotion.th}กำลังตกลงในหลุมผสมสีของวันนี้`">
-        <defs><clipPath :id="clipId"><circle cx="170" cy="96" r="44" /></clipPath></defs>
-        <path d="M170 6 C170 6 160 20 160 27 A10 10 0 0 0 180 27 C180 20 170 6 170 6 Z" :fill="entry.colors[0].hex" stroke="#2D2B33" stroke-width="1.6" />
-        <path d="M150 12 V30 M190 16 V34" stroke="#8E8A93" stroke-width="1.6" stroke-linecap="round" stroke-dasharray="3 5" />
-        <ellipse cx="173" cy="102" rx="58" ry="56" fill="rgba(45, 43, 51, 0.10)" />
-        <circle cx="170" cy="96" r="56" fill="#F1EEE8" stroke="#DCD6CC" stroke-width="2" />
-        <circle cx="170" cy="96" r="45" fill="#FFFFFF" stroke="#E4DFD6" stroke-width="2.5" />
-        <g :clip-path="`url(#${clipId})`">
-          <g class="filter-wcm">
-            <path v-for="(g, i) in groups" :key="i" :d="BLOB_PATHS.small" :transform="SPOTS[i]" :fill="g.hex" fill-opacity="0.58" />
-          </g>
-        </g>
-        <circle cx="170" cy="78" r="10" fill="none" :stroke="entry.colors[0].hex" stroke-width="2" />
-        <circle cx="170" cy="78" r="18" fill="none" :stroke="entry.colors[0].hex" stroke-opacity="0.45" stroke-width="1.6" />
-      </svg>
+      <!-- หยดสีตกลงบ่อผสมสี วงน้ำกระเพื่อม สีผสมเป็นสีใหม่ของวัน (SavedWell.vue เล่นครั้งเดียวหลังขึ้นการ์ด) -->
+      <SavedWell class="self-center" :entry="entry" :before="before" :day="day" />
       <!-- สีก่อนและหลังบันทึก -->
       <div class="flex items-center gap-2.5">
         <template v-if="before.length && !unchanged">
@@ -65,19 +50,18 @@
 </template>
 
 <script setup>
-import { computed, useId } from 'vue'
+import { computed } from 'vue'
 import HandButton from '@/components/ui/HandButton.vue'
 import Doodle from '@/components/ui/Doodle.vue'
 import WatercolorBlob from '@/components/ui/WatercolorBlob.vue'
-import { BLOB_PATHS } from '@/lib/doodles'
+import SavedWell from '@/components/saved/SavedWell.vue'
 import { EMOTION_BY_KEY, INTENSITY_LABELS, emotionLabel } from '@/lib/emotions'
-import { colorWeightsOfDay, dayColor, hueGroup, percentsOf, sameColorName } from '@/lib/palette'
+import { dayColor, hueGroup, percentsOf, sameColorName } from '@/lib/palette'
 import { useAppStore } from '@/stores/app'
 import { useEntriesStore } from '@/stores/entries'
 
 const app = useAppStore()
 const entriesStore = useEntriesStore()
-const clipId = useId()
 
 const entry = computed(() => entriesStore.entries.find((e) => e.id === app.lastSavedEntryId) ?? entriesStore.entries.at(-1))
 const emotion = computed(() => EMOTION_BY_KEY[entry.value.emotion])
@@ -95,8 +79,4 @@ const beforeName = computed(() => beforeColor.value?.name.full ?? '')
 const afterName = computed(() => afterColor.value?.name.full ?? '')
 // ส่วนสีของชื่อ (กลุ่มสี + ตัวขยาย) ก่อนและหลังบันทึกเหมือนกัน ไม่นับช่วงเวลา แสดงว่ายังคงเดิมแทนลูกศร
 const unchanged = computed(() => before.value.length > 0 && sameColorName(beforeColor.value, afterColor.value))
-
-// หยดในหลุมเล็ก (รัศมี 44): ตำแหน่งตายตัว 3 จุด ตามสีที่หนักที่สุดของวัน
-const groups = computed(() => colorWeightsOfDay(day.value).slice(0, 3))
-const SPOTS = ['translate(98 44) scale(0.75)', 'translate(142 52) scale(0.5)', 'translate(150 90) scale(0.3)']
 </script>
