@@ -61,11 +61,11 @@ export const useAppStore = defineStore('app', () => {
   // ผ้าใบมีภาพที่ยังไม่บันทึก (หยดเริ่มต้นก็นับ) และอารมณ์ที่หยดลงแผ่นนี้ตามลำดับ (SPEC §5.3, §7.2)
   const canvasDirty = ref(false)
   const sheetEmotions = ref([])
-  // ผู้ใช้หยดสีอุ่นเองลงแผ่นนี้แล้วอย่างน้อย 1 หยด (SPEC §6.4) ตั้งโดย FluidCanvas
+  // ผู้ใช้หยดแต้มแสงเองลงแผ่นนี้แล้วอย่างน้อย 1 หยด (SPEC §6.4) ตั้งโดย FluidCanvas
   const sheetShifted = ref(false)
-  // โน้ตชวนลองสีอุ่น ถามได้ครั้งเดียวต่อแผ่น: idle → open → done (เริ่มใหม่/แผ่นใหม่/บันทึก = กลับเป็น idle)
+  // โน้ตชวนลองแต้มแสง ถามได้ครั้งเดียวต่อแผ่น: idle → open → done (เริ่มใหม่/แผ่นใหม่/บันทึก = กลับเป็น idle)
   const warmNote = ref('idle')
-  // เพิ่มเมื่อกด "ลองดู" ให้ผ้าใบหยดสีอุ่น 1 หยดที่ขอบกระดาษ
+  // เพิ่มเมื่อกด "ลองดู" ให้ผ้าใบหยดแต้มแสง 1 หยดที่ขอบกระดาษ
   const warmTick = ref(0)
   let pickFrom = null // view ที่มาก่อนเข้า pick ใช้ตัดสินว่าเป็น "เปลี่ยนสี" หรือเริ่มระบายใหม่
   // เพิ่มทุกครั้งที่เข้า book จาก view อื่น (ไม่นับกลับจาก photo) ให้จานสีประจำวันเล่นการปรากฏทีละส่วนใหม่
@@ -99,9 +99,9 @@ export const useAppStore = defineStore('app', () => {
   // ผ้าใบ (FluidCanvas) ลงทะเบียนตัวเองไว้ที่นี่ ใช้ตัวแปรธรรมดาไม่ใช้ ref เพื่อไม่ให้ Vue ครอบ proxy
   let painter = null
 
-  // อารมณ์ล่าสุดของแผ่นเป็นอารมณ์ลบ: เครื่องมือ "สีอุ่น" และโน้ตชวนจึงโผล่ (SPEC §6.4)
+  // อารมณ์ล่าสุดของแผ่นเป็นอารมณ์ลบ: เครื่องมือ "แต้มแสง" และโน้ตชวนจึงโผล่ (SPEC §6.4)
   const warmAvailable = computed(() => NEGATIVE_EMOTIONS.includes(sheetEmotions.value.at(-1) ?? selection.value.emotion))
-  // เปลี่ยนไปอารมณ์บวกขณะเลือกเครื่องมือสีอุ่นอยู่ → กลับไปปาดสี
+  // เปลี่ยนไปอารมณ์บวกขณะเลือกเครื่องมือแต้มแสงอยู่ → กลับไปปาดสี
   watch(warmAvailable, (ok) => {
     if (!ok && tool.value === 'warm') tool.value = 'smear'
   })
@@ -121,7 +121,7 @@ export const useAppStore = defineStore('app', () => {
     tool.value = 'warm'
     warmTick.value += 1
   }
-  // เลือกเครื่องมือจากถาด: เลือกสีอุ่นเองก็ปิดโน้ต
+  // เลือกเครื่องมือจากถาด: เลือกแต้มแสงเองก็ปิดโน้ต
   const pickTool = (key) => {
     tool.value = key
     if (key === 'warm') warmNote.value = 'done'

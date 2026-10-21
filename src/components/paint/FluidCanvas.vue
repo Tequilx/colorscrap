@@ -33,7 +33,7 @@ import { warmTune as tune, noteDebug as debug, fluidInfo, DEV_PARAMS_EVENT, DEV_
 const props = defineProps({
   emotion: { type: String, required: true },
   intensity: { type: Number, default: 1 },
-  // เครื่องมือที่เลือก: smear (ปาดสี) | drop (เติมหยด) | warm (สีอุ่น เฉพาะอารมณ์ลบ)
+  // เครื่องมือที่เลือก: smear (ปาดสี) | drop (เติมหยด) | warm (แต้มแสง เฉพาะอารมณ์ลบ)
   tool: { type: String, default: 'smear' },
   // false = หยุด loop ของ simulation (ไม่อยู่ในหน้า paint) แต่ยังคง WebGL context ไว้ (SPEC §4.3)
   running: { type: Boolean, default: true },
@@ -41,13 +41,13 @@ const props = defineProps({
   clearTick: { type: Number, default: 0 },
   // เพิ่มค่าเพื่อสั่งหยดสีเริ่มต้นของอารมณ์ที่เลือก (หยดทับของเดิมได้) store เป็นผู้ตัดสินว่าเมื่อไหร่ควรหยด (SPEC §5.3)
   dropTick: { type: Number, default: 0 },
-  // เพิ่มค่าเมื่อกด "ลองดู" ในโน้ตชวน: หยดสีอุ่น 1 หยดที่ขอบกระดาษ
+  // เพิ่มค่าเมื่อกด "ลองดู" ในโน้ตชวน: หยดแต้มแสง 1 หยดที่ขอบกระดาษ
   warmTick: { type: Number, default: 0 },
   // อารมณ์ล่าสุดของแผ่นเป็นอารมณ์ลบ (ใช้ตัดสินว่าจะชวนหรือไม่)
   warmAvailable: { type: Boolean, default: false },
 })
 
-// shifted: ผู้ใช้หยดสีอุ่นเองหยดแรกของแผ่น | invite: ระบายรวมครบและพักมือ ควรโผล่โน้ตชวน (SPEC §6.4)
+// shifted: ผู้ใช้หยดแต้มแสงเองหยดแรกของแผ่น | invite: ระบายรวมครบและพักมือ ควรโผล่โน้ตชวน (SPEC §6.4)
 const emit = defineEmits(['shifted', 'invite', 'splash'])
 
 const SIZE = { w: 1112, h: 612 }
@@ -56,18 +56,18 @@ const HOLD_INTERVAL = 120
 const HOLD_STRENGTH = 0.1
 const HOLD_MOVE_LIMIT = 8 // ขยับเกินนี้ (px) ถือว่าเป็นการลาก ไม่ใช่กดค้าง
 const SMEAR_RADIUS = 0.25
-// สีอุ่นแบบบาน (ดู bloomAt): ความปลอดภัยเรื่องดำ/รูขาวอยู่ที่ตัวกันดำของ GPU แล้ว (หลังยกสี พื้นที่สว่างพอให้สีอุ่นลงได้เสมอ ก่อนยกก็ไม่เกินเพดาน)
-// จึงไม่ต้องมีงบการยกสีต่อช่อง (เดิมมีงบ แล้วกดค้างหมดงบหลัง ~2 ครั้ง สีเดิมไหลกลับเต็มกลางวงและสีอุ่นหายไป วัดแล้ว)
+// แต้มแสงแบบบาน (ดู bloomAt): ความปลอดภัยเรื่องดำ/รูขาวอยู่ที่ตัวกันดำของ GPU แล้ว (หลังยกสี พื้นที่สว่างพอให้แต้มแสงลงได้เสมอ ก่อนยกก็ไม่เกินเพดาน)
+// จึงไม่ต้องมีงบการยกสีต่อช่อง (เดิมมีงบ แล้วกดค้างหมดงบหลัง ~2 ครั้ง สีเดิมไหลกลับเต็มกลางวงและแต้มแสงหายไป วัดแล้ว)
 // ขอบเข้มคูณสีเดิมของจุดนั้นแต่ไม่เกิน INK_CAP (ไม่ให้ขอบสะสมจนดำ) กันกดค้างบานถี่ไป: ไม่ถี่กว่า HOLD_BLOOM_MS
 const HOLD_BLOOM_MS = 700
-const LIFT_GAP_MS = 500 // แตะรัวถี่กว่านี้ ไม่ยกสีซ้ำ (ลงสีอุ่นอย่างเดียว) ไม่งั้นสีอุ่นที่เพิ่งลงถูกยกทิ้งทุกครั้งจนเหลือรูขาว
+const LIFT_GAP_MS = 500 // แตะรัวถี่กว่านี้ ไม่ยกสีซ้ำ (ลงแต้มแสงอย่างเดียว) ไม่งั้นแต้มแสงที่เพิ่งลงถูกยกทิ้งทุกครั้งจนเหลือรูขาว
 const INK_SPREAD = 1.08 // วัดแล้ว: พื้นที่หยดเดี่ยวที่ 2 วินาทีเท่า main ±8% (ไม่ใส่ = 87–96%)
 const DROP_RADIUS_SCALE = 3 // splatRadius ของ SPEC เล็กเกินไปบนกระดาษ 1112×612 ปรับให้หยดมีเนื้อสีพอ
 const SMEAR_FORCE = 1500
 const CLEAR_FRAMES = 8
 
-// สีอุ่นของอารมณ์ลบ (SPEC §6.4) ผู้ใช้เลือกหยดเอง ไม่มีการหยดอัตโนมัติ
-// ขนาด/ความเข้ม/จำนวนหยดตัวอย่างของสีอุ่นอยู่ใน lib/devState.js (warmTune) ปรับสดได้จากแผง ?debug
+// แต้มแสงของอารมณ์ลบ (SPEC §6.4) ผู้ใช้เลือกหยดเอง ไม่มีการหยดอัตโนมัติ
+// ขนาด/ความเข้ม/จำนวนหยดตัวอย่างของแต้มแสงอยู่ใน lib/devState.js (warmTune) ปรับสดได้จากแผง ?debug
 const WARM_SAMPLE_GAP = 280 // ms ห่างกันระหว่างหยดตัวอย่าง
 const SHIFT_SPEED = 200 // ความเร็วต่ำ (initial = 220 × speed ของอารมณ์)
 const WARM_TAP_SPEED = 60 // หยดที่ตำแหน่งแตะ ความเร็วเท่าหยดอารมณ์
@@ -77,7 +77,7 @@ const NOTE_TICK = 250
 // เร่งเวลาโน้ตตอน dev เพื่อทดสอบ (เร่งทั้งเวลาก่อนโน้ตขึ้นและเวลาพักมือ): เปิดหน้าด้วย ?shiftSpeed=10 (ไม่ยุ่งกับ simulation) และ ?debug เปิดแผงปรับค่า (src/dev/DebugPanel.vue)
 const DEBUG = import.meta.env.DEV && new URLSearchParams(location.search).has('debug')
 const NOTE_TIME_SCALE = import.meta.env.DEV ? Number(new URLSearchParams(location.search).get('shiftSpeed')) || 1 : 1
-// prefers-reduced-motion: หยดสีอุ่นตอนกดค้างช้าลงครึ่งหนึ่ง (ห่างขึ้น 2 เท่า)
+// prefers-reduced-motion: หยดแต้มแสงตอนกดค้างช้าลงครึ่งหนึ่ง (ห่างขึ้น 2 เท่า)
 const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')
 
 // webgl-fluid-enhanced v0.8 รับ "container" (ไม่ใช่ canvas) แล้วหา <canvas> ข้างในเอง
@@ -92,7 +92,7 @@ let clearing = false
 let gravityTimer = null
 let gravityStop = null
 let noteTimer = null
-// สถานะของแผ่นปัจจุบัน (รีเซ็ตเมื่อล้างผ้าใบ): เวลาที่ระบายรวม เวลาที่พักมือ ชวนไปแล้วหรือยัง จำนวนครั้งที่หยดสีอุ่น (ไล่สีตามนี้)
+// สถานะของแผ่นปัจจุบัน (รีเซ็ตเมื่อล้างผ้าใบ): เวลาที่ระบายรวม เวลาที่พักมือ ชวนไปแล้วหรือยัง จำนวนครั้งที่หยดแต้มแสง (ไล่สีตามนี้)
 const newSheetState = () => ({ started: false, elapsed: 0, idle: 0, invited: false, warmGestures: 0, warmDropped: false })
 let sheet = newSheetState()
 const timers = new Set() // timeout ของหยดเริ่มต้นแบบเป็นจังหวะ
@@ -200,7 +200,7 @@ const pollProbe = () => {
   probe = null
 }
 // สีน้ำที่ค่อย ๆ แห้ง: น้ำไหลปกติ (ค่าของอารมณ์) ช่วงแรกหลัง input ล่าสุด แล้วเพิ่ม velocityDissipation แบบ ease-in-out จนน้ำสงบ
-// ไม่แตะ density (สีอยู่ถาวร) input = แตะ ลาก กดค้าง หยดสีอุ่น และหยดสาดตอนเข้าหน้า (นับจากหยดสุดท้าย) มี input ใหม่ = กลับเป็นค่าปกติทันที
+// ไม่แตะ density (สีอยู่ถาวร) input = แตะ ลาก กดค้าง หยดแต้มแสง และหยดสาดตอนเข้าหน้า (นับจากหยดสุดท้าย) มี input ใหม่ = กลับเป็นค่าปกติทันที
 // แรงถ่วงของ sad เป็นส่วนหนึ่งของการสาด ไม่นับเป็น input (ยังปลุกการจำลองได้ แต่ไม่ต่อเวลาแห้ง)
 // เวลาที่ใช้ = "เวลาของการจำลอง" (สะสม dt ที่ไลบรารีจำกัดไว้ ≤ 1/60 วินาทีต่อเฟรม ไม่นับช่วงพัก) ไม่ใช่เวลานาฬิกา:
 // เครื่องที่เฟรมตกจะได้น้ำไหลครบเท่ากัน ไม่ใช่แห้งก่อนน้ำไหลถึง (วัดแล้ว เฟรมช้าลงทำให้พื้นที่สีเล็กลงถ้าใช้เวลานาฬิกา)
@@ -342,7 +342,7 @@ const splat = (x, y, dx, dy, { hex, radius, noColor, strength = 1 } = {}) => {
 
 const params = () => FLUID_PARAMS[props.emotion]
 
-// เคอร์เซอร์บนผ้าใบ (เฉพาะเมาส์ pointer: fine) ตามเครื่องมือ: ปาด = นิ้วติดสีอารมณ์ / หยด = พู่กันสีอารมณ์ / สีอุ่น = พู่กันสีอุ่น (lib/cursors.js) จอสัมผัสคงเดิม
+// เคอร์เซอร์บนผ้าใบ (เฉพาะเมาส์ pointer: fine) ตามเครื่องมือ: ปาด = นิ้วติดสีอารมณ์ / หยด = พู่กันสีอารมณ์ / แต้มแสง = พู่กันแต้มแสง (lib/cursors.js) จอสัมผัสคงเดิม
 const overlayStyle = computed(() => {
   if (!finePointer.value) return { cursor: 'crosshair' }
   const tool = props.tool === 'warm' && props.warmAvailable ? 'warm' : props.tool
@@ -483,15 +483,15 @@ const tryDrop = () => {
   startGravity()
 }
 
-// ---- สีอุ่นของอารมณ์ลบ (SPEC §6.4) ----
+// ---- แต้มแสงของอารมณ์ลบ (SPEC §6.4) ----
 
-// สีอุ่นของการหยดครั้งนี้: สีเดียวของอารมณ์ล่าสุด (WARM_TONES) เฉดต่างกันเล็กน้อยตามลำดับครั้ง (หนึ่งการแตะ/กดค้างหนึ่งรอบ/"ลองดูหนึ่งหยด" = หนึ่งครั้ง) นับต่อแผ่น รีเซ็ตเมื่อเริ่มแผ่นใหม่
+// แต้มแสงของการหยดครั้งนี้: สีเดียวของอารมณ์ล่าสุด (WARM_TONES) เฉดต่างกันเล็กน้อยตามลำดับครั้ง (หนึ่งการแตะ/กดค้างหนึ่งรอบ/"ลองดูหนึ่งหยด" = หนึ่งครั้ง) นับต่อแผ่น รีเซ็ตเมื่อเริ่มแผ่นใหม่
 const warmHex = () => {
   const tone = WARM_TONES[props.emotion]
   return tone ? warmShade(tone, sheet.warmGestures) : null
 }
 
-// ความเข้มสีอุ่นตามความเข้มของอารมณ์เดิมเหมือนเครื่องมือ "เติมหยด" (dyeOf คูณ INTENSITY_FACTOR ให้เอง)
+// ความเข้มแต้มแสงตามความเข้มของอารมณ์เดิมเหมือนเครื่องมือ "เติมหยด" (dyeOf คูณ INTENSITY_FACTOR ให้เอง)
 const warmStrength = (strength = 1) => strength * tune.strength
 
 const markWarmDropped = () => {
@@ -500,10 +500,10 @@ const markWarmDropped = () => {
   emit('shifted')
 }
 
-// ---- สีอุ่นแบบบาน (bloom / backrun ของสีน้ำจริง) ----
-// หยดน้ำสะอาดลงบนสีที่ยังเปียก ดันสีเดิมออกเป็นวงขอบเข้ม กลางวงจางลง แล้วเม็ดสีใหม่เบ่งบานตรงกลาง จึงเห็นสีอุ่นชัดแม้บนรอยสีเข้ม
+// ---- แต้มแสงแบบบาน (bloom / backrun ของสีน้ำจริง) ----
+// หยดน้ำสะอาดลงบนสีที่ยังเปียก ดันสีเดิมออกเป็นวงขอบเข้ม กลางวงจางลง แล้วเม็ดสีใหม่เบ่งบานตรงกลาง จึงเห็นแต้มแสงชัดแม้บนรอยสีเข้ม
 // ลำดับต่อหยด (ภายใน tune.bloomMs): ก. ดันน้ำออกแนวรัศมี  ข. ยกสีเดิม: dye ในวง × (1 − lift × gaussian) เป็น shader pass แบบคูณ (ไม่มีค่าลบ ใช้ได้กับ half float)
-// ค. ลงสีอุ่นตรงกลางด้วยเพดานของตัวเอง 3 ครั้งรัศมีโตขึ้นให้เบ่งออกช้า ๆ  ง. ลด ink ของช่องที่ถูกยกสีให้ตรงกับของจริง
+// ค. ลงแต้มแสงตรงกลางด้วยเพดานของตัวเอง 3 ครั้งรัศมีโตขึ้นให้เบ่งออกช้า ๆ  ง. ลด ink ของช่องที่ถูกยกสีให้ตรงกับของจริง
 const LIFT_FRAG = `
 precision highp float;
 precision highp sampler2D;
@@ -585,7 +585,7 @@ const liftDye = (x, y, radius, amount, rim) => {
 }
 
 // ลด ink ของช่องที่ถูกยกสี (× 1 − amount × ค่าเฉลี่ย gaussian ทั้งช่อง จุดย่อย 3×3) ให้แผนที่ตรงกับสีบนผ้าใบ ไม่เพิ่มที่ขอบ (ประเมินต่ำไว้ ปลอดภัยกว่า)
-// ถ้าลดน้อยไป แผนที่จะบล็อกสีอุ่นที่ลงทีหลังจนกลางวงเป็นรูขาว (วัดแล้ว) ถ้าไม่ลดเลยก็เช่นกัน
+// ถ้าลดน้อยไป แผนที่จะบล็อกแต้มแสงที่ลงทีหลังจนกลางวงเป็นรูขาว (วัดแล้ว) ถ้าไม่ลดเลยก็เช่นกัน
 const lowerInk = (x, y, radius, amount) => {
   const rho = (SIZE.w * SIZE.h * radius) / 100 // ρ ของ exp(−d²/ρ) ในหน่วยพิกเซลกระดาษ
   const reach = Math.ceil(Math.sqrt(rho * 3) / INK_CELL) + 1
@@ -663,7 +663,7 @@ const bloomFrame = () => {
     if (b.amount > 0.01) {
       // ยกสีเดิมก่อนลงสี (ไม่เพิ่มขอบ) ส่วนที่ยกตามเวลาจริงของช่วงนี้ ไม่ใช่ต่อเฟรม
       const k = Math.min(1, t / BLOOM_LIFT_FALL)
-      // หลัง BLOOM_LIFT_FALL ลดต่อเนื่องเหลือ 0 ที่ท้ายเส้น (ลงสีน้อยลงแล้ว ยกต่อเท่าเดิมจะกินสีอุ่นที่เพิ่งลง กลางวงจางลงหลัง ~1.6 วิ วัดแล้ว)
+      // หลัง BLOOM_LIFT_FALL ลดต่อเนื่องเหลือ 0 ที่ท้ายเส้น (ลงสีน้อยลงแล้ว ยกต่อเท่าเดิมจะกินแต้มแสงที่เพิ่งลง กลางวงจางลงหลัง ~1.6 วิ วัดแล้ว)
       const tail = 1 - Math.max(0, (t - BLOOM_LIFT_FALL) / Math.max(1, b.T - BLOOM_LIFT_FALL))
       const level = Math.min(0.85, b.amount * 1.2) * (1 - k) + b.amount * 0.6 * k * tail
       const part = 1 - (1 - level) ** ((t - b.tPrev) / BLOOM_LIFT_REF)
@@ -691,7 +691,7 @@ const stopBlooms = () => {
   bloomRaf = 0
 }
 
-// strength = ความแรงสีอุ่นทั้งหยด gentle = กดค้าง (ยกสีเบาลง เส้นโค้งสั้น ไม่ประคองต่อ)
+// strength = ความแรงแต้มแสงทั้งหยด gentle = กดค้าง (ยกสีเบาลง เส้นโค้งสั้น ไม่ประคองต่อ)
 const bloomAt = (x, y, hex, { strength = 1, gentle = false } = {}) => {
   if (!fluid) return
   const calm = Boolean(reducedMotion?.matches)
@@ -762,7 +762,7 @@ const pickSamplePoints = (n) => {
   return out
 }
 
-// หยดสีอุ่นที่ตำแหน่งใดก็ได้ (ผู้ใช้แตะ หรือกดค้างเบา ๆ)
+// หยดแต้มแสงที่ตำแหน่งใดก็ได้ (ผู้ใช้แตะ หรือกดค้างเบา ๆ)
 const dropWarmAt = (x, y, hex, strength = 1) => {
   if (bloomOn() && strength >= 0.5) {
     bloomAt(x, y, hex, { strength })
@@ -773,7 +773,7 @@ const dropWarmAt = (x, y, hex, strength = 1) => {
   sound.drop(props.emotion, { strength: 0.7 })
 }
 
-// "ลองดู": หยดตัวอย่าง tune.samples หยด วางบนบริเวณที่ระบายไว้แล้วใกล้กลางภาพ (pickSamplePoints) สีอุ่นของอารมณ์ (WARM_TONES) ห่างกัน WARM_SAMPLE_GAP
+// "ลองดู": หยดตัวอย่าง tune.samples หยด วางบนบริเวณที่ระบายไว้แล้วใกล้กลางภาพ (pickSamplePoints) แต้มแสงของอารมณ์ (WARM_TONES) ห่างกัน WARM_SAMPLE_GAP
 // โหมดบาน: แต่ละหยดบานเต็มลำดับ (ดูหัวข้อ bloomAt) ปิดสวิตช์: หยดเดี่ยวพุ่งเข้าด้านในช้า ๆ
 const dropWarmSamples = () => {
   const tone = WARM_TONES[props.emotion]
@@ -955,7 +955,7 @@ const onDown = (e) => {
   const { x, y } = toCanvas(e)
   const pointer = { x, y, downX: x, downY: y, hold: null, holdStart: null, t: e.timeStamp }
   pointers.set(e.pointerId, pointer)
-  // สีอุ่น: แตะ = หยดสีปลายทางตรงจุดนั้น กดค้าง = หยดเบา ๆ ต่อเนื่องด้วยสีเดียวกัน (ไม่ใช่สีอารมณ์)
+  // แต้มแสง: แตะ = หยดสีปลายทางตรงจุดนั้น กดค้าง = หยดเบา ๆ ต่อเนื่องด้วยสีเดียวกัน (ไม่ใช่สีอารมณ์)
   const warm = props.tool === 'warm' && props.warmAvailable ? warmHex() : null
   if (warm) {
     sheet.warmGestures++

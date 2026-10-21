@@ -60,7 +60,7 @@ const drops = computed(() =>
       path: timelineDrop(x),
       // ภาพที่ปรับโทนไล่สีแนวตั้ง จากสีเด่น (ratio × saturation) ไปสีที่ซึมเข้ามา; ภาพปกติใช้สีเด่นสีเดียว
       stops: e.shifted ? rankedColors(e.colors).slice(0, 3).map((c) => c.hex) : [rankedColors(e.colors)[0].hex],
-      name: e.shifted ? `${name} → อุ่นขึ้น` : name,
+      name: e.shifted ? `${name} → มีแสงขึ้น` : name,
       isNew: e.id === props.newId,
     }
   }),

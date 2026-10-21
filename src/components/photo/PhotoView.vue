@@ -20,7 +20,7 @@
           <div class="flex items-start justify-between gap-3">
             <div class="flex flex-col">
               <h2 class="m-0 font-hand text-26 font-semibold leading-[1.2]">สีในภาพนี้</h2>
-              <span class="text-14 text-ink-soft">{{ entry.local_time }} · {{ emotion.th }}{{ entry.shifted ? ' → อุ่นขึ้น' : '' }} · {{ INTENSITY_LABELS[entry.intensity] }}</span>
+              <span class="text-14 text-ink-soft">{{ entry.local_time }} · {{ emotion.th }}{{ entry.shifted ? ' → มีแสงขึ้น' : '' }} · {{ INTENSITY_LABELS[entry.intensity] }}</span>
             </div>
             <HandButton ref="closeRef" variant="secondary" @click="close"><Doodle name="close" :size="20" /> ปิด</HandButton>
           </div>
@@ -95,7 +95,7 @@ let opener = null // ปุ่มที่เปิดภาพ (คืนโฟ
 const active = computed(() => app.view === 'photo')
 const entry = computed(() => entries.entries.find((e) => e.id === app.photoEntryId) ?? null)
 const emotion = computed(() => EMOTION_BY_KEY[entry.value?.emotion ?? 'calm'])
-const caption = computed(() => (entry.value ? `${entry.value.local_time} · ${emotionLabel(entry.value)}${entry.value.shifted ? ' → อุ่นขึ้น' : ''}` : ''))
+const caption = computed(() => (entry.value ? `${entry.value.local_time} · ${emotionLabel(entry.value)}${entry.value.shifted ? ' → มีแสงขึ้น' : ''}` : ''))
 // หน้า photo ใช้ภาพเต็ม สร้าง URL เฉพาะตอนเปิดดู (ปิดแล้วคืนหน่วยความจำ)
 const imageUrl = useEntryImage(() => (active.value ? entry.value : null), 'image')
 // ระหว่างบินใช้ thumb ก่อน (เดียวกับที่เห็นในสมุด) แล้วสลับเป็นภาพเต็มหลังบินจบและ decode เสร็จ ไม่สลับกลางทางให้ decode ไม่ทำให้กระตุก

@@ -1,6 +1,6 @@
 // เคอร์เซอร์วาดมือ (เฉพาะอุปกรณ์ที่มีเมาส์/แทร็กแพด: media query `pointer: fine`; จอสัมผัสไม่เปลี่ยนอะไร)
 // - ทั่วแอป: นิ้วชี้ 32px จุดคลิกอยู่ที่ปลายนิ้ว (ตัวแปร CSS --cursor-finger ใช้ใน assets/app.css)
-// - บนผ้าใบ: ปาดสี = นิ้วที่มีสีอารมณ์ติดปลาย · เติมหยด = ปลายพู่กันสีอารมณ์ · สีอุ่น = ปลายพู่กันสีอุ่น (FluidCanvas ตั้ง style.cursor)
+// - บนผ้าใบ: ปาดสี = นิ้วที่มีสีอารมณ์ติดปลาย · เติมหยด = ปลายพู่กันสีอารมณ์ · แต้มแสง = ปลายพู่กันแต้มแสง (FluidCanvas ตั้ง style.cursor)
 // สีเส้น/พื้น/วัสดุพู่กันมาจาก tokens.js เท่านั้น สีปลายนิ้ว/ปลายขนเป็นสีอารมณ์ที่ส่งเข้ามา
 import { ref } from 'vue'
 import { BRUSH, PALETTE } from '@/lib/tokens'
@@ -35,7 +35,7 @@ export const cursorValue = (svg, [x, y]) => `url("data:image/svg+xml;charset=utf
 export const fingerCursor = (tipHex = null) => cursorValue(fingerSvg(tipHex), FINGER_HOTSPOT)
 export const brushCursor = (hex) => cursorValue(brushSvg(hex), BRUSH_HOTSPOT)
 
-// เคอร์เซอร์บนผ้าใบตามเครื่องมือ: smear | drop | warm (warm = สีอุ่น ใช้ warmHex แทนสีอารมณ์)
+// เคอร์เซอร์บนผ้าใบตามเครื่องมือ: smear | drop | warm (warm = แต้มแสง ใช้ warmHex แทนสีอารมณ์)
 export const canvasCursor = (tool, emotionHex, warmHex) => {
   if (tool === 'warm') return brushCursor(warmHex)
   if (tool === 'drop') return brushCursor(emotionHex)

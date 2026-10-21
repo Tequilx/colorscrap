@@ -64,7 +64,7 @@ export const softClipCurve = (n = 1024, drive = 1.4) => {
   return curve
 }
 
-// เส้นโค้งซองเสียงของสีอุ่นบาน (ขึ้นแบบ sin ถึงยอดที่ tipMs แล้วลดเป็นเส้นตรงถึง 0 ที่ totalMs) ค่า 0..1 ใช้กับ setValueCurveAtTime
+// เส้นโค้งซองเสียงของแต้มแสงบาน (ขึ้นแบบ sin ถึงยอดที่ tipMs แล้วลดเป็นเส้นตรงถึง 0 ที่ totalMs) ค่า 0..1 ใช้กับ setValueCurveAtTime
 export const bloomEnvelope = (totalMs, points = 64, tipMs = 250) => {
   const tip = Math.min(tipMs, totalMs * 0.3)
   const out = new Float32Array(points)
@@ -290,7 +290,7 @@ export const sound = {
     pool.remove(b.stopFn)
   },
 
-  // สีอุ่นบาน: เสียงอุ่นนุ่มฟุ้งขึ้นแล้วจางตามเส้นโค้งเดียวกับการบาน (ms = ความยาวเส้นโค้ง) gentle = กดค้าง เบาและสั้น
+  // แต้มแสงบาน: เสียงอุ่นนุ่มฟุ้งขึ้นแล้วจางตามเส้นโค้งเดียวกับการบาน (ms = ความยาวเส้นโค้ง) gentle = กดค้าง เบาและสั้น
   bloom({ ms = 3000, gentle = false } = {}) {
     if (!ready()) return
     const t = ctx.currentTime

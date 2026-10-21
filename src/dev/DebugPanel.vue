@@ -54,7 +54,7 @@
         <span class="text-right">{{ fluidInfo[row.key] }}</span>
       </div>
 
-      <div class="mt-1 border-t border-white/30 pt-1 font-bold">สีอุ่น (SPEC §6.4)</div>
+      <div class="mt-1 border-t border-white/30 pt-1 font-bold">แต้มแสง (SPEC §6.4)</div>
       <label v-for="t in WARM_FIELDS" :key="t.key" class="flex items-center gap-2">
         <span class="w-[78px] shrink-0">{{ t.label }}</span>
         <input v-model.number="warmTune[t.key]" type="range" class="w-[88px]" :min="t.min" :max="t.max" :step="t.step" :data-tune="t.key" />
@@ -62,7 +62,7 @@
       </label>
       <label class="flex items-center gap-2">
         <input v-model="warmTune.bloom" type="checkbox" data-tune="bloom" />
-        <span>สีอุ่นแบบบาน (ยกสีเดิม + ดันน้ำ + เบ่งบาน)</span>
+        <span>แต้มแสงแบบบาน (ยกสีเดิม + ดันน้ำ + เบ่งบาน)</span>
       </label>
       <button type="button" class="my-1 cursor-pointer rounded border border-white/50 bg-white/10 px-1.5 py-0.5 font-mono text-[12px] text-white" @click="resetNote">รีเซ็ตโน้ต</button>
     </div>

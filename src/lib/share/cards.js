@@ -80,7 +80,7 @@ const drawPlaceholderPainting = (ctx, x, y, w, h, colors) => {
 // รายการสีของภาพ: สูงสุด 5 สี เรียงมากไปน้อย เปอร์เซ็นต์รวม 100 (ตรงกับแผง "สีในภาพนี้" ในแอป)
 const topColors = (entry) => [...entry.colors].sort((a, b) => b.ratio - a.ratio).slice(0, 5)
 
-export const photoCaption = (entry) => `${entry.local_time} · ${emotionLabel(entry)}${entry.shifted ? ' → อุ่นขึ้น' : ''} · ${INTENSITY_LABELS[entry.intensity]}`
+export const photoCaption = (entry) => `${entry.local_time} · ${emotionLabel(entry)}${entry.shifted ? ' → มีแสงขึ้น' : ''} · ${INTENSITY_LABELS[entry.intensity]}`
 
 // ---- การ์ดภาพพร้อมชาร์ตสี (7a) ----
 // image = ภาพที่ผู้ใช้ระบาย (ImageBitmap/Image/canvas) หรือ null (ใช้ภาพจำลองจากสี)
@@ -284,7 +284,7 @@ const drawTimeline = (ctx, x, y, scale, entries) => {
     ctx.textAlign = 'left'
     const placed = []
     entries.forEach((e, i) => {
-      const label = EMOTION_BY_KEY[e.emotion].th + (e.shifted ? ' → อุ่นขึ้น' : '')
+      const label = EMOTION_BY_KEY[e.emotion].th + (e.shifted ? ' → มีแสงขึ้น' : '')
       const w = ctx.measureText(label).width
       let left = xs[i] - w / 2
       let row = [22, 12][i % 2]
@@ -400,7 +400,7 @@ export const renderDayCard = async ({ date, entries, thumbs = new Map(), userNam
     const thumb = thumbs.get(e.id)
     if (thumb) drawCover(ctx, thumb, 11, 11, 250, 176)
     else drawPlaceholderPainting(ctx, 11, 11, 250, 176, e.colors)
-    const caption = `${e.local_time} · ${emotionLabel(e)}${e.shifted ? ' → อุ่นขึ้น' : ''}`
+    const caption = `${e.local_time} · ${emotionLabel(e)}${e.shifted ? ' → มีแสงขึ้น' : ''}`
     const size = fitSize(ctx, caption, w - 28, { size: 20, min: 14, kind: 'hand' })
     drawText(ctx, caption, 14, h - 10 - size * LINE.hand.box, { size, kind: 'hand', color: C.soft })
     drawTape(ctx, 86 + 50, -12 + 13, 100, 26, slot.tape)

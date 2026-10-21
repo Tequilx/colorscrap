@@ -47,6 +47,6 @@ const emotion = computed(() => EMOTION_BY_KEY[props.entry.emotion])
 // โพลารอยด์ในสมุดใช้ thumb (ไม่มี = mock แสดงหยดสีจำลอง)
 const thumbUrl = useEntryImage(() => props.entry, 'thumb')
 const rot = computed(() => photoRotation(props.entry.id))
-// "{HH:mm} · {อารมณ์}" และต่อท้าย " → อุ่นขึ้น" ถ้าถูกปรับโทน (SPEC §5.5)
-const caption = computed(() => `${props.entry.local_time} · ${emotionLabel(props.entry)}${props.entry.shifted ? ' → อุ่นขึ้น' : ''}`)
+// "{HH:mm} · {อารมณ์}" และต่อท้าย " → มีแสงขึ้น" ถ้าถูกปรับโทน (SPEC §5.5)
+const caption = computed(() => `${props.entry.local_time} · ${emotionLabel(props.entry)}${props.entry.shifted ? ' → มีแสงขึ้น' : ''}`)
 </script>

@@ -142,7 +142,7 @@ const summary = computed(() => {
   const [main, second] = ranked
   if (!second) return list.length === 1 ? `${th(main[0])} ตอน${dayPart(list[0].local_time)}` : `${th(main[0])}ทั้งวันเลย`
   const secondEntry = list[lastIndex(second[0])]
-  const shiftedNote = secondEntry.shifted ? 'ที่ค่อย ๆ อุ่นขึ้น' : ''
+  const shiftedNote = secondEntry.shifted ? 'ที่ค่อย ๆ มีแสงขึ้น' : ''
   return `ส่วนใหญ่${th(main[0])} มีช่วง${th(second[0])}ตอน${dayPart(secondEntry.local_time)}${shiftedNote}`
 })
 </script>
