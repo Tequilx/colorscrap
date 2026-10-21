@@ -147,3 +147,5 @@ export const warmShade = (hex, n) => {
 
 // อารมณ์ที่เปิด "สีอุ่นแบบบาน" (SPEC §6.4) เปิดเฉพาะอารมณ์ที่ผ่านเกณฑ์การบานบนตัวกันดำแบบ GPU
 export const WARM_BLOOM = { sad: true, tired: true, angry: true, anxious: true }
+// ตัวคูณแรงดันน้ำของเส้นโค้งบาน (ไม่ระบุ = 1) กังวลขยายสีออกเกินของเดิม ~12–30% เมื่อดันเท่าอารมณ์อื่น (วัดที่ 3 วินาที) จึงลดลง
+export const WARM_PUSH_GAIN = { anxious: 0.78, tired: 0.92 }

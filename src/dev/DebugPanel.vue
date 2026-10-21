@@ -141,7 +141,8 @@ const WARM_FIELDS = [
   { key: 'liftRadius', label: 'รัศมียกสี ×', min: 0.5, max: 2, step: 0.05 },
   { key: 'rim', label: 'ขอบเข้ม', min: 0, max: 2, step: 0.1 },
   { key: 'push', label: 'แรงดันวงขอบ', min: 0, max: 400, step: 10 },
-  { key: 'bloomMs', label: 'เวลาบาน (ms)', min: 0, max: 2000, step: 100 },
+  { key: 'bloomMs', label: 'เวลาบาน (ms)', min: 500, max: 5000, step: 100 },
+  { key: 'bloomPeak', label: 'ความแรงสูงสุด ×', min: 0.2, max: 3, step: 0.1 },
 ]
 
 // แผงแก้ object ในโมดูล emotions.js ตรง ๆ (FluidCanvas อ่านค่าสดจากที่เดียวกัน) แล้วแจ้งให้ตั้ง curl/velDiss ใหม่

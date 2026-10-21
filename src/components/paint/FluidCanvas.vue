@@ -20,7 +20,7 @@
 <script setup>
 import { ref, watch, onMounted, onBeforeUnmount } from 'vue'
 import WebGLFluid from 'webgl-fluid-enhanced'
-import { emotionShades, FLUID_PARAMS, FLUID_GLOBAL, SPLASH_LEVELS, INK_CELL, INITIAL_SPLATS, INTENSITY_FACTOR, WARM_TONES, WARM_BLOOM, warmShade } from '@/lib/emotions'
+import { emotionShades, FLUID_PARAMS, FLUID_GLOBAL, SPLASH_LEVELS, INK_CELL, INITIAL_SPLATS, INTENSITY_FACTOR, WARM_TONES, WARM_BLOOM, WARM_PUSH_GAIN, warmShade } from '@/lib/emotions'
 import { PALETTE } from '@/lib/tokens'
 import { dyeSetting, invertedHex } from '@/lib/dye'
 import { DYE_SPLAT_FRAG, PAPER_LIGHT } from '@/lib/dyeLimit'
@@ -57,8 +57,6 @@ const WARM_MIN_GIVEN = 0.02 // ต่ำกว่านี้ถือว่า�
 // จึงไม่ต้องมีงบการยกสีต่อช่อง (เดิมมีงบ แล้วกดค้างหมดงบหลัง ~2 ครั้ง สีเดิมไหลกลับเต็มกลางวงและสีอุ่นหายไป วัดแล้ว)
 // ขอบเข้มคูณสีเดิมของจุดนั้นแต่ไม่เกิน INK_CAP (ไม่ให้ขอบสะสมจนดำ) กันกดค้างบานถี่ไป: ไม่ถี่กว่า HOLD_BLOOM_MS
 const HOLD_BLOOM_MS = 700
-const SUSTAIN_GAP = 350 // ms ระหว่างครั้งของการประคองกลางวง
-const SUSTAIN_MS = 3000 // ประคองจนถึงกี่ ms หลังเริ่มบาน
 const LIFT_GAP_MS = 500 // แตะรัวถี่กว่านี้ ไม่ยกสีซ้ำ (ลงสีอุ่นอย่างเดียว) ไม่งั้นสีอุ่นที่เพิ่งลงถูกยกทิ้งทุกครั้งจนเหลือรูขาว
 const INK_SPREAD = 1.08 // วัดแล้ว: พื้นที่หยดเดี่ยวที่ 2 วินาทีเท่า main ±8% (ไม่ใส่ = 87–96%)
 const DROP_RADIUS_SCALE = 3 // splatRadius ของ SPEC เล็กเกินไปบนกระดาษ 1112×612 ปรับให้หยดมีเนื้อสีพอ
@@ -643,24 +641,96 @@ const lowerInk = (x, y, radius, amount) => {
 let lastBloomAt = 0
 // เปิดการบานเมื่อสวิตช์รวมเปิดและอารมณ์นี้อยู่ในรายการที่ผ่านเกณฑ์ (WARM_BLOOM)
 const bloomOn = () => tune.bloom && WARM_BLOOM[props.emotion] !== false
-// strength = ความแรงสีอุ่นทั้งหยด (แบ่งลง 3 ครั้ง) gentle = ยกสีเบาลง (กดค้าง)
+
+// ---- เส้นโค้งการบาน (หนึ่งการแตะ = หนึ่งเส้นโค้ง) ----
+// เดิมแบ่งเป็น 4 หยดก้อน + หยดประคอง 5 ครั้ง แต่ละก้อนทำให้น้ำกระแทกเป็นจังหวะ (หยดที่ 4 หนักสุดเห็นเป็นจังหวะที่สอง) จึงเปลี่ยนเป็นเส้นโค้งเดียวที่คำนวณจากเวลาจริง
+// อัตราลงสี f(t): ขึ้นแบบ sin ถึงยอดที่ BLOOM_TIP_MS แล้วลดแบบ (1 − u)^BLOOM_TAIL ถึง 0 ที่ท้ายเส้น ไม่มีช่วงไหนแรงกว่าช่วงก่อนหน้าหลังยอด
+// ปริมาณสีที่ลงในช่วงเวลาหนึ่ง = ผลต่างของปริพันธ์ F (สูตรปิด) จึงไม่ขึ้นกับ fps หยดจริงส่งทุก BLOOM_EMIT_MS เท่านั้น (ไม่ส่งทุกเฟรมจะได้ไม่หนักเมื่อแตะรัว)
+// ยกสีเดิมแบบต่อเนื่อง: ส่วนที่ยกต่อวินาทีคงที่ตามเวลา (ยกสัดส่วน L ต่อ BLOOM_LIFT_REF ms) L ลดจาก 1.2× ลงเหลือ 0.6× ของ lift ภายใน BLOOM_LIFT_FALL ms เหมือนที่ยกซ้ำ/ประคองเดิม
+const BLOOM_TIP_MS = 250
+const BLOOM_TAIL = 1 // f ช่วงหลังยอด = (1 − u)^BLOOM_TAIL
+const BLOOM_EMIT_MS = 30
+const BLOOM_MIN_SHARE = 0.0015 // น้อยกว่านี้รอสะสมก่อน (หยดจิ๋วจะถูกทิ้งที่ shader) ไม่ทิ้งปริมาณ ค่าสูงกว่านี้ (0.006) ช่วงท้ายเส้นหยดห่างเป็นขั้น เห็นเป็นกระแทกเล็กที่ ~2.3/2.5/2.8 วินาที (วัดแล้ว)
+const BLOOM_LIFT_REF = 350
+const BLOOM_LIFT_FALL = 1000
+const BLOOM_UNITS_TAP = 1.85 // ปริมาณรวมของแตะ/ลองดู (เดิม 4 ก้อน 1.0 + ประคอง 5 × 0.12 = 1.6 หน่วยเดียวกับ share เดิม) ปรับให้พื้นที่/ความชัดที่ 3 วิ ตรงของเดิมที่วัดไว้
+const BLOOM_UNITS_HOLD = 1.6 // เดิม 1.0 ปรับตามแตะ (1.6 → 2.5) ให้ความชัดของกดค้างใกล้เดิม
+const BLOOM_PUSH = 16 // ความเร็วดันน้ำต่อหน่วยปริมาณที่ลง (เดิมก้อน 0.25 ดัน 30) ดันเฉพาะช่วงแรก จางเป็น 0 ที่ BLOOM_PUSH_MS ไม่งั้นพลังงานน้ำสะสมเป็นโหนกที่สอง (วัดแล้ว anxious/angry)
+const BLOOM_PUSH_MS = 500
+const BLOOM_TURNS = 4 // ทิศดันหมุนกี่รอบตลอดเส้นโค้ง (ช่วงดัน 500 ms จึงหมุน ~0.7 รอบ: น้อยกว่านี้สีถูกลากเป็นหางดาวหาง มากกว่านี้ดันหักล้างกันจนพื้นที่หด)
+const BLOOM_HOLD_MS = 900 // เส้นโค้งสั้นของการกดค้าง (บานซ้ำทุก HOLD_BLOOM_MS)
+const blooms = []
+let bloomRaf = 0
+
+const bloomTip = (T) => Math.min(BLOOM_TIP_MS, T * 0.3)
+// ปริพันธ์สะสมของ f ถึงเวลา t
+const bloomCum = (t, T) => {
+  const tp = bloomTip(T)
+  if (t <= tp) return ((2 * tp) / Math.PI) * (1 - Math.cos((Math.PI * t) / (2 * tp)))
+  const u = Math.min(1, (t - tp) / (T - tp))
+  return (2 * tp) / Math.PI + ((T - tp) / (BLOOM_TAIL + 1)) * (1 - (1 - u) ** (BLOOM_TAIL + 1))
+}
+// รัศมีโตต่อเนื่องไม่ลดจนจบเส้นโค้ง (ตัวคูณของ tune.size)
+const bloomScale = (t, T) => {
+  const u = Math.min(1, t / T)
+  return 0.55 + 0.5 * (1 - (1 - u) ** 2)
+}
+
+const bloomFrame = () => {
+  bloomRaf = 0
+  if (!fluid) {
+    blooms.length = 0
+    return
+  }
+  const now = performance.now()
+  const pushGain = WARM_PUSH_GAIN[props.emotion] ?? 1
+  const gap = BLOOM_EMIT_MS * Math.max(1, blooms.length / 3) // ซ้อนกันหลายเส้น (แตะรัว) = ส่งห่างขึ้น ปริมาณรวมเท่าเดิม
+  for (let i = blooms.length - 1; i >= 0; i--) {
+    const b = blooms[i]
+    const t = Math.min(b.T, now - b.t0)
+    const end = t >= b.T
+    if (!end && now - b.lastEmit < gap) continue
+    const scale = bloomScale(t, b.T)
+    if (b.amount > 0.01) {
+      // ยกสีเดิมก่อนลงสี (ไม่เพิ่มขอบ) ส่วนที่ยกตามเวลาจริงของช่วงนี้ ไม่ใช่ต่อเฟรม
+      const k = Math.min(1, t / BLOOM_LIFT_FALL)
+      // หลัง BLOOM_LIFT_FALL ลดต่อเนื่องเหลือ 0 ที่ท้ายเส้น (ลงสีน้อยลงแล้ว ยกต่อเท่าเดิมจะกินสีอุ่นที่เพิ่งลง กลางวงจางลงหลัง ~1.6 วิ วัดแล้ว)
+      const tail = 1 - Math.max(0, (t - BLOOM_LIFT_FALL) / Math.max(1, b.T - BLOOM_LIFT_FALL))
+      const level = Math.min(0.85, b.amount * 1.2) * (1 - k) + b.amount * 0.6 * k * tail
+      const part = 1 - (1 - level) ** ((t - b.tPrev) / BLOOM_LIFT_REF)
+      const r = tune.size * tune.liftRadius * scale * INK_SPREAD
+      if (part > 0.001 && liftDye(b.x, b.y, r, part, 0)) lowerInk(b.x, b.y, r, part)
+    }
+    // ลงสี: ช่วงท้ายอัตราต่ำมาก สะสมจนถึง BLOOM_MIN_SHARE ค่อยลง (หยดจิ๋วจะถูก shader ทิ้ง) ส่วนการยกสีด้านบนทำทุกครั้งที่ส่งเพื่อให้ต่อเนื่อง
+    const share = (b.units * (bloomCum(t, b.T) - bloomCum(b.tDep, b.T))) / bloomCum(b.T, b.T)
+    if (share >= BLOOM_MIN_SHARE || (end && share > 0)) {
+      b.tDep = t
+      const a = b.a0 + (t / b.T) * Math.PI * BLOOM_TURNS * 2 // หมุนช้า ๆ ทิศไม่สุ่มทุกครั้ง (สุ่มถี่ ๆ หักล้างกัน น้ำไม่ขยายเหมือนเดิม)
+      const speed = WARM_TAP_SPEED * BLOOM_PUSH * pushGain * share * Math.max(0, 1 - t / BLOOM_PUSH_MS) // เดิมก้อน 0.25 ดัน 30 ก้อน 0.12 ดัน 15: ดันตามปริมาณที่ลง
+      const landed = splat(b.x, b.y, Math.cos(a) * speed, Math.sin(a) * speed, { hex: b.hex, radius: tune.size * scale, strength: warmStrength(b.strength) * share, warm: true })
+      if (landed) markWarmDropped()
+    }
+    b.tPrev = t
+    b.lastEmit = now
+    if (end) blooms.splice(i, 1)
+  }
+  if (blooms.length) bloomRaf = requestAnimationFrame(bloomFrame)
+}
+const stopBlooms = () => {
+  blooms.length = 0
+  cancelAnimationFrame(bloomRaf)
+  bloomRaf = 0
+}
+
+// strength = ความแรงสีอุ่นทั้งหยด gentle = กดค้าง (ยกสีเบาลง เส้นโค้งสั้น ไม่ประคองต่อ)
 const bloomAt = (x, y, hex, { strength = 1, gentle = false } = {}) => {
   if (!fluid) return
   const calm = Boolean(reducedMotion?.matches)
-  const total = calm ? 0 : tune.bloomMs
-  const run = (delay, fn) => {
-    if (delay <= 0) return fn()
-    const t = setTimeout(() => {
-      timers.delete(t)
-      if (fluid) fn()
-    }, delay)
-    timers.add(t)
-  }
   const recent = lastBloomAt && performance.now() - lastBloomAt < LIFT_GAP_MS
   const amount = recent ? 0 : tune.lift * (gentle ? 0.6 : 1)
   lastBloomAt = performance.now()
-  // ก. ดันสีเดิมออกเป็นวง: หลายจุดรอบกลางวง ดันออกนอก (ไม่ดันตอนลดการเคลื่อนไหว)
-  if (!calm && !recent) {
+  // ก. ดันสีเดิมออกเป็นวง: หลายจุดรอบกลางวง ดันออกนอก (ไม่ดันตอนลดการเคลื่อนไหว) กดค้างไม่ดัน/ไม่ยกก้อนแรก (ทุก ~0.7 วินาทีจะกระแทกเป็นจังหวะ วัดแล้ว) ใช้เส้นโค้งอย่างเดียว
+  if (!calm && !recent && !gentle) {
     wake()
     const reach = Math.sqrt((SIZE.w * SIZE.h * tune.size) / 100) * 0.6
     const arms = 6
@@ -671,39 +741,27 @@ const bloomAt = (x, y, hex, { strength = 1, gentle = false } = {}) => {
     }
   }
   // ข. ยกสีเดิมกลางวง
-  if (amount > 0.01) {
+  if (amount > 0.01 && !gentle) {
     wake()
     const r = tune.size * tune.liftRadius * INK_SPREAD
     if (liftDye(x, y, r, amount, amount * tune.rim)) lowerInk(x, y, r, amount)
   }
-  // ค. ลงสีอุ่นตรงกลาง 4 ครั้ง (25/20/20/35% ของความแรง ครั้งสุดท้ายหนักสุดเพราะสีเดิมไหลกลับเข้ากลางวงหลังหยุดยกสี) รัศมีโตขึ้น
-  const steps = calm ? [[0, 1, 1]] : [[0.1, 0.25, 0.55], [0.35, 0.2, 0.8], [0.65, 0.2, 1], [1, 0.35, 1.05]]
-  for (const [at, share, scale] of steps) {
-    run(total * at, () => {
-      // ยกสีซ้ำเบา ๆ ก่อนลงสีอุ่นแต่ละครั้ง (ไม่เพิ่มขอบ): น้ำที่ดันออกวงทำให้สีรอบข้างไหลกลับเข้ากลางวง ถ้าไม่ยกซ้ำ สีเดิมที่ไหลเข้ามาเต็มเพดาน/ความสว่างต่ำสุด
-      // ตัวกันดำจึงไม่ยอมให้สีอุ่นลงเพิ่ม (วัดแล้ว กลางวงเป็นเทาอมน้ำเงิน ไม่เห็นเหลือง)
-      if (amount > 0.01) {
-        const r = tune.size * tune.liftRadius * scale * INK_SPREAD
-        const again = Math.min(0.85, amount * 1.2)
-        if (liftDye(x, y, r, again, 0)) lowerInk(x, y, r, again)
-      }
-      const a = rand(0, Math.PI * 2)
-      const landed = splat(x, y, Math.cos(a) * WARM_TAP_SPEED * 0.5, Math.sin(a) * WARM_TAP_SPEED * 0.5, { hex, radius: tune.size * scale, strength: warmStrength(strength) * share, warm: true })
-      if (landed) markWarmDropped()
-    })
-  }
-  // ประคองกลางวง: ผ้าใบที่เพิ่งระบายยังเปียกและไหลอยู่ สีเดิมรอบข้างไหลกลับเข้ากลางวงหลังลำดับจบ (วัดแล้ว สีอุ่นที่ ~0.7 วินาทีถูกสีน้ำเงินท่วมทับใน 1–2 วินาที
-  // แม้ไม่ดันน้ำเลย) จึงยกสีเบา ๆ + ลงสีอุ่นเล็กน้อยซ้ำทุก SUSTAIN_GAP จนถึง SUSTAIN_MS หลังเริ่ม (ประมาณช่วงที่น้ำยังไหลก่อนเริ่มแห้ง) ไม่ทำตอนกดค้าง/ลดการเคลื่อนไหว
-  if (!calm && !gentle && amount > 0.01) {
-    for (let t = total + SUSTAIN_GAP; t <= SUSTAIN_MS; t += SUSTAIN_GAP) {
-      run(t, () => {
-        const r = tune.size * tune.liftRadius * 1.05 * INK_SPREAD
-        if (liftDye(x, y, r, amount * 0.6, 0)) lowerInk(x, y, r, amount * 0.6)
-        const a = rand(0, Math.PI * 2)
-        splat(x, y, Math.cos(a) * WARM_TAP_SPEED * 0.25, Math.sin(a) * WARM_TAP_SPEED * 0.25, { hex, radius: tune.size * 1.05, strength: warmStrength(strength) * 0.12, warm: true })
-      })
+  // ลดการเคลื่อนไหว: ลงสีทีเดียว ไม่ดันน้ำ ไม่มีเส้นโค้ง
+  if (calm) {
+    if (amount > 0.01) {
+      const r = tune.size * tune.liftRadius * INK_SPREAD
+      const again = Math.min(0.85, amount * 1.2)
+      if (liftDye(x, y, r, again, 0)) lowerInk(x, y, r, again)
     }
+    const a = rand(0, Math.PI * 2)
+    if (splat(x, y, Math.cos(a) * WARM_TAP_SPEED * 0.5, Math.sin(a) * WARM_TAP_SPEED * 0.5, { hex, radius: tune.size, strength: warmStrength(strength), warm: true })) markWarmDropped()
+    return
   }
+  // ค. เส้นโค้งการบาน (ดูหัวข้อด้านบน) ความแรงสูงสุด tune.bloomPeak คูณปริมาณรวมของเส้นโค้ง
+  const T = gentle ? Math.min(tune.bloomMs, BLOOM_HOLD_MS) : tune.bloomMs
+  if (T <= 0) return
+  blooms.push({ x, y, hex, strength, amount, T, t0: lastBloomAt, a0: rand(0, Math.PI * 2), tPrev: 0, tDep: 0, lastEmit: lastBloomAt, units: (gentle ? BLOOM_UNITS_HOLD : BLOOM_UNITS_TAP) * tune.bloomPeak })
+  if (!bloomRaf) bloomRaf = requestAnimationFrame(bloomFrame)
 }
 
 // จุดวางหยดตัวอย่างของ "ลองดู": บริเวณที่ผู้ใช้ระบายไว้แล้ว (ink 0.3–0.7) ใกล้กลางภาพ ไม่โดนการ์ดอารมณ์/โน้ต/ถาดเครื่องมือ
@@ -770,7 +828,7 @@ const dropWarmSamples = () => {
 // pointermove ที่ไม่ได้กด (hover) ไม่ถูกนับ เพราะ onMove ข้าม pointer ที่ไม่อยู่ใน pointers
 const noteTick = () => {
   // น้ำนิ่งแล้ว (ไม่มีแรง/สีใหม่, ไม่มีนิ้วกด, ไม่มีการซึมค้าง) → พักการจำลอง
-  if (fluid && props.running && !clearing && !sleeping && pointers.size === 0 && timers.size === 0) {
+  if (fluid && props.running && !clearing && !sleeping && pointers.size === 0 && timers.size === 0 && blooms.length === 0) {
     const now = performance.now()
     pollProbe()
     if (now - lastImpulse > SETTLE_MIN_MS) {
@@ -810,6 +868,7 @@ const resetNote = () => {
 const clearTimers = () => {
   timers.forEach(clearTimeout)
   timers.clear()
+  stopBlooms()
   if (splashPending > 0) {
     splashPending = 0
     setSplashing(false)
@@ -931,8 +990,8 @@ const onDown = (e) => {
   } else if (props.tool === 'drop') dropAt(x, y)
   // กดค้างเกิน 400ms (เครื่องมือไหนก็ได้) = หยดต่อเนื่องที่ตำแหน่งปัจจุบัน
   const holdWarm = () => {
-    // โหมดบาน: กดค้างบานต่อเนื่องแต่ไม่ถี่ (HOLD_BLOOM_MS) ช่วงที่เหลือหยดสีอุ่นเบา ๆ ของชั้น 1 กันเจาะเป็นรูขาว
-    if (bloomOn() && performance.now() - lastBloomAt >= HOLD_BLOOM_MS) return bloomAt(pointer.x, pointer.y, warm, { strength: 0.6, gentle: true })
+    // โหมดบาน: กดค้างบานต่อเนื่องแต่ไม่ถี่ (HOLD_BLOOM_MS) เส้นโค้งของแต่ละครั้งต่อเนื่องกันอยู่แล้ว จึงไม่ต้องหยดแทรก
+    if (bloomOn()) return performance.now() - lastBloomAt >= HOLD_BLOOM_MS ? bloomAt(pointer.x, pointer.y, warm, { strength: 0.6, gentle: true }) : undefined
     const a = rand(0, Math.PI * 2)
     if (splat(pointer.x, pointer.y, Math.cos(a) * WARM_TAP_SPEED * HOLD_STRENGTH, Math.sin(a) * WARM_TAP_SPEED * HOLD_STRENGTH, { hex: warm, radius: tune.size, strength: warmStrength(HOLD_STRENGTH), warm: true })) markWarmDropped()
   }
