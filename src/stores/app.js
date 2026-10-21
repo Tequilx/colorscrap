@@ -280,13 +280,19 @@ export const useAppStore = defineStore('app', () => {
     painter = instance
   }
 
+  const nextFrame = () => new Promise((resolve) => requestAnimationFrame(() => resolve()))
+
   // จับภาพจากผ้าใบ → ดูดสี (SPEC §6.6) ถ้าจับภาพไม่ได้ (ไม่มี WebGL) ใช้สีอารมณ์แทน
   const grabPainting = async () => {
     const fallback = EMOTION_COLORS[sheetEmotions.value.at(-1) ?? selection.value.emotion]
     const canvas = await painter?.capture()
     if (!canvas) return { colors: [{ hex: fallback, ratio: 1 }], images: null, canvas: null }
     // canvas ส่งต่อให้ SavedFlight ใช้เป็นภาพที่หดลงเป็นโพลารอยด์ (ไม่ต้อง decode ภาพใหม่)
-    return { colors: extractColors(canvas, fallback), images: await exportImages(canvas), canvas: markRaw(canvas) }
+    // แบ่งงานหนักข้ามเฟรม (ดูดสี ~17ms, เข้ารหัสภาพอีกก้อน) ไม่ให้งานเดียวทำให้เฟรมเกิน 50ms ตอนเริ่มลำดับบันทึก
+    await nextFrame()
+    const colors = extractColors(canvas, fallback)
+    await nextFrame()
+    return { colors, images: await exportImages(canvas), canvas: markRaw(canvas) }
   }
 
   // ลำดับแอนิเมชันหลังบันทึก (SPEC §5.4 ≈1.6s): state/timer อยู่ที่นี่ ตัวภาพบินเล่นเองใน SavedFlight ด้วยตารางเวลาเดียวกัน

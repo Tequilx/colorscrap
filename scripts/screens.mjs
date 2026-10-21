@@ -95,7 +95,7 @@ await app(page, (a) => { a.saveToBook() })
 await page.waitForTimeout(650)
 await shot(page, 'save-ระหว่างบันทึก', 0)
 await page.waitForTimeout(2400)
-await shot(page, 'saved-การ์ดหลังบันทึก', 1000)
+await shot(page, 'saved-การ์ดหลังบันทึก', 1800)
 await app(page, (a) => a.go('book'))
 await shot(page, 'book-วันนี้', 2200)
 await page.evaluate(() => {
