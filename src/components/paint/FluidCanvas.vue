@@ -22,7 +22,7 @@ import { ref, watch, onMounted, onBeforeUnmount } from 'vue'
 import WebGLFluid from 'webgl-fluid-enhanced'
 import { emotionShades, FLUID_PARAMS, FLUID_GLOBAL, SPLASH_LEVELS, INK_CELL, INITIAL_SPLATS, INTENSITY_FACTOR, WARM_TONES, WARM_BLOOM, WARM_PUSH_GAIN, warmShade } from '@/lib/emotions'
 import { PALETTE } from '@/lib/tokens'
-import { dyeSetting, invertedHex } from '@/lib/dye'
+import { invertedHex } from '@/lib/dye'
 import { DYE_SPLAT_FRAG, PAPER_LIGHT } from '@/lib/dyeLimit'
 import { warmTune as tune, noteDebug as debug, fluidInfo, DEV_PARAMS_EVENT, DEV_NOTE_RESET_EVENT } from '@/lib/devState'
 
@@ -52,7 +52,6 @@ const HOLD_INTERVAL = 120
 const HOLD_STRENGTH = 0.1
 const HOLD_MOVE_LIMIT = 8 // ขยับเกินนี้ (px) ถือว่าเป็นการลาก ไม่ใช่กดค้าง
 const SMEAR_RADIUS = 0.25
-const WARM_MIN_GIVEN = 0.02 // ต่ำกว่านี้ถือว่าลงสีอุ่นไม่ได้ (ข้าม)
 // สีอุ่นแบบบาน (ดู bloomAt): ความปลอดภัยเรื่องดำ/รูขาวอยู่ที่ตัวกันดำของ GPU แล้ว (หลังยกสี พื้นที่สว่างพอให้สีอุ่นลงได้เสมอ ก่อนยกก็ไม่เกินเพดาน)
 // จึงไม่ต้องมีงบการยกสีต่อช่อง (เดิมมีงบ แล้วกดค้างหมดงบหลัง ~2 ครั้ง สีเดิมไหลกลับเต็มกลางวงและสีอุ่นหายไป วัดแล้ว)
 // ขอบเข้มคูณสีเดิมของจุดนั้นแต่ไม่เกิน INK_CAP (ไม่ให้ขอบสะสมจนดำ) กันกดค้างบานถี่ไป: ไม่ถี่กว่า HOLD_BLOOM_MS
@@ -104,15 +103,11 @@ const pickShade = () => {
   return list[Math.floor(Math.random() * list.length)]
 }
 
-// ปริมาณสีที่ลงแล้วต่อช่อง (รีเซ็ตเมื่อล้างผ้าใบ) หน่วยเดียวกับ INK_CAP = ค่าสีสูงสุดของช่องสีหนึ่งในบัฟเฟอร์ ให้สีบนผ้าใบไม่เกินเพดาน
-// หยดหนึ่งไม่ได้ลงแค่ช่องที่ตก: เป็น Gaussian exp(−d²/ρ) กว้าง ~±1–2 ช่อง จึงคิดส่วนที่ตกในทุกช่องที่โดน (ค่าที่กึ่งกลางช่อง)
-// แล้วลดแรงหยดให้ไม่มีช่องไหนเกินเพดาน (หยดหลายหยดที่อยู่ติดกันซ้อนกันไม่ทะลุเพดาน ไม่ดำ) คิดค่าสูงสุดในช่อง ไม่ใช่ที่กึ่งกลาง
-// strength = ความแรงที่ตั้งใจจะลง (1 = หยดเต็ม) คืน { given: ความแรงที่ลงได้จริง (เต็มแล้ว = 0), room: ที่ว่างเหลือก่อนหยดนี้ในช่องที่เต็มที่สุดที่หยดแตะ (1 = ว่าง 0 = เต็ม) }
-// ปริมาณสีจริงของหยด = strength × brightness × ตัวคูณความเข้ม × ค่าสีสูงสุดของ dye ของเฉดนั้น (useShade/dyeSetting ใช้สูตรเดียวกัน)
+// แผนที่ประเมินปริมาณสีที่ลงแล้วต่อช่อง (รีเซ็ตเมื่อล้างผ้าใบ) ไม่ได้บล็อกการหยด (ตัวกันดำอยู่ที่ shader GPU, lib/dyeLimit.js)
+// หยดหนึ่งไม่ได้ลงแค่ช่องที่ตก: เป็น Gaussian exp(−d²/ρ) กว้าง ~±1–2 ช่อง จึงคิดส่วนที่ตกในทุกช่องที่โดน
 const inkCols = Math.ceil(SIZE.w / INK_CELL)
 const inkRows = Math.ceil(SIZE.h / INK_CELL)
 let ink = new Float32Array(inkCols * inkRows)
-const dyePeak = (hex) => Math.max(...[1, 3, 5].map((i) => 1 - parseInt(hex.slice(i, i + 2), 16) / 255))
 // ช่องของแผนที่ ink ที่หยดรัศมี radius ที่ (x, y) แตะ: [{ index, weight }] weight = ค่าสูงสุดของ Gaussian ในช่องนั้น (0..1) และช่องที่หยดตก
 const inkCells = (x, y, radius) => {
   // ρ ของ exp(−d²/ρ) ในหน่วยพิกเซลกระดาษ: ไลบรารีใช้ (splatRadius/100) × aspect บน UV ที่ x ถูกคูณ aspect อยู่แล้ว
@@ -138,35 +133,11 @@ const inkCells = (x, y, radius) => {
   }
   return { hit, centreIndex: Math.min(ink.length - 1, cy * inkCols + cx) }
 }
-// ตัวกันดำแบบ GPU ไม่ใช้แผนที่บล็อกหยดแล้ว แผนที่นี้เหลือไว้ประเมินว่าตรงไหนมีสีมากน้อย (ใช้หาที่วาง "ลองดู") กับงบการยกสีของสีอุ่นแบบบาน
-// ค่าสะสมประมาณ (ไม่ตามสีที่น้ำพาไป) จึงจำกัดไว้ที่ 1 ต่อช่อง
+// แผนที่นี้ใช้ประเมินว่าตรงไหนมีสีมากน้อย (หาที่วาง "ลองดู") ค่าสะสมประมาณ (ไม่ตามสีที่น้ำพาไป) จึงจำกัดไว้ที่ 1 ต่อช่อง
 const depositInk = (x, y, amount, radius) => {
   const { hit } = inkCells(x, y, radius)
   for (const h of hit) ink[h.index] = Math.min(1, ink[h.index] + amount * h.weight)
 }
-// (แบบเก่า CPU) opts.cap = เพดานที่ใช้ (ค่าเริ่มต้น INK_CAP) opts.centreOnly = ตรวจเฉพาะช่องที่หยดตก (สีอุ่น: ไม่ให้ช่องข้างเคียงที่เต็มบล็อกหยดทั้งหมด)
-const takeInk = (x, y, strength, hex, radius, { cap = FLUID_GLOBAL.inkCap, centreOnly = false } = {}) => {
-  const unit = params().brightness * INTENSITY_FACTOR[props.intensity] * dyePeak(hex)
-  if (unit <= 0) return { given: 0, room: 0 }
-  const { hit, centreIndex } = inkCells(x, y, radius)
-  let allowed = strength * unit
-  let room = 1
-  for (const h of hit) {
-    if (centreOnly && h.index !== centreIndex) continue
-    allowed = Math.min(allowed, Math.max(0, cap - ink[h.index]) / h.weight)
-    room = Math.min(room, Math.max(0, cap - ink[h.index]) / cap)
-  }
-  for (const h of hit) ink[h.index] += allowed * h.weight
-  return { given: allowed / unit, room }
-}
-
-// ตั้งสีของหยดถัดไป: ไลบรารีสุ่มจาก colorPalette (hue/saturation) และใช้ brightness เป็นความเข้ม
-const useShade = (hex, strength = 1) => {
-  const dye = dyeSetting(hex, params().brightness * INTENSITY_FACTOR[props.intensity] * strength)
-  if (dye) fluid.setConfig({ colorPalette: [dye.hex], brightness: dye.brightness })
-  return !!dye
-}
-
 // ---- ประหยัดงาน GPU/CPU (SPEC §6.5) ----
 // พักการจำลอง: น้ำนิ่งแล้ว (ไม่มีแรง/สีใหม่ SLEEP_MS) ข้ามขั้น step (pressure 20 รอบ + advect) ต่อ แต่ยัง render ทุกเฟรม
 // ภาพจึงไม่เปลี่ยนและ capture() ยังอ่านได้ ปลุกทันทีเมื่อมีแรง/สีใหม่ ล้างผ้าใบ หรือกลับเข้าหน้า paint
@@ -345,7 +316,7 @@ const splatGpu = (x, y, dx, dy, { hex, radius, strength = 1 }) => {
   // หยดเดียวไม่ให้ยอดสูงเกิน cap: ลดทั้งหยดตามสัดส่วน (รูปทรง Gaussian เดิม ไม่ตัดยอดแบน) เหมือนที่แบบเก่าทำกับหยดแรก หน้าตาหยดเดี่ยวจึงเท่าเดิม
   // ส่วนการซ้อนของหยดหลายหยดที่จุดเดียวกันให้ shader ตัวกันดำจัดการ (ตรงที่สีจริงเต็มแล้วเท่านั้น)
   if (peak > FLUID_GLOBAL.gpuCap) dye = dye.map((v) => (v * FLUID_GLOBAL.gpuCap) / peak)
-  if (!getDyeProgram()) return null
+  if (!getDyeProgram()) return false
   wake()
   const r = radius * INK_SPREAD
   pushWater(x, y, dx, dy, r)
@@ -355,30 +326,14 @@ const splatGpu = (x, y, dx, dy, { hex, radius, strength = 1 }) => {
 }
 
 // พิกัด css px บนกระดาษ (0..SIZE) → ไลบรารี (x เป็น px จริง ×dpr, y เป็น css px และกลับแกนเอง)
-// warm = หยดสีอุ่นของผู้ใช้: เพดานแยก (FLUID_GLOBAL.warmCap) ตรวจช่องที่ตกอย่างเดียว และถ้าลงสีไม่ได้เลย (given = 0) ข้ามทั้งหมด
-// ไม่ส่ง splat สีศูนย์ที่ยังดันน้ำ (เดิมดูเหมือนหยดแล้วสีไม่ออก แต่น้ำขยับ) คืน true ถ้าลงสีจริง
-const splat = (x, y, dx, dy, { hex, radius, noColor, strength = 1, warm = false } = {}) => {
+// คืน true ถ้าลงสีจริง ไม่ส่ง splat สีศูนย์ที่ยังดันน้ำ (ดูเหมือนหยดแล้วสีไม่ออก แต่น้ำขยับ)
+const splat = (x, y, dx, dy, { hex, radius, noColor, strength = 1 } = {}) => {
   if (!fluid) return false
   if (noColor) {
     pushWater(x, y, dx, dy, radius, true)
     return false
   }
-  if (FLUID_GLOBAL.blackGuard === 'gpu') {
-    const done = splatGpu(x, y, dx, dy, { hex, radius, strength })
-    if (done !== null) return done // null = เครื่องนี้ใช้ shader ตัวกันดำไม่ได้ → ถอยไปแบบ CPU ด้านล่าง
-  }
-  const shade = hex ?? pickShade()
-  const { given, room } = takeInk(x, y, strength, shade, radius, warm ? { cap: FLUID_GLOBAL.warmCap, centreOnly: true } : undefined)
-  if (warm && given < WARM_MIN_GIVEN) return false
-  wake()
-  // เพดานสีตัดยอดหยดให้เตี้ยลง สีที่ถูกตัดไปจึงกระจายออกข้างแทน (ปริมาณสีไม่หายไปเฉย ๆ) ขอบวงกว้างขึ้นเล็กน้อยให้พื้นที่ช่วงแรกใกล้ main
-  fluid.setConfig({ splatRadius: radius * INK_SPREAD })
-  // ช่องที่สีเต็มเพดานแล้วไม่ควรดันน้ำเต็มแรงอีก (ไม่งั้นแตะจุดเดิมรัว ๆ ปั่นสีเดิมให้กระจายทั่วผ้าใบ) ดันตามที่ว่างเหลือ ขั้นต่ำ 10%
-  // ดันตามที่ว่าง ไม่ใช่ตามสัดส่วนที่ถูกตัดทอน: หยดแรกบนผ้าใบว่างโดนเพดานตัดสีได้ แต่ต้องดันน้ำเต็มแรงเท่า main (พื้นที่ช่วงแรกเท่ากัน)
-  const push = strength > 0 ? Math.max(0.1, Math.min(1, room)) : 1
-  if (!useShade(shade, given)) return false
-  fluid.splatAtLocation(x * (window.devicePixelRatio || 1), y, dx * push, dy * push)
-  return true
+  return splatGpu(x, y, dx, dy, { hex, radius, strength })
 }
 
 const params = () => FLUID_PARAMS[props.emotion]
@@ -522,7 +477,7 @@ const warmHex = () => {
   return tone ? warmShade(tone, sheet.warmGestures) : null
 }
 
-// ความเข้มสีอุ่นตามความเข้มของอารมณ์เดิมเหมือนเครื่องมือ "เติมหยด" (useShade คูณ INTENSITY_FACTOR ให้เอง)
+// ความเข้มสีอุ่นตามความเข้มของอารมณ์เดิมเหมือนเครื่องมือ "เติมหยด" (dyeOf คูณ INTENSITY_FACTOR ให้เอง)
 const warmStrength = (strength = 1) => strength * tune.strength
 
 const markWarmDropped = () => {
@@ -707,7 +662,7 @@ const bloomFrame = () => {
       b.tDep = t
       const a = b.a0 + (t / b.T) * Math.PI * BLOOM_TURNS * 2 // หมุนช้า ๆ ทิศไม่สุ่มทุกครั้ง (สุ่มถี่ ๆ หักล้างกัน น้ำไม่ขยายเหมือนเดิม)
       const speed = WARM_TAP_SPEED * BLOOM_PUSH * pushGain * share * Math.max(0, 1 - t / BLOOM_PUSH_MS) // เดิมก้อน 0.25 ดัน 30 ก้อน 0.12 ดัน 15: ดันตามปริมาณที่ลง
-      const landed = splat(b.x, b.y, Math.cos(a) * speed, Math.sin(a) * speed, { hex: b.hex, radius: tune.size * scale, strength: warmStrength(b.strength) * share, warm: true })
+      const landed = splat(b.x, b.y, Math.cos(a) * speed, Math.sin(a) * speed, { hex: b.hex, radius: tune.size * scale, strength: warmStrength(b.strength) * share })
       if (landed) markWarmDropped()
     }
     b.tPrev = t
@@ -754,7 +709,7 @@ const bloomAt = (x, y, hex, { strength = 1, gentle = false } = {}) => {
       if (liftDye(x, y, r, again, 0)) lowerInk(x, y, r, again)
     }
     const a = rand(0, Math.PI * 2)
-    if (splat(x, y, Math.cos(a) * WARM_TAP_SPEED * 0.5, Math.sin(a) * WARM_TAP_SPEED * 0.5, { hex, radius: tune.size, strength: warmStrength(strength), warm: true })) markWarmDropped()
+    if (splat(x, y, Math.cos(a) * WARM_TAP_SPEED * 0.5, Math.sin(a) * WARM_TAP_SPEED * 0.5, { hex, radius: tune.size, strength: warmStrength(strength) })) markWarmDropped()
     return
   }
   // ค. เส้นโค้งการบาน (ดูหัวข้อด้านบน) ความแรงสูงสุด tune.bloomPeak คูณปริมาณรวมของเส้นโค้ง
@@ -798,7 +753,7 @@ const dropWarmAt = (x, y, hex, strength = 1) => {
     return
   }
   const a = rand(0, Math.PI * 2)
-  if (splat(x, y, Math.cos(a) * WARM_TAP_SPEED, Math.sin(a) * WARM_TAP_SPEED, { hex, radius: tune.size, strength: warmStrength(strength), warm: true })) markWarmDropped()
+  if (splat(x, y, Math.cos(a) * WARM_TAP_SPEED, Math.sin(a) * WARM_TAP_SPEED, { hex, radius: tune.size, strength: warmStrength(strength) })) markWarmDropped()
 }
 
 // "ลองดู": หยดตัวอย่าง tune.samples หยด วางบนบริเวณที่ระบายไว้แล้วใกล้กลางภาพ (pickSamplePoints) สีอุ่นของอารมณ์ (WARM_TONES) ห่างกัน WARM_SAMPLE_GAP
@@ -817,7 +772,7 @@ const dropWarmSamples = () => {
       const hex = warmShade(tone, base + i)
       if (bloomOn()) return bloomAt(pt.x, pt.y, hex, { strength: 1 })
       const angle = rand(0, Math.PI * 2)
-      if (splat(pt.x, pt.y, Math.cos(angle) * SHIFT_SPEED, Math.sin(angle) * SHIFT_SPEED, { hex, radius: tune.size, strength: warmStrength(), warm: true })) markWarmDropped()
+      if (splat(pt.x, pt.y, Math.cos(angle) * SHIFT_SPEED, Math.sin(angle) * SHIFT_SPEED, { hex, radius: tune.size, strength: warmStrength() })) markWarmDropped()
     }, i * WARM_SAMPLE_GAP)
     timers.add(t)
   })
@@ -993,7 +948,7 @@ const onDown = (e) => {
     // โหมดบาน: กดค้างบานต่อเนื่องแต่ไม่ถี่ (HOLD_BLOOM_MS) เส้นโค้งของแต่ละครั้งต่อเนื่องกันอยู่แล้ว จึงไม่ต้องหยดแทรก
     if (bloomOn()) return performance.now() - lastBloomAt >= HOLD_BLOOM_MS ? bloomAt(pointer.x, pointer.y, warm, { strength: 0.6, gentle: true }) : undefined
     const a = rand(0, Math.PI * 2)
-    if (splat(pointer.x, pointer.y, Math.cos(a) * WARM_TAP_SPEED * HOLD_STRENGTH, Math.sin(a) * WARM_TAP_SPEED * HOLD_STRENGTH, { hex: warm, radius: tune.size, strength: warmStrength(HOLD_STRENGTH), warm: true })) markWarmDropped()
+    if (splat(pointer.x, pointer.y, Math.cos(a) * WARM_TAP_SPEED * HOLD_STRENGTH, Math.sin(a) * WARM_TAP_SPEED * HOLD_STRENGTH, { hex: warm, radius: tune.size, strength: warmStrength(HOLD_STRENGTH) })) markWarmDropped()
   }
   const holdDrop = () => (warm ? holdWarm() : dropAt(pointer.x, pointer.y, HOLD_STRENGTH))
   pointer.holdStart = setTimeout(() => {
