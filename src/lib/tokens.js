@@ -22,6 +22,14 @@ export const LIGHT = {
   lamp: '#F6DDA8', // วงแสงโคมตอนกลางคืน 19–06
 }
 
+// พู่กันจุ่มสีในหน้าเลือกความรู้สึก (components/pick/PickBrush.vue): ด้ามไม้ ปลอกโลหะ ขนสีเข้ม (ปลายขนเปลี่ยนเป็นสีอารมณ์)
+export const BRUSH = {
+  wood: '#C9A36B',
+  'wood-line': '#8F6B3A',
+  metal: '#C9CCD1',
+  bristle: PALETTE['ink-2'],
+}
+
 // สีปกที่ผู้ใช้เลือกได้ (ตัวแรกคือค่าเริ่มต้น)
 export const COVER_COLORS = [
   { hex: '#9E2F2A', label: 'แดงเข้ม' },

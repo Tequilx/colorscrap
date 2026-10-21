@@ -37,6 +37,8 @@
       </div>
     </div>
 
+    <PickBrush />
+
     <div class="absolute left-0 top-[590px] flex w-[1280px] items-center justify-center gap-3.5">
       <span class="mr-1.5 font-hand text-17 font-semibold">เข้มข้นแค่ไหน</span>
       <div role="group" aria-label="ความเข้มข้น" class="flex gap-3.5">
@@ -80,6 +82,7 @@ import { computed, ref, watch } from 'vue'
 import HandButton from '@/components/ui/HandButton.vue'
 import Doodle from '@/components/ui/Doodle.vue'
 import EmotionBlob from '@/components/ui/EmotionBlob.vue'
+import PickBrush from '@/components/pick/PickBrush.vue'
 import { EMOTIONS, EMOTION_BY_KEY, INTENSITY_LABELS } from '@/lib/emotions'
 import { BLOB_PATHS } from '@/lib/doodles'
 import { useAppStore } from '@/stores/app'

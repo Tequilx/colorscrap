@@ -401,6 +401,32 @@ export const sound = {
     voice([src], t + dur + 0.05)
   },
 
+  // จุ่มพู่กันลงน้ำสี (หน้าเลือกความรู้สึก): ตูมนุ่ม ๆ + ซู่เบา ๆ ระดับเสียงตามอารมณ์
+  dip(emotion) {
+    if (!ready()) return
+    const t = ctx.currentTime
+    const f = 250 * pitchOf(emotion)
+    const osc = ctx.createOscillator()
+    const g = ctx.createGain()
+    osc.type = 'sine'
+    osc.frequency.setValueAtTime(f * 0.6, t)
+    osc.frequency.exponentialRampToValueAtTime(f * 1.3, t + 0.09)
+    env(g, t, 0.17, 0.006, 0.24)
+    osc.connect(g).connect(master)
+    osc.start(t)
+    const sw = noiseSource(false)
+    const bp = ctx.createBiquadFilter()
+    bp.type = 'bandpass'
+    bp.Q.value = 0.8
+    bp.frequency.setValueAtTime(1500, t)
+    bp.frequency.exponentialRampToValueAtTime(550, t + 0.2)
+    const sg = ctx.createGain()
+    env(sg, t, 0.07, 0.01, 0.2)
+    sw.connect(bp).connect(sg).connect(master)
+    sw.start(t)
+    voice([osc, sw], t + 0.4)
+  },
+
   // แตะปุ่ม: เสียงแตะกระดาษเบามาก
   tap() {
     if (!ready()) return
