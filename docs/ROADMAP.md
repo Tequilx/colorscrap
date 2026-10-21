@@ -2,7 +2,7 @@
 
 กติกาอยู่ที่ CLAUDE.md หัวข้อ "กติกาทำงาน" ทำตามลำดับ ติ๊กเมื่อผ่านเกณฑ์ ถ้าไม่ผ่านภายใน 2 รอบแก้ ข้ามแล้วจดเหตุผลไว้ใต้ข้อ
 
-- [ ] **1. เสียง** (`src/lib/sound.js`, Web Audio สังเคราะห์ ไม่ใช้ไฟล์)
+- [x] **1. เสียง** (`src/lib/sound.js`, Web Audio สังเคราะห์ ไม่ใช้ไฟล์)
   - หยดสี / ปาดสี / สาด / สีอุ่นบาน / บันทึก (ลม + เทป) / พลิกแผ่น-เปิดสมุด / แตะปุ่ม, ปุ่มเปิด-ปิดเสียงมุมขวาบน (localStorage), ไม่เกิน 6 เสียงพร้อมกัน + master volume
   - เกณฑ์: ปิดแล้วเงียบสนิท · แตะรัว 2 นาที peak < 0 dBFS และ FPS ไม่ลด · ใช้ได้ Chrome + Safari
 - [ ] **2. แสงตามเวลาจริง** (overlay บนพื้นโต๊ะ ใต้กระดาษ)
@@ -17,3 +17,10 @@
 
 ## บันทึกผล
 (เติมใต้แต่ละข้อเมื่อทำเสร็จ: ตัวเลขเกณฑ์ / path contact sheet / เหตุผลที่ข้าม)
+
+### 1. เสียง — ผ่าน (tag `pre-sound`)
+- `src/lib/sound.js` (Web Audio สังเคราะห์ทั้งหมด) + `components/ui/SoundToggle.vue` (มุมขวาบน ไอคอน `sound`/`mute` ใน `lib/doodles.js`, จำใน `localStorage['colorscrap.sound']`, ค่าเริ่มต้นเปิด) เทสต์ `sound.test.js` 8 ตัว (pitch, voice pool ≤ 6, ยอด soft clip, ซองสีอุ่น, อ่านค่าที่จำ)
+- จุดเรียก: หยด/ปาด/สาด/สีอุ่นบาน ใน `FluidCanvas.vue`; เปิดสมุด/พลิกแผ่น/ลมกระดาษ/เทป ใน `stores/app.js` (ตาม `saveSchedule`); แตะปุ่มทั่วไปใน `App.vue`
+- วัด (headless Chrome, `--autoplay-policy=no-user-gesture-required`, `?debug`): แตะรัวสลับหยด/สีอุ่น/ปาด 120 วิ (1090 ครั้ง) **ยอดสัญญาณหลังตัวจำกัด −3.4 dBFS** (< 0), เสียงพร้อมกันสูงสุด 6, **FPS 60 เท่ากับตอนปิดเสียง** (เฟรมช้าสุด 20 ms ทั้งสองแบบ); ปิดเสียง → ยอด 0 (เงียบสนิท)
+- Safari: ใช้เฉพาะ API มาตรฐาน (`webkitAudioContext` สำรอง, สร้าง/resume หลัง pointerdown/touchend/keydown, ไม่ซ้อน `setValueAtTime` กับ `setValueCurveAtTime`) **ยังไม่ได้ลองบน Safari จริง** (ต้องเช็กด้วยหู/เครื่องจริง)
+- ภาพ: `scripts/out/screens/sound/contact-sheet.png`

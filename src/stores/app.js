@@ -10,6 +10,7 @@ import { EMOTION_COLORS, MOTION } from '@/lib/tokens'
 import { NEGATIVE_EMOTIONS } from '@/lib/emotions'
 import { reducedMotion, sequenceActive, TIME_SCALE } from '@/lib/motion'
 import { POLAROID, saveSchedule, slotCenter } from '@/lib/saveTimeline'
+import { sound } from '@/lib/sound'
 
 // สถานะของโต๊ะ (SPEC §4.1) แทนการใช้ router
 export const VIEWS = Object.freeze({
@@ -149,6 +150,7 @@ export const useAppStore = defineStore('app', () => {
     // กลับจาก saved/photo คงวันและแผ่นเดิมไว้ ไม่รีเซ็ตไปแผ่นล่าสุด
     if (next === VIEWS.book && from !== VIEWS.saved && from !== VIEWS.photo) openBook()
     if (next === VIEWS.book && from !== VIEWS.photo) bookTick.value += 1
+    if (next === VIEWS.book && from !== VIEWS.saved && from !== VIEWS.photo) sound.flip({ long: true }) // เปิดสมุด
     if (next === VIEWS.pick) pickFrom = from
     // เข้า paint ตอนผ้าใบว่างหรือเพิ่งบันทึก: หยดสีของอารมณ์ที่เลือกทันที (SPEC §5.3)
     // ถ้ามีภาพค้างอยู่ beginPaint / continueSheet / newSheet เป็นผู้ตัดสินแล้ว
@@ -239,6 +241,7 @@ export const useAppStore = defineStore('app', () => {
   // พลิกแผ่นโดยผู้ใช้ (ล้างป้าย "แผ่นใหม่")
   const setLeaf = (index) => {
     if (leafFlipping.value || savePhase.value !== 'idle') return // กำลังพลิก/บันทึก: กดซ้ำจะข้ามแผ่น
+    if (leafIndex.value !== index) sound.flip()
     leafIndex.value = index
     freshLeaf.value = null
   }
@@ -325,6 +328,7 @@ export const useAppStore = defineStore('app', () => {
       clearPaper()
       settleLeaf()
       enter(VIEWS.saved)
+      sound.tape()
       savePhase.value = 'card'
       at(MOTION.fade, () => {
         savePhase.value = 'idle'
@@ -343,6 +347,7 @@ export const useAppStore = defineStore('app', () => {
       schedule: sch,
     }
     savePhase.value = 'shrink'
+    sound.paperRise(MOTION.save.shrink + MOTION.save.bookAt)
     at(32, clearPaper) // ให้ภาพบินขึ้นจอก่อนค่อยล้างผ้าใบ (ไม่เห็นกะพริบ)
     at(sch.book[0], () => {
       enter(VIEWS.saved) // กระดานเลื่อนซ้าย สมุดเลื่อนเข้า
@@ -350,6 +355,7 @@ export const useAppStore = defineStore('app', () => {
     })
     if (sch.leaf) {
       at(sch.leaf[0], () => {
+        sound.flip()
         settleLeaf()
         savePhase.value = 'leaf'
       })
@@ -358,6 +364,7 @@ export const useAppStore = defineStore('app', () => {
       savePhase.value = 'drop'
     })
     at(sch.tape[0], () => {
+      sound.tape()
       savePhase.value = 'tape'
     })
     at(sch.tape[1], () => {

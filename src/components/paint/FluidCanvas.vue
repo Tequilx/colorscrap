@@ -23,6 +23,7 @@ import WebGLFluid from 'webgl-fluid-enhanced'
 import { emotionShades, FLUID_PARAMS, FLUID_GLOBAL, SPLASH_LEVELS, INK_CELL, INITIAL_SPLATS, INTENSITY_FACTOR, WARM_TONES, WARM_BLOOM, WARM_PUSH_GAIN, warmShade } from '@/lib/emotions'
 import { PALETTE } from '@/lib/tokens'
 import { invertedHex } from '@/lib/dye'
+import { sound } from '@/lib/sound'
 import { DYE_SPLAT_FRAG, PAPER_LIGHT } from '@/lib/dyeLimit'
 import { warmTune as tune, noteDebug as debug, fluidInfo, DEV_PARAMS_EVENT, DEV_NOTE_RESET_EVENT } from '@/lib/devState'
 
@@ -431,7 +432,10 @@ const dropInitial = () => {
   if (calm && containerRef.value?.animate) containerRef.value.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 150 })
   for (const d of drops) {
     const run = () => {
-      if (fluid) dropInk(d.x, d.y, d.dx, d.dy, { radius })
+      if (fluid) {
+        dropInk(d.x, d.y, d.dx, d.dy, { radius })
+        sound.drop(props.emotion, { size: 1.5 })
+      }
       finishSplashOne()
     }
     if (d.t <= 0) run()
@@ -710,6 +714,7 @@ const bloomAt = (x, y, hex, { strength = 1, gentle = false } = {}) => {
     }
     const a = rand(0, Math.PI * 2)
     if (splat(x, y, Math.cos(a) * WARM_TAP_SPEED * 0.5, Math.sin(a) * WARM_TAP_SPEED * 0.5, { hex, radius: tune.size, strength: warmStrength(strength) })) markWarmDropped()
+    sound.bloom({ ms: 1000, gentle })
     return
   }
   // ค. เส้นโค้งการบาน (ดูหัวข้อด้านบน) ความแรงสูงสุด tune.bloomPeak คูณปริมาณรวมของเส้นโค้ง
@@ -717,6 +722,7 @@ const bloomAt = (x, y, hex, { strength = 1, gentle = false } = {}) => {
   if (T <= 0) return
   blooms.push({ x, y, hex, strength, amount, T, t0: lastBloomAt, a0: rand(0, Math.PI * 2), tPrev: 0, tDep: 0, lastEmit: lastBloomAt, units: (gentle ? BLOOM_UNITS_HOLD : BLOOM_UNITS_TAP) * tune.bloomPeak })
   if (!bloomRaf) bloomRaf = requestAnimationFrame(bloomFrame)
+  sound.bloom({ ms: T, gentle })
 }
 
 // จุดวางหยดตัวอย่างของ "ลองดู": บริเวณที่ผู้ใช้ระบายไว้แล้ว (ink 0.3–0.7) ใกล้กลางภาพ ไม่โดนการ์ดอารมณ์/โน้ต/ถาดเครื่องมือ
@@ -754,6 +760,7 @@ const dropWarmAt = (x, y, hex, strength = 1) => {
   }
   const a = rand(0, Math.PI * 2)
   if (splat(x, y, Math.cos(a) * WARM_TAP_SPEED, Math.sin(a) * WARM_TAP_SPEED, { hex, radius: tune.size, strength: warmStrength(strength) })) markWarmDropped()
+  sound.drop(props.emotion, { strength: 0.7 })
 }
 
 // "ลองดู": หยดตัวอย่าง tune.samples หยด วางบนบริเวณที่ระบายไว้แล้วใกล้กลางภาพ (pickSamplePoints) สีอุ่นของอารมณ์ (WARM_TONES) ห่างกัน WARM_SAMPLE_GAP
@@ -915,6 +922,7 @@ const dropAt = (x, y, strength = 1) => {
   const a = rand(0, Math.PI * 2)
   const m = 60 * p.speed * strength // หยดเบา (กดค้าง) ก็ดันน้ำเบา ไม่งั้นกดค้างนาน ๆ ปั่นน้ำจนสีกระจายทั่วผ้าใบ
   dropInk(x, y, Math.cos(a) * m, Math.sin(a) * m, { radius: p.radius * DROP_RADIUS_SCALE, strength })
+  sound.drop(props.emotion, { strength })
 }
 
 const stopHold = (pointer) => {
@@ -935,7 +943,7 @@ const onDown = (e) => {
   sheet.idle = 0
   wake()
   const { x, y } = toCanvas(e)
-  const pointer = { x, y, downX: x, downY: y, hold: null, holdStart: null }
+  const pointer = { x, y, downX: x, downY: y, hold: null, holdStart: null, t: e.timeStamp }
   pointers.set(e.pointerId, pointer)
   // สีอุ่น: แตะ = หยดสีปลายทางตรงจุดนั้น กดค้าง = หยดเบา ๆ ต่อเนื่องด้วยสีเดียวกัน (ไม่ใช่สีอารมณ์)
   const warm = props.tool === 'warm' && props.warmAvailable ? warmHex() : null
@@ -974,6 +982,9 @@ const onMove = (e) => {
     pointer.holdStart = null
   }
   if (props.tool === 'smear' && !pointer.hold) {
+    const dt = Math.max(4, e.timeStamp - pointer.t)
+    pointer.t = e.timeStamp
+    sound.brush((Math.hypot(dx, dy) * 1000) / dt) // px/วินาทีของผ้าใบ
     const k = SMEAR_FORCE / SIZE.w // เท่ากับแรงของไลบรารีในแนวนอน และเท่ากันทุกทิศ
     queueSmear(x, y, dx * k, -dy * k)
   }
@@ -1003,6 +1014,7 @@ const onUp = (e) => {
   if (!pointer) return
   stopHold(pointer)
   pointers.delete(e.pointerId)
+  if (!pointers.size) sound.brushStop()
 }
 
 onMounted(() => {

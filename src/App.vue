@@ -32,6 +32,7 @@
       <PhotoView />
       <LegacyPrompt />
       <Toast />
+      <SoundToggle />
       <!-- ปุ่มนำทางของหน้า book -->
       <Transition name="fade">
         <div v-if="app.view === 'book'" class="absolute left-[124px] top-7">
@@ -52,6 +53,8 @@ import Scrapbook from '@/components/book/Scrapbook.vue'
 import EmotionPalette from '@/components/pick/EmotionPalette.vue'
 import LegacyPrompt from '@/components/auth/LegacyPrompt.vue'
 import Toast from '@/components/ui/Toast.vue'
+import SoundToggle from '@/components/ui/SoundToggle.vue'
+import { attachSound, sound } from '@/lib/sound'
 import LoginCard from '@/components/auth/LoginCard.vue'
 import HelloSheet from '@/components/hello/HelloSheet.vue'
 import AccountActions from '@/components/hello/AccountActions.vue'
@@ -77,6 +80,14 @@ const auth = useAuthStore()
 const entries = useEntriesStore()
 
 useHashView(app, profile, auth)
+
+// เสียง (src/lib/sound.js): สร้างระบบเสียงหลังแตะครั้งแรก + เสียงแตะกระดาษเบามากเมื่อกดปุ่ม/ลิงก์
+attachSound()
+const tapSound = (e) => {
+  if (e.target?.closest?.('button, a, [role="button"]')) sound.tap()
+}
+window.addEventListener('pointerdown', tapSound, true)
+onBeforeUnmount(() => window.removeEventListener('pointerdown', tapSound, true))
 
 // session หมดอายุหรือออกจากระบบ (โหมดจริง): ล้างข้อมูลของคนก่อนแล้วกลับหน้า login
 watch(
