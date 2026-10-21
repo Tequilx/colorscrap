@@ -25,10 +25,14 @@ export const LIGHT = {
 
 // พู่กันจุ่มสีในหน้าเลือกความรู้สึก (components/pick/PickBrush.vue): ด้ามไม้ ปลอกโลหะ ขนสีเข้ม (ปลายขนเปลี่ยนเป็นสีอารมณ์)
 export const BRUSH = {
-  wood: '#C9A36B',
-  'wood-line': '#8F6B3A',
-  metal: '#C9CCD1',
-  bristle: PALETTE['ink-2'],
+  wood: '#C9963A',
+  'wood-hi': '#E2BC6A',
+  'wood-shade': '#A9792A',
+  metal: '#BDB6A8',
+  'metal-line': '#8E877B',
+  'metal-hi': '#E6E1D7',
+  bristle: '#3B2418',
+  'bristle-hi': '#FFF6E6',
 }
 
 // สีปกที่ผู้ใช้เลือกได้ (ตัวแรกคือค่าเริ่มต้น)
