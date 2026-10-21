@@ -7,7 +7,9 @@
     <!-- ชั้นรับ pointer: ดัก event ไว้ไม่ให้ถึง canvas (ไลบรารีใช้ pageX/pageY ซึ่งผิดตำแหน่งเมื่อ Stage ถูก scale) -->
     <div
       ref="inputRef"
-      class="absolute inset-0 cursor-crosshair touch-none"
+      class="absolute inset-0 touch-none"
+      data-cursor
+      :style="overlayStyle"
       @pointerdown="onDown"
       @pointermove="onMove"
       @pointerup="onUp"
@@ -18,12 +20,13 @@
 </template>
 
 <script setup>
-import { ref, watch, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import WebGLFluid from 'webgl-fluid-enhanced'
-import { emotionShades, FLUID_PARAMS, FLUID_GLOBAL, SPLASH_LEVELS, INK_CELL, INITIAL_SPLATS, INTENSITY_FACTOR, WARM_TONES, WARM_BLOOM, WARM_PUSH_GAIN, warmShade } from '@/lib/emotions'
+import { emotionShades, FLUID_PARAMS, FLUID_GLOBAL, SPLASH_LEVELS, INK_CELL, INITIAL_SPLATS, INTENSITY_FACTOR, EMOTION_BY_KEY, WARM_TONES, WARM_BLOOM, WARM_PUSH_GAIN, warmShade } from '@/lib/emotions'
 import { PALETTE } from '@/lib/tokens'
 import { invertedHex } from '@/lib/dye'
 import { sound } from '@/lib/sound'
+import { canvasCursor, finePointer } from '@/lib/cursors'
 import { DYE_SPLAT_FRAG, PAPER_LIGHT } from '@/lib/dyeLimit'
 import { warmTune as tune, noteDebug as debug, fluidInfo, DEV_PARAMS_EVENT, DEV_NOTE_RESET_EVENT } from '@/lib/devState'
 
@@ -338,6 +341,13 @@ const splat = (x, y, dx, dy, { hex, radius, noColor, strength = 1 } = {}) => {
 }
 
 const params = () => FLUID_PARAMS[props.emotion]
+
+// เคอร์เซอร์บนผ้าใบ (เฉพาะเมาส์ pointer: fine) ตามเครื่องมือ: ปาด = นิ้วติดสีอารมณ์ / หยด = พู่กันสีอารมณ์ / สีอุ่น = พู่กันสีอุ่น (lib/cursors.js) จอสัมผัสคงเดิม
+const overlayStyle = computed(() => {
+  if (!finePointer.value) return { cursor: 'crosshair' }
+  const tool = props.tool === 'warm' && props.warmAvailable ? 'warm' : props.tool
+  return { cursor: canvasCursor(tool, EMOTION_BY_KEY[props.emotion].hex, WARM_TONES[props.emotion] ?? WARM_TONES.sad) }
+})
 
 const applyParams = () => {
   if (!fluid) return

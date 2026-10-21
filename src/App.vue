@@ -55,6 +55,7 @@ import LegacyPrompt from '@/components/auth/LegacyPrompt.vue'
 import Toast from '@/components/ui/Toast.vue'
 import SoundToggle from '@/components/ui/SoundToggle.vue'
 import { attachSound, sound } from '@/lib/sound'
+import { installCursors } from '@/lib/cursors'
 import LoginCard from '@/components/auth/LoginCard.vue'
 import HelloSheet from '@/components/hello/HelloSheet.vue'
 import AccountActions from '@/components/hello/AccountActions.vue'
@@ -83,6 +84,7 @@ useHashView(app, profile, auth)
 
 // เสียง (src/lib/sound.js): สร้างระบบเสียงหลังแตะครั้งแรก + เสียงแตะกระดาษเบามากเมื่อกดปุ่ม/ลิงก์
 attachSound()
+installCursors() // เคอร์เซอร์นิ้วชี้ (เฉพาะเมาส์)
 const tapSound = (e) => {
   if (e.target?.closest?.('button, a, [role="button"]')) sound.tap()
 }
