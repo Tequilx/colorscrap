@@ -7,7 +7,7 @@
       :key="t.date"
       type="button"
       :aria-current="t.date === current ? 'page' : undefined"
-      class="box-border flex h-[58px] w-[84px] cursor-pointer items-start justify-center rounded-t-[10px] border-0 p-0 pt-2 font-hand text-14 transition-transform duration-450 ease-desk"
+      class="relative box-border flex h-[58px] w-[84px] before:absolute before:inset-x-0 before:-top-[18px] before:h-[18px] before:content-[''] cursor-pointer items-start justify-center rounded-t-[10px] border-0 p-0 pt-2 font-hand text-14 transition-transform duration-450 ease-desk"
       :class="t.date === current ? 'font-bold' : 'font-semibold'"
       :style="{ background: t.hex, color: readableOn(t.hex), transform: t.date === current ? 'none' : 'translateY(12px)' }"
       @click="$emit('pick', t.date)"
