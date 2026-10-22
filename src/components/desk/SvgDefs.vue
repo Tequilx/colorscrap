@@ -43,12 +43,6 @@
         <feTurbulence id="wet-turb" type="fractalNoise" baseFrequency="0.012 0.018" numOctaves="2" seed="11" result="n" />
         <feDisplacementMap id="wet-disp" in="SourceGraphic" in2="n" scale="0" xChannelSelector="R" yChannelSelector="G" />
       </filter>
-      <!-- ฮาโลจางหลังแถบสีของวัน (DayRibbon): บิดขอบแล้วเบลอกว้างกว่า wcr ให้รอยต่อระหว่างช่วงนุ่มแบบสีน้ำซึม -->
-      <filter id="wcrh" x="-8%" y="-70%" width="116%" height="240%">
-        <feTurbulence type="fractalNoise" baseFrequency="0.02 0.05" numOctaves="2" seed="13" result="n" />
-        <feDisplacementMap in="SourceGraphic" in2="n" scale="18" result="d" />
-        <feGaussianBlur in="d" stdDeviation="5" />
-      </filter>
       <!-- หยดสีขนาดเล็กที่ชิปความเข้ม -->
       <filter id="wcs" x="-30%" y="-30%" width="160%" height="160%">
         <feTurbulence type="fractalNoise" baseFrequency="0.05" numOctaves="2" seed="8" result="n" />
