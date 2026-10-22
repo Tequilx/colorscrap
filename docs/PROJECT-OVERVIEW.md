@@ -5,6 +5,8 @@
 > อ้างอิงเป็น `ไฟล์:บรรทัด` บรรทัดหลักตรวจซ้ำกับโค้ดแล้ว (app.js, useHashView.js, motion.js, tokens.js, Stage.vue, `FluidCanvas.vue`, emotions.js, DebugPanel.vue) ส่วนที่มาจากการอ่านไฟล์อื่นอาจเลื่อนไม่กี่บรรทัด ข้อที่ไม่แน่ใจเขียนว่า **"ไม่แน่ใจ"**
 > ไม่ได้อ่านค่าใน `.env*` ใด ๆ
 
+> **อัปเดต 22 ต.ค. 2569 (หลังรอบขัดเกลา ข้อ 15–28 บน `feature/polish`):** เอกสารนี้เขียนจากสถานะ `b199cc3` ส่วนที่เปลี่ยนไปแล้ว: เสียง/เพลง/แสงตามเวลาถูกเพิ่ม (หัวข้อ 6 ด้านล่างเก่าแล้ว) · DayRibbon + การ์ดจานสีของวันทำใหม่ · โลโก้ `BrandMark` ที่เดียว · ใจฟูสูงสุด 3 · โน้ตอารมณ์พับเก็บ · พลิกสมุด 3D · พื้นที่กด ≥ 44px · สีเทา hardcode ย้ายเข้า tokens · ลบโค้ดค้าง (`mixingWell.js`, `tilt`, ทางถอย CPU) · `.fade`/WarmNote ตาม `--motion-scale`, DateTabs ไม่ animate height · SPEC §4.1/§7 และ FILE-GUIDE แก้ให้ตรงโค้ด รายละเอียดรายข้ออยู่ที่ `docs/ROADMAP.md` และ `docs/CHANGELOG.md`
+
 ---
 
 ## 1. Flow ผู้ใช้
@@ -220,8 +222,8 @@ splash = [นิดหน่อย, พอประมาณ, มากเลย
 
 ---
 
-## 6. เสียง
-**ไม่มีเลย** ค้นหา `Audio`, `.mp3/.wav/.ogg`, `howler`, `AudioContext`, `Tone`, `vibrate`/`haptic` ใน `src`, `index.html`, `package.json` ไม่พบ; `public/` มีแค่ `favicon.ico`, `src/assets/` มีแค่ `app.css` ไม่พบข้อกำหนดเสียงใน SPEC/FILE-GUIDE/specs (ค้น "เสียง"; ไม่ได้ตรวจ `docs/design/*.html`)
+## 6. เสียง (อัปเดต)
+เสียงสังเคราะห์ด้วย Web Audio ทั้งหมด (`src/lib/sound.js`, ไม่มีไฟล์เสียง) + เพลงคลอวนจาก `public/audio/music-{day,night}.(mp3|wav)` (`src/lib/music.js`, ตอนนี้เป็น placeholder .wav) ปุ่มเปิด/ปิดแยกเพลง/เอฟเฟกต์มุมขวาบน (`SoundToggle.vue`, จำค่าแยก) ยอดเสียง ≤ −1 dBFS เพลงเบากว่าเอฟเฟกต์ราว 19 dB และลดครึ่งหนึ่งตอนบันทึก/แต้มแสง · ยังไม่ได้ฟังด้วยหูบนอุปกรณ์จริง
 
 ---
 

@@ -256,7 +256,6 @@ login → hello → cover → pick → paint → saved → book → photo → bo
 | `src/lib/useBlobUrl.js`, `src/lib/useEntryImage.js` | ทำลิงก์ภาพจากไฟล์ในเครื่อง หรือลิงก์ชั่วคราวจาก Supabase ให้ `<img>` ใช้ | book, photo |
 | `src/lib/useHashView.js` | ให้ปุ่มย้อนกลับของเบราว์เซอร์ทำงาน (ผูกหน้ากับ `#...` ใน URL) | ทั้งแอป |
 | `src/lib/dyeLimit.js` | **ตัวกันดำที่ GPU**: ฟังก์ชันจำกัดสี (ต้นแบบ JS ใช้ทดสอบ) กับ fragment shader ลงสี (`dyeLimit.test.js`) | paint |
-| `src/lib/mixingWell.js` | ตำแหน่งและขนาดหยดในหลุมผสมสี (ใช้ร่วมกันระหว่างหน้าสมุดกับการ์ดจานสีที่เก็บเป็นรูป) | book, รูปที่เก็บ |
 | `src/lib/share/maskName.js` | เซนเซอร์ชื่อผู้ใช้บนการ์ด (ตัวแรก • ตัวสุดท้าย นับตามตัวอักษรที่ตาเห็น) | รูปที่เก็บ |
 | `src/lib/share/formatThaiDate.js`, `fileNames.js` | วันที่ไทย พ.ศ. บนการ์ด และชื่อไฟล์ PNG | รูปที่เก็บ |
 | `src/lib/share/cardDraw.js` | เครื่องมือวาด Canvas 2D: โหลดฟอนต์, ขอบสีไม่เรียบ, เส้นประ, เทป, grain, วางข้อความตามกล่องบรรทัด | รูปที่เก็บ |
@@ -309,8 +308,6 @@ login → hello → cover → pick → paint → saved → book → photo → bo
 | `book/EmptySlot.vue` | ช่องเส้นประ "ภาพถัดไปของวันนี้จะมาอยู่ตรงนี้" | book, saved |
 | `book/LeafPager.vue` | ตัวเลือกแผ่น "‹ แผ่น 1 / 2 ›" | book |
 | `book/DailyPalette.vue` | หน้าขวา: จานสีประจำวัน ชื่อสี เส้นเวลา ประโยคสรุป + ปุ่ม "เก็บรูป" ของวันที่เปิดอยู่ | book |
-| `book/MixingWell.vue` | หลุมผสมสีกลม (หยดสีของวัน) | book |
-| `book/DayTimeline.vue` | เส้นเวลา 00:00–24:00 พร้อมหยดสีของแต่ละภาพ | book, saved |
 | `photo/PhotoView.vue` | ดูภาพเดี่ยวขยาย + การ์ดชาร์ตสี + ปุ่ม "เก็บรูปไว้" + แอนิเมชันบิน | photo |
 | `ui/HandButton.vue` | ปุ่มกรอบลายมือ (หลัก/รอง/ชิป/ไอคอน) | ทุกหน้า |
 | `ui/Polaroid.vue` | โพลารอยด์: กรอบขาว ภาพ แถบสี คำบรรยาย | book, photo, saved |
@@ -445,16 +442,16 @@ desk: '#E6E3DC',   →   desk: '#EADFD0',
 
 | อารมณ์ | brightness | speed | curl | velDiss | radius | splash [นิด, พอ, มาก] | pattern |
 |---|---|---|---|---|---|---|---|
-| happy สุขใจ | 2.0 | 1.3 | 18 | 0.35 | 0.15 | 1.48, 1.64, 1.16 | burst |
-| calm สงบ | 1.8 | 0.5 | 6 | 0.5 | 0.2 | 1.15, 1.28, 1.86 | drift |
-| excited ตื่นเต้น | 2.0 | 1.4 | 30 | 0.3 | 0.12 | 0.48, 0.52, 0.45 | burst |
-| warm อบอุ่นใจ | 2.0 | 1 | 12 | 0.4 | 0.22 | 1.47, 1.04, 1.73 | burst |
-| sad เศร้า | 1.7 | 0.5 | 8 | 0.5 | 0.18 | 0.91, 0.97, 1.27 | fall |
-| angry โกรธ | 2.0 | 1.3 | 26 | 0.3 | 0.13 | 1.3, 0.98, 1.43 | pulse |
-| anxious กังวล | 1.9 | 1 | 22 | 0.35 | 0.09 | 1.14, 1.23, 1.8 | scatter |
-| tired เหนื่อย | 1.6 | 0.2 | 4 | 0.55 | 0.2 | 0.59, 0.49, 0.36 | still |
+| happy สุขใจ | 2.0 | 1.3 | 18 | 0.35 | 0.15 | 1.06, 0.65, 0.43 | burst |
+| calm สงบ | 1.8 | 0.5 | 6 | 0.5 | 0.2 | 1.01, 0.92, 0.76 | drift |
+| excited ตื่นเต้น | 2.0 | 1.4 | 30 | 0.3 | 0.12 | 0.62, 0.42, 0.33 | burst |
+| warm อบอุ่นใจ | 2.0 | 1 | 12 | 0.4 | 0.22 | 0.93, 0.71, 0.67 | burst |
+| sad เศร้า | 1.7 | 0.5 | 8 | 0.5 | 0.18 | 0.92, 0.8, 0.78 | fall |
+| angry โกรธ | 2.0 | 1.3 | 26 | 0.3 | 0.13 | 1.04, 0.73, 0.64 | pulse |
+| anxious กังวล | 1.9 | 1 | 22 | 0.35 | 0.09 | 0.77, 0.75, 0.54 | scatter |
+| tired เหนื่อย | 1.6 | 0.2 | 4 | 0.55 | 0.2 | 0.55, 0.52, 0.3 | still |
 
-**pattern แปลว่า:** `burst` กระจายรอบทิศ · `drift` ไหลช้า · `fall` ไหลลงข้างล่าง (มีแรงถ่วงเบา ๆ ช่วง 4 วินาทีแรก) · `pulse` พุ่งเป็นจังหวะ (หยดเหลื่อมกัน 260 ms) · `scatter` จุดเล็กกระจายทั่วกระดาษ · `still` แทบนิ่ง
+**pattern แปลว่า:** `burst` กระจายรอบทิศ · `drift` ไหลช้า · `fall` ไหลลงข้างล่าง (มีแรงถ่วงเบา ๆ ช่วง 4 วินาทีแรก) · `pulse` หยดเว้นระยะเท่ากันทีละหยด ทิศสุ่ม (โค้ดไม่มีพฤติกรรมพิเศษนอกจากจังหวะเท่ากัน) · `scatter` จุดเล็กกระจายทั่วกระดาษ · `still` แทบนิ่ง
 
 **ข. จำนวนหยดเริ่มต้น การสาด และตัวคูณตามความเข้ม**
 - `INITIAL_SPLATS` (หยดตอนเข้าหน้า paint): happy 5, calm 3, excited 3, warm 3, sad 3, angry 3, anxious 6, tired 2
@@ -482,7 +479,7 @@ desk: '#E6E3DC',   →   desk: '#EADFD0',
 **ง. ตัวกันดำ: `DYE_LIMIT` (GPU) ใน [src/lib/dyeLimit.js](../src/lib/dyeLimit.js)**
 - เพราะสีไม่จาง การหยดซ้ำที่เดิมจะบวกสีไปเรื่อย ๆ จนดำ ตัวกันจึงอยู่ที่ shader ลงสี: อ่านสีเดิมของพิกเซลแล้วลงเพิ่มเท่าที่ไม่ทะลุ 2 เงื่อนไขพร้อมกัน — ช่องสีสูงสุดไม่เกิน **`cap` = 0.85** และความสว่างที่เห็นไม่ต่ำกว่า **`minLight` = 0.3** (กันสีตรงข้ามผสมกันเป็นเทาดำ) ต่ำกว่า **`knee` = 0.8** ของเพดานลงเต็มตามที่ขอ เกินแล้วค่อย ๆ เข้าใกล้เพดาน (ไม่ตัดกึก) ใช้กับทุกเส้นทางลงสี
 - **เลิกใช้แผนที่ ink บล็อกหยดแล้ว** (`INK_CELL`/`INK_CAP` เหลือเฉพาะประเมินสีและเพดานขอบเข้มของการยกสี โค้ดแบบเก่าและ `warmCap` ลบแล้ว): แผนที่ประเมินสูงกว่าสีจริง ระบายเต็มแล้วแตะ 20 จุด 16 จุดไม่มีสีออกทั้งที่สีจริงยังไม่เต็ม แผนที่เหลือไว้ประเมินว่าตรงไหนมีสีมากน้อย (หาที่วาง "ลองดู")
-- ปรับสดที่ `?debug` ค่ากลาง "CAP (GPU)", "MIN_LIGHT (GPU)", "knee (GPU)" และเลือก "ตัวกันดำ: แบบใหม่ (GPU) / แบบเก่า (CPU)" เทียบกันได้ (ชั่วคราว) ค่าที่ปรับแล้วต้องวัดพื้นที่สาด 8×3 ใหม่ (ปรับ `splash` ต่ออารมณ์) และวัดด้วย `scripts/measure-fluid.mjs`
+- ปรับสดที่ `?debug` ค่ากลาง "CAP (GPU)", "MIN_LIGHT (GPU)", "knee (GPU)" (ตัวกันดำแบบ CPU เก่าและสวิตช์เลือกถูกลบแล้ว) ค่าที่ปรับแล้วต้องวัดพื้นที่สาด 8×3 ใหม่ (ปรับ `splash` ต่ออารมณ์) และวัดด้วย `scripts/measure-fluid.mjs`
 
 **จ. ค่าคงที่อื่นใน [src/components/paint/FluidCanvas.vue](../src/components/paint/FluidCanvas.vue)** (แก้ได้แต่กระทบหลายอย่าง ควรให้ Claude Code ทำ)
 
@@ -944,3 +941,22 @@ git switch -c restore-before-animations backup/main-before-animations
 ## โลโก้ (`src/lib/brand.js`) — เปลี่ยนโลโก้แก้ไฟล์เดียว
 
 โลโก้ ColorScrap (กระดาษติดเทปกับหยดสีน้ำ) อยู่ที่ **`src/lib/brand.js` ไฟล์เดียว** (`brandMarkInner` = รูป SVG ขนาด 40×40, `BRAND_NAME` = ชื่อ) ทุกจุดอ่านจากที่นี่: `components/ui/BrandMark.vue` (ปกสมุด, การ์ดเข้าสู่ระบบ, หน้าแรกของสมุด), favicon (`installFavicon()` ใน `main.js` สร้างจาก SVG เดียวกัน), และการ์ดเก็บรูปทั้งสองแบบ (`lib/share/cards.js` แปลง SVG เป็นภาพแล้ววาดลง canvas) ถ้าอยากเปลี่ยนโลโก้ แก้ `brandMarkInner` แล้วทุกที่เปลี่ยนตาม (`public/favicon.ico` เป็นแค่ตัวสำรองของเบราว์เซอร์เก่า)
+
+
+## ไฟล์ที่เพิ่มในรอบขัดเกลา (ข้อ 15–26)
+
+| ไฟล์ | ทำอะไร | ใช้ที่ |
+|---|---|---|
+| `src/lib/brand.js` | โลโก้ที่เดียว (ดูหัวข้อ "โลโก้") | BrandMark, favicon, การ์ดเก็บรูป |
+| `src/components/ui/BrandMark.vue` | แสดงโลโก้ (+ชื่อ) | ปกสมุด, login, hello |
+| `src/lib/likes.js` | กติกา "ใจฟู" เลือกได้สูงสุด 3 (`toggleLikeList`, `isLikeLocked`, `likesOverLimit`) | HelloSheet, `stores/profile.js` |
+| `src/components/paint/MoodCard.vue` | โน้ตอารมณ์ + แถบที่พับเก็บ (`app.moodFolded`, `app.foldMood`) | หน้า paint |
+| `src/components/book/CoverFlip.vue` | ปกสมุดพลิก 3D (WAAPI) เล่นโดย `Scrapbook.vue` | หน้าแรก↔สมุด, ระบาย→สมุด, บันทึก |
+| `src/components/book/PhotoPage.vue` | พลิกแผ่น/เปลี่ยนวันรอบสันกลาง (`app.turnToDay`) | book |
+| `src/lib/dayRibbon.js` | เรขาคณิต + markup SVG ของแถบสีของวัน (`ribbonSvgMarkup`, `ribbonSvg`) | DayRibbon.vue, การ์ดจานสีของวัน |
+| `src/lib/dayFrame.js` | SVG กรอบกระดาษของ "สีของวัน" สำหรับการ์ดเก็บรูป | share/cards.js |
+| `src/lib/share/svgImage.js` | แปลง SVG เป็นภาพ (serialize → Blob → Image) ให้ `drawImage` | share/cards.js |
+
+**ค่าที่ปรับได้เกี่ยวกับการพลิก:** `MOTION.flip` (`full` 1300ms, `short` 900ms, `perspective` 1800) และ `MOTION.save.flipExtra` (300ms) ใน `src/lib/tokens.js` · เก็บโน้ตอารมณ์: ระยะเลื่อน/เวลาอยู่ใน `MoodCard.vue` (`translateX(268px)`, `duration-450`)
+
+**สีเทาที่เคยฮาร์ดโค้ด** ย้ายเข้า `PALETTE` ใน `tokens.js` แล้ว (`mute faint edge well wash tray leaf tape-ink happy-wash`) ใช้เป็น `text-mute`, `border-faint`, … แก้ที่เดียว หลังแก้ `tokens.js`/`tailwind.config.js` ต้องรีสตาร์ท dev server (`VITE_USE_MOCK=true npx vite`)
