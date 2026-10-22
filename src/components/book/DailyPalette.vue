@@ -28,16 +28,17 @@
       <p v-if="!entries.length" class="pal-rise absolute left-10 top-[120px] m-0 w-[412px] text-16 leading-[1.7] text-ink-soft" :style="reveal(1, 'rise')">ยังไม่มีสีของวันนี้ ลองระบายสักภาพแล้วสีจะมารวมกันตรงนี้</p>
 
       <template v-else>
-        <!-- สีของวัน: ก้อนสีน้ำก้อนเดียว (สีผสมของวัน ก้อนเล็กข้างในเป็นสีเด่น) + ชื่อสี + hex (แบบ 11-book-v2) -->
-        <div class="absolute left-10 top-[88px] flex w-[412px] items-center gap-5">
-          <div class="pal-seep relative h-[112px] w-[150px] shrink-0 bg-paper-deep" :style="reveal(0, 'seep')">
-            <WatercolorBlob class="absolute left-[6px] top-[2px]" :color="mix" :width="138" :height="98" :opacity="0.85" />
-            <WatercolorBlob v-if="dominant" class="absolute left-[44px] top-[30px]" :color="dominant" :width="62" :height="44" :opacity="0.7" />
+        <!-- สีของวัน: ก้อนสีน้ำก้อนเดียว (สีผสมของวัน ก้อนเล็กข้างในเป็นสีเด่น) ในกรอบกระดาษ bg-card ขอบเท่ากันทุกด้าน (~8%) เอียง −3° เงา card ไม่มีเทป (แบบ 11/12) -->
+        <div class="absolute left-10 top-[80px] flex w-[412px] items-center gap-6">
+          <div class="pal-seep relative h-[138px] w-[138px] shrink-0 -rotate-3 bg-card p-[11px] shadow-card" data-day-frame :style="reveal(0, 'seep')">
+            <div class="relative h-full w-full bg-paper-deep">
+              <WatercolorBlob class="absolute left-[-4px] top-[10px]" :color="mix" :width="124" :height="96" :opacity="0.85" />
+              <WatercolorBlob v-if="dominant" class="absolute left-[28px] top-[34px]" :color="dominant" :width="58" :height="42" :opacity="0.7" />
+            </div>
           </div>
           <div class="pal-rise flex min-w-0 flex-col gap-1" :style="reveal(1, 'rise')">
             <span class="text-13 text-ink-soft">{{ isToday ? 'สีของวันนี้' : 'สีของวัน' }}</span>
             <span class="font-hand text-26 font-semibold leading-[1.25]">{{ name.colorPart }}<br />{{ name.periodPart }}</span>
-            <code class="font-mono text-13 text-ink-soft">{{ mix.toUpperCase() }}</code>
           </div>
         </div>
 
