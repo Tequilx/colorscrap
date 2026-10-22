@@ -48,7 +48,7 @@ const props = defineProps({
 })
 
 // shifted: ผู้ใช้หยดแต้มแสงเองหยดแรกของแผ่น | invite: ระบายรวมครบและพักมือ ควรโผล่โน้ตชวน (SPEC §6.4)
-const emit = defineEmits(['shifted', 'invite', 'splash'])
+const emit = defineEmits(['shifted', 'invite', 'splash', 'first-touch'])
 
 const SIZE = { w: 1112, h: 612 }
 const HOLD_MS = 400 // กดค้างเกินนี้ = หยดต่อเนื่อง (SPEC §6.5)
@@ -949,6 +949,7 @@ const releaseAll = () => {
 const onDown = (e) => {
   if (!fluid || !props.running || clearing) return
   inputRef.value.setPointerCapture?.(e.pointerId)
+  if (!sheet.started) emit('first-touch')
   sheet.started = true
   sheet.idle = 0
   wake()

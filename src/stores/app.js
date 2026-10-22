@@ -108,6 +108,14 @@ export const useAppStore = defineStore('app', () => {
   const warmNoteOpen = computed(() => warmNote.value === 'open' && warmAvailable.value)
   const resetWarmNote = () => {
     warmNote.value = 'idle'
+    moodFolded.value = false // แผ่นใหม่ โน้ตอารมณ์เปิดเต็มเหมือนเดิม
+  }
+  // โน้ตอารมณ์บนหน้าระบาย (MoodCard): แตะผ้าใบครั้งแรกของแผ่น → เก็บเป็นแถบที่ขอบขวา กดแถบเพื่อกางกลับ จำสถานะไว้จนจบแผ่น
+  const moodFolded = ref(false)
+  const foldMood = (on) => {
+    if (moodFolded.value === on) return
+    moodFolded.value = on
+    sound.paperSlide(!on)
   }
   // FluidCanvas แจ้งว่าระบายรวมครบและพักมือแล้ว
   const offerWarmNote = () => {
@@ -447,6 +455,8 @@ export const useAppStore = defineStore('app', () => {
     warmAvailable,
     warmNote,
     warmNoteOpen,
+    moodFolded,
+    foldMood,
     warmTick,
     offerWarmNote,
     dismissWarmNote,

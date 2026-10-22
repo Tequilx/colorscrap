@@ -142,7 +142,7 @@
 - [x] 19. BrandMark: `lib/brand.js` ที่เดียว → `BrandMark.vue` (ปกสมุด/login/hello) + favicon (SVG เดียวกัน `installFavicon`) + การ์ดเก็บรูป · FILE-GUIDE หัวข้อ "โลโก้" (tag `pre-brandmark`)
 ## ช่วง 3
 - [x] 20. ใจฟูสูงสุด 3: `lib/likes.js` (+เทสต์ 4) · ครบ 3 ชิปที่เหลือจาง (aria-disabled opacity .4) · ตัวนับ "เลือกแล้ว N/3" + คำบอก · โปรไฟล์เดิมเกิน 3 แสดงทั้งหมด บอกให้เอาออก ปุ่มบันทึกกดไม่ได้จน ≤ 3 (`profile.likesTooMany`) · หน้าสมุดแสดง 3 อันแรกเหมือนเดิม ไม่แตะ schema · ภาพ `scripts/out/screens/likes3/` (ก่อน = `screens/brand/01-hello-ผู้ใช้ใหม่.png`) (tag `pre-likes3`)
-- [ ] 21. โน้ตอารมณ์พับเก็บ (tag `pre-moodfold`)
+- [x] 21. โน้ตอารมณ์พับเก็บ: แตะผ้าใบครั้งแรกของแผ่น (`FluidCanvas` emit `first-touch`) → `app.foldMood(true)` โน้ตเลื่อนออกขวา 450ms เหลือแถบ 60×176 ที่ขอบกระดาน (x 1204–1264 นอกผ้าใบ) กดแถบ = กางกลับ / ปุ่มเก็บบนโน้ต 44px · จำสถานะข้ามหน้าเปลี่ยนสีจนจบแผ่น (`resetWarmNote` = แผ่นใหม่/เริ่มใหม่/บันทึก/ออกจากระบบ → เปิดเต็ม) · reduced-motion จางอย่างเดียว · เสียง `sound.paperSlide` · ตรวจด้วย Playwright (ปกติ+reduced: พับ/ไม่กางซ้ำเมื่อแตะอีก/กางด้วยแถบ/เก็บด้วยปุ่ม/จำข้ามหน้า/แผ่นใหม่เปิด) ผ่านทั้งหมด · ภาพ `scripts/out/screens/moodfold/` (tag `pre-moodfold`)
 - [ ] 22. พลิกสมุด 3D (tag `pre-flip3d`)
 ## ช่วง 4
 - [ ] 23. พื้นที่กด ≥ 44px (tag `pre-tap44`)

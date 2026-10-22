@@ -514,6 +514,23 @@ export const sound = {
     voice([src], t + dur + 0.03)
   },
 
+  // โน้ตอารมณ์เก็บ/กางออก: กระดาษเสียดสีเบา ๆ (up = กางออก ความถี่ขึ้น / ไม่ใช่ = เก็บ ความถี่ลง)
+  paperSlide(up = false) {
+    if (!ready()) return
+    const t = ctx.currentTime
+    const src = noiseSource(false)
+    const bp = ctx.createBiquadFilter()
+    bp.type = 'bandpass'
+    bp.Q.value = 0.8
+    bp.frequency.setValueAtTime(up ? 900 : 2200, t)
+    bp.frequency.exponentialRampToValueAtTime(up ? 2200 : 900, t + 0.28)
+    const g = ctx.createGain()
+    env(g, t, 0.06, 0.04, 0.26)
+    src.connect(bp).connect(g).connect(master)
+    src.start(t)
+    voice([src], t + 0.36)
+  },
+
   // แตะปุ่ม: เสียงแตะกระดาษเบามาก
   tap() {
     if (!ready()) return
