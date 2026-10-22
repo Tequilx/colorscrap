@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { COVER_COLORS } from '@/lib/tokens'
 import { USE_MOCK } from '@/lib/supabase'
+import { likesOverLimit, toggleLikeList } from '@/lib/likes'
 import { fetchProfile, upsertProfile } from '@/lib/remote'
 import { useAuthStore } from '@/stores/auth'
 
@@ -28,6 +29,7 @@ export const useProfileStore = defineStore('profile', () => {
   const likes = ref(saved?.likes ?? ['เพลง', 'แมว'])
   const saveError = ref('')
 
+  const likesTooMany = computed(() => likesOverLimit(likes.value))
   const shownName = computed(() => displayName.value.trim())
 
   const apply = (p) => {
@@ -38,7 +40,7 @@ export const useProfileStore = defineStore('profile', () => {
   }
 
   const toggleLike = (like) => {
-    likes.value = likes.value.includes(like) ? likes.value.filter((l) => l !== like) : [...likes.value, like]
+    likes.value = toggleLikeList(likes.value, like)
   }
 
   // โหมดจริง: ดึงโปรไฟล์ของผู้ใช้ที่ล็อกอิน (ไม่มีแถว = ผู้ใช้ใหม่ ใช้ค่าเริ่มต้นแล้วไปหน้า hello)
@@ -57,6 +59,7 @@ export const useProfileStore = defineStore('profile', () => {
 
   // เทียบกับ `upsert` ลงตาราง profiles (SPEC §5.0) คืน true เมื่อสำเร็จ
   const save = async () => {
+    if (likesOverLimit(likes.value)) return false
     displayName.value = displayName.value.trim().slice(0, 20)
     const data = { displayName: displayName.value, avatar: avatar.value, coverColor: coverColor.value, likes: likes.value }
     saveError.value = ''
@@ -79,5 +82,5 @@ export const useProfileStore = defineStore('profile', () => {
     return true
   }
 
-  return { exists, displayName, avatar, coverColor, likes, saveError, shownName, toggleLike, loadRemote, reset, save }
+  return { exists, displayName, avatar, coverColor, likes, saveError, shownName, likesTooMany, toggleLike, loadRemote, reset, save }
 })

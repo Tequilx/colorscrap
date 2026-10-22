@@ -57,13 +57,25 @@
     </div>
 
     <div class="flex flex-col gap-2">
-      <span class="font-hand text-17 font-semibold">
+      <span class="flex items-baseline gap-2 font-hand text-17 font-semibold">
         สิ่งที่ทำให้ใจฟู
-        <span class="font-body text-14 font-normal text-ink-soft">เลือกได้หลายอย่าง หรือข้ามก็ได้</span>
+        <span class="font-body text-14 font-normal text-ink-soft">เลือกได้สูงสุด {{ MAX_LIKES }} อย่าง หรือข้ามก็ได้</span>
+        <span class="ml-auto font-body text-14 font-medium" :class="profile.likesTooMany ? 'text-ink' : 'text-ink-soft'" aria-live="polite">เลือกแล้ว {{ profile.likes.length }}/{{ MAX_LIKES }}</span>
       </span>
       <div role="group" aria-label="สิ่งที่ทำให้ใจฟู" class="flex gap-1.5">
-        <HandButton v-for="l in LIKES" :key="l" variant="chip" class="!px-3" :pressed="profile.likes.includes(l)" @click="profile.toggleLike(l)">{{ l }}</HandButton>
+        <HandButton
+          v-for="l in LIKES"
+          :key="l"
+          variant="chip"
+          class="!px-3"
+          :pressed="profile.likes.includes(l)"
+          :aria-disabled="isLikeLocked(profile.likes, l) ? 'true' : undefined"
+          @click="profile.toggleLike(l)"
+        >{{ l }}</HandButton>
       </div>
+      <!-- โปรไฟล์เดิมที่บันทึกไว้เกิน 3: แสดงที่เลือกไว้ทั้งหมดและบอกให้เอาออก (ปุ่มบันทึกกดไม่ได้จนเหลือ ≤ 3) -->
+      <span v-if="profile.likesTooMany" role="alert" class="text-14 text-ink">เลือกไว้เกิน {{ MAX_LIKES }} อย่าง กดอันที่เลือกไว้เพื่อเอาออกให้เหลือ {{ MAX_LIKES }} อย่าง</span>
+      <span v-else-if="profile.likes.length >= MAX_LIKES" class="text-14 text-ink-soft">ครบแล้ว กดอันที่เลือกไว้เพื่อเอาออก</span>
     </div>
   </div>
 </template>
@@ -75,6 +87,7 @@ import Doodle from '@/components/ui/Doodle.vue'
 import HandButton from '@/components/ui/HandButton.vue'
 import { AVATARS } from '@/lib/doodles'
 import { COVER_COLORS } from '@/lib/tokens'
+import { MAX_LIKES, isLikeLocked } from '@/lib/likes'
 import { useProfileStore } from '@/stores/profile'
 
 const profile = useProfileStore()

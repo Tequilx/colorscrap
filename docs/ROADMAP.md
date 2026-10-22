@@ -141,7 +141,7 @@
 ## ช่วง 2
 - [x] 19. BrandMark: `lib/brand.js` ที่เดียว → `BrandMark.vue` (ปกสมุด/login/hello) + favicon (SVG เดียวกัน `installFavicon`) + การ์ดเก็บรูป · FILE-GUIDE หัวข้อ "โลโก้" (tag `pre-brandmark`)
 ## ช่วง 3
-- [ ] 20. ใจฟูสูงสุด 3 (tag `pre-likes3`)
+- [x] 20. ใจฟูสูงสุด 3: `lib/likes.js` (+เทสต์ 4) · ครบ 3 ชิปที่เหลือจาง (aria-disabled opacity .4) · ตัวนับ "เลือกแล้ว N/3" + คำบอก · โปรไฟล์เดิมเกิน 3 แสดงทั้งหมด บอกให้เอาออก ปุ่มบันทึกกดไม่ได้จน ≤ 3 (`profile.likesTooMany`) · หน้าสมุดแสดง 3 อันแรกเหมือนเดิม ไม่แตะ schema · ภาพ `scripts/out/screens/likes3/` (ก่อน = `screens/brand/01-hello-ผู้ใช้ใหม่.png`) (tag `pre-likes3`)
 - [ ] 21. โน้ตอารมณ์พับเก็บ (tag `pre-moodfold`)
 - [ ] 22. พลิกสมุด 3D (tag `pre-flip3d`)
 ## ช่วง 4
