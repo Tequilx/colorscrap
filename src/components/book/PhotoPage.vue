@@ -4,9 +4,9 @@
     <!-- ขอบกระดาษซ้อนกันตามจำนวนแผ่นที่เหลือ -->
     <span v-for="n in Math.max(0, leaves.length - 1)" :key="n" class="absolute inset-x-1.5 h-1.5 rounded-bl border-b-[1.5px] border-l-[1.5px] border-[#DCD6CC]" :style="{ bottom: 34 - (n - 1) * 5 + 'px' }" aria-hidden="true"></span>
 
-    <!-- แต่ละแผ่นเป็น layer ของตัวเอง (:key) เพื่อให้พลิกด้วย rotateX ทุกครั้งที่เปลี่ยนแผ่น (SPEC §5.6) -->
+    <!-- แต่ละแผ่นเป็น layer ของตัวเอง (:key = วัน + แผ่น) พลิกรอบสันกลาง (ขอบขวาของหน้าซ้าย) ทุกครั้งที่เปลี่ยนแผ่นหรือเปลี่ยนวัน (ข้อ 22) -->
     <Transition :name="flipName" :css="flipAnimated" :duration="flipDuration" @before-enter="flipStart" @after-enter="flipEnd" @enter-cancelled="flipEnd" @leave-cancelled="flipEnd">
-      <div :key="leafIndex" class="leaf-layer absolute inset-0">
+      <div :key="`${date}#${leafIndex}`" class="leaf-layer absolute inset-0">
         <!-- แผ่นที่ 1 คือตัวหน้ากระดาษเอง -->
         <template v-if="leafIndex === 0">
           <div class="absolute left-9 top-10 flex flex-col gap-0.5">
@@ -45,6 +45,8 @@
           <div v-if="isFreshLeaf" class="absolute left-[166px] top-1 flex h-[30px] w-40 -rotate-[1.5deg] items-center justify-center bg-tape font-hand text-14 font-bold text-[#6B5A33]">แผ่นใหม่</div>
           <Tape v-else class="left-[176px] top-0 !h-[26px] !w-[140px]" :rotate="-1.5" />
         </template>
+        <!-- เงาของแผ่นที่กำลังพลิก (จางเข้า/ออกพร้อมการพลิก) -->
+        <span class="leaf-shade pointer-events-none absolute inset-0 rounded-[6px_0_0_6px]" aria-hidden="true"></span>
       </div>
     </Transition>
 
@@ -60,7 +62,7 @@ import LeafPager from '@/components/book/LeafPager.vue'
 import Tape from '@/components/ui/Tape.vue'
 import { FIRST_LEAF_SLOTS, INSERT_LEAF_SLOTS } from '@/lib/photos'
 import { PHOTOS_PER_LEAF, useAppStore } from '@/stores/app'
-import { ms } from '@/lib/motion'
+import { ms, reducedMotion } from '@/lib/motion'
 import { parseLocalDate, thaiDayFull, thaiDateShort } from '@/lib/dates'
 
 const props = defineProps({
@@ -80,15 +82,19 @@ const app = useAppStore()
 // ภาพที่กำลังบินลงช่อง (ลำดับบันทึก): ช่องจริงซ่อนอยู่ แสดงช่องเส้นประแทนจนภาพลงถึง
 const landing = (e) => app.savePhase !== 'idle' && app.photoHiddenId === e.id
 
-// ทิศทางการพลิก: ไปแผ่นถัดไป = แผ่นใหม่ลงมาทับ, ย้อนกลับ = แผ่นบนพลิกขึ้นเผยแผ่นล่าง
-// เปลี่ยนวันแล้วแผ่นเปลี่ยนตาม (openDay) ไม่เล่นแอนิเมชัน เพราะ layer เก่าจะโชว์ข้อมูลของวันใหม่ค้างอยู่ระหว่างพลิก
+// ทิศทางการพลิก (รอบสันกลาง ขอบขวาของหน้าซ้าย): ไปแผ่นถัดไป/วันถัดไป = แผ่นเก่าพลิกขึ้นออกไปเผยแผ่นใหม่ใต้มัน, ย้อนกลับ = แผ่นใหม่พลิกลงมาทับแผ่นเก่า
+// เปลี่ยนวันด้วยแท็บ/ปุ่มวัน (app.turnToDay) พลิกด้วย ส่วนเปลี่ยนวันตอนเปิดสมุด (openBook) ไม่พลิก เพราะอยู่ใต้ปกที่กำลังพลิก
+// reduced-motion: จางอย่างเดียว (leaf-fade)
 const flipName = ref('leaf-fwd')
 const flipAnimated = ref(false)
 watch(
   () => [props.date, props.leafIndex],
   ([date, index], [oldDate, oldIndex]) => {
-    flipAnimated.value = date === oldDate && index !== oldIndex
-    flipName.value = index > oldIndex ? 'leaf-fwd' : 'leaf-back'
+    const sameDay = date === oldDate
+    flipAnimated.value = sameDay ? index !== oldIndex : app.dayTurn
+    const forward = sameDay ? index > oldIndex : date > oldDate
+    flipName.value = reducedMotion.value ? 'leaf-fade' : forward ? 'leaf-fwd' : 'leaf-back'
+    app.dayTurn = false
   },
   { flush: 'pre' },
 )
@@ -117,36 +123,57 @@ const subtitle = computed(() => {
 </script>
 
 <style>
-/* แผ่นแทรกพลิกด้วย rotateX รอบขอบบน (ไม่พลิกไปทางขวา เพื่อไม่บังจานสี) — perspective ใส่ใน transform เอง เพราะ .leaf-sheet เป็นหลานของแม่ */
+/* พลิกหน้ากระดาษรอบสันกลาง: หน้าซ้ายผูกบานพับที่ขอบขวา perspective ใส่ใน transform เอง (transform/opacity เท่านั้น) */
 .leaf-layer {
   z-index: 1;
+  transform-origin: right center;
 }
-.leaf-fwd-enter-active,
-.leaf-back-leave-active {
+.leaf-shade {
+  opacity: 0;
+  background: linear-gradient(to left, rgba(45, 43, 51, 0.38), rgba(45, 43, 51, 0.04) 60%);
+}
+.leaf-fwd-leave-active,
+.leaf-back-enter-active {
   z-index: 2;
-}
-.leaf-fwd-enter-active .leaf-sheet,
-.leaf-back-leave-active .leaf-sheet {
-  transform-origin: top;
   backface-visibility: hidden;
   will-change: transform, opacity;
-  transition:
-    transform calc(450ms * var(--motion-scale, 1)) cubic-bezier(0.2, 0.8, 0.2, 1),
-    opacity calc(300ms * var(--motion-scale, 1)) cubic-bezier(0.2, 0.8, 0.2, 1);
+  transition: transform calc(450ms * var(--motion-scale, 1)) cubic-bezier(0.45, 0, 0.25, 1);
 }
-.leaf-fwd-enter-from .leaf-sheet {
-  transform: perspective(1200px) rotateX(70deg);
-  opacity: 0;
-}
-.leaf-back-leave-to .leaf-sheet {
-  transform: perspective(1200px) rotateX(80deg);
-  opacity: 0;
-}
-/* layer ที่ถูกทับ/เผยอยู่ข้างใต้คงที่ไว้จนแผ่นบนพลิกเสร็จ แล้วจางหายตอนท้าย (ไม่ pop แถบม้วนด้านบนของแผ่นแรก) */
+/* แผ่นที่พลิกออกไปจางหายตอนท้าย (ใกล้ตั้งฉากแล้ว) */
 .leaf-fwd-leave-active {
-  transition: opacity calc(120ms * var(--motion-scale, 1)) linear calc(330ms * var(--motion-scale, 1));
+  transition:
+    transform calc(450ms * var(--motion-scale, 1)) cubic-bezier(0.45, 0, 0.25, 1),
+    opacity calc(150ms * var(--motion-scale, 1)) linear calc(300ms * var(--motion-scale, 1));
+}
+.leaf-fwd-leave-active .leaf-shade,
+.leaf-back-enter-active .leaf-shade {
+  transition: opacity calc(450ms * var(--motion-scale, 1)) cubic-bezier(0.45, 0, 0.25, 1);
 }
 .leaf-fwd-leave-to {
+  transform: perspective(1800px) rotateY(90deg);
+  opacity: 0;
+}
+.leaf-back-enter-from {
+  transform: perspective(1800px) rotateY(90deg);
+}
+.leaf-fwd-leave-to .leaf-shade,
+.leaf-back-enter-from .leaf-shade {
+  opacity: 1;
+}
+/* เล่นกลับ (ย้อนแผ่น): แผ่นที่ถูกทับอยู่ใต้ คงที่ไว้จนแผ่นบนพลิกลงมาเสร็จ แล้วจางหายตอนท้าย */
+.leaf-back-leave-active {
+  transition: opacity calc(120ms * var(--motion-scale, 1)) linear calc(330ms * var(--motion-scale, 1));
+}
+.leaf-back-leave-to {
+  opacity: 0;
+}
+/* reduced-motion: จางอย่างเดียว */
+.leaf-fade-enter-active,
+.leaf-fade-leave-active {
+  transition: opacity 150ms linear;
+}
+.leaf-fade-enter-from,
+.leaf-fade-leave-to {
   opacity: 0;
 }
 </style>

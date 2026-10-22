@@ -138,6 +138,12 @@ export const useAppStore = defineStore('app', () => {
   const leavesOf = (date) => chunk(useEntriesStore().entriesOfDay(date), PHOTOS_PER_LEAF)
 
   // เปิดวันที่ในสมุดแล้วไปที่แผ่นล่าสุดของวันนั้นเสมอ (SPEC §5.6)
+  // เปลี่ยนวันด้วยแท็บ/ปุ่มวัน: พลิกหน้ากระดาษ (PhotoPage อ่านแล้วเคลียร์) / เปิดวันตอนเปิดสมุดใช้ openDay ตรง ๆ ไม่พลิก
+  const dayTurn = ref(false)
+  const turnToDay = (date) => {
+    if (date !== openDate.value) dayTurn.value = true
+    openDay(date)
+  }
   const openDay = (date) => {
     openDate.value = date
     leafIndex.value = Math.max(0, leavesOf(date).length - 1)
@@ -453,6 +459,8 @@ export const useAppStore = defineStore('app', () => {
     sheetEmotions,
     sheetShifted,
     warmAvailable,
+    dayTurn,
+    turnToDay,
     warmNote,
     warmNoteOpen,
     moodFolded,

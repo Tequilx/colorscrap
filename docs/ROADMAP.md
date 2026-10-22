@@ -143,7 +143,13 @@
 ## ช่วง 3
 - [x] 20. ใจฟูสูงสุด 3: `lib/likes.js` (+เทสต์ 4) · ครบ 3 ชิปที่เหลือจาง (aria-disabled opacity .4) · ตัวนับ "เลือกแล้ว N/3" + คำบอก · โปรไฟล์เดิมเกิน 3 แสดงทั้งหมด บอกให้เอาออก ปุ่มบันทึกกดไม่ได้จน ≤ 3 (`profile.likesTooMany`) · หน้าสมุดแสดง 3 อันแรกเหมือนเดิม ไม่แตะ schema · ภาพ `scripts/out/screens/likes3/` (ก่อน = `screens/brand/01-hello-ผู้ใช้ใหม่.png`) (tag `pre-likes3`)
 - [x] 21. โน้ตอารมณ์พับเก็บ: แตะผ้าใบครั้งแรกของแผ่น (`FluidCanvas` emit `first-touch`) → `app.foldMood(true)` โน้ตเลื่อนออกขวา 450ms เหลือแถบ 60×176 ที่ขอบกระดาน (x 1204–1264 นอกผ้าใบ) กดแถบ = กางกลับ / ปุ่มเก็บบนโน้ต 44px · จำสถานะข้ามหน้าเปลี่ยนสีจนจบแผ่น (`resetWarmNote` = แผ่นใหม่/เริ่มใหม่/บันทึก/ออกจากระบบ → เปิดเต็ม) · reduced-motion จางอย่างเดียว · เสียง `sound.paperSlide` · ตรวจด้วย Playwright (ปกติ+reduced: พับ/ไม่กางซ้ำเมื่อแตะอีก/กางด้วยแถบ/เก็บด้วยปุ่ม/จำข้ามหน้า/แผ่นใหม่เปิด) ผ่านทั้งหมด · ภาพ `scripts/out/screens/moodfold/` (tag `pre-moodfold`)
-- [ ] 22. พลิกสมุด 3D (tag `pre-flip3d`)
+- [x] 22. พลิกสมุด 3D (tag `pre-flip3d`)
+  - `components/book/CoverFlip.vue`: ปก (หน้าหน้า = `BookCover`, หน้าหลัง = กระดาษในปก `backface-visibility:hidden`) พลิกรอบสันซ้ายของหน้าขวา `rotateY` 0 → −180° (`perspective(1800px)`) ด้วย WAAPI ease-in-out + เงาของปกทอดลงหน้าขวา (opacity 0→.42→0) + ครึ่งซ้ายของสมุดเปิดถูกซ่อน (`clip-path`) จนปกไปลงจอด · opacity อยู่ชั้นนอกของชั้น `preserve-3d` (ไม่งั้นหน้าหน้าทะลุ)
+  - `Scrapbook.vue`: หน้าแรก→สมุด `open` 1.3 วิ (ชั้นปกปิดเลื่อนไปทับหน้าขวาแล้วจางให้ปกพลิกรับช่วง) · สมุด→หน้าแรก `close` เล่นย้อน แล้วชั้นสมุดเปิดจาง/ปกปิดเลื่อนกลับ (`closeDelay`) · ระบาย→สมุด/ลำดับบันทึก→saved `openShort` 0.9 วิ (ปกอยู่บนหน้าขวาแล้ว) · พิกัดอยู่ในชั้นสมุดเปิด จึงตามการซูมของหน้า saved เอง · เสียง `sound.flip({long})`
+  - ลำดับบันทึก: `MOTION.save.flipExtra` 300ms (เพิ่มจากเดิมไม่เกิน 0.3 วิ ตามสเปก) เทสต์ `saveTimeline` ปรับเพดานเป็น 1700+300
+  - พลิกแผ่น/เปลี่ยนวัน: `PhotoPage` layer key = วัน+แผ่น พลิกรอบสันกลาง (ขอบขวาของหน้าซ้าย `rotateY` 90° + เงา) ไปหน้า = แผ่นเก่าพลิกออก / ย้อน = แผ่นใหม่พลิกลงมาทับ · เปลี่ยนวันด้วยแท็บ/ปุ่มวัน (`app.turnToDay`) พลิกด้วย ส่วนเปิดสมุดไม่พลิก
+  - reduced-motion: ปกไม่พลิก (fade 150ms เดิม), แผ่นใช้ `leaf-fade` · ใช้ transform/opacity/clip-path เท่านั้น
+  - ภาพ: `scripts/out/screens/flip3d/open.png` (หน้าแรก→สมุด), `close.png` (สมุด→หน้าแรก, ระบาย→สมุด), `turn.png` (พลิกแผ่น) · FPS ระหว่างพลิก วัดในข้อ 29 (`docs/PERF.md`)
 ## ช่วง 4
 - [ ] 23. พื้นที่กด ≥ 44px (tag `pre-tap44`)
 - [ ] 24. motion-scale/lib/motion/DateTabs (tag `pre-motion-tidy`)

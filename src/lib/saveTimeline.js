@@ -16,7 +16,8 @@ export const LIFT = 1.08
 // scale = ตัวคูณเวลา (?motion=slow) → ตารางเวลาเป็น ms นับจากเริ่มบันทึก
 export const saveSchedule = ({ newLeaf = false, scale = 1 } = {}) => {
   const S = MOTION.save
-  const bookEnd = S.bookAt + MOTION.settle
+  // ช่วงสมุดเข้า = สมุดเลื่อนเข้า + พลิกปก 3D (flipExtra: เพิ่มจากเดิมไม่เกิน 0.3 วิ)
+  const bookEnd = S.bookAt + MOTION.settle + S.flipExtra
   const leaf = newLeaf ? [bookEnd, bookEnd + MOTION.swap] : null // แผ่นแทรกพลิกลงมาก่อนวางภาพ (§5.6)
   const dropAt = leaf ? leaf[1] : bookEnd
   const tapeAt = dropAt + S.drop

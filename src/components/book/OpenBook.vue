@@ -1,7 +1,7 @@
 <template>
   <!-- สมุดเปิดเต็มเล่ม 1012×640 (SPEC §5.5) ใช้ทั้งหน้า book และหน้า saved (saved แค่ซูมที่หน้าซ้าย) -->
   <div class="relative h-[640px] w-[1012px]">
-    <DateTabs v-if="mode === 'book'" :tabs="tabs" :current="date" @pick="app.openDay($event)" />
+    <DateTabs v-if="mode === 'book'" :tabs="tabs" :current="date" @pick="app.turnToDay($event)" />
 
     <!-- ปกสมุดเป็นขอบรอบหน้ากว้าง 14px -->
     <div class="absolute inset-0 rounded-xl bg-cover shadow-[0_24px_48px_rgba(45,43,51,0.28)]"></div>
@@ -29,7 +29,7 @@
       :next-date="nextDate"
       :new-id="mode === 'saved' ? app.lastSavedEntryId : null"
       :hidden="mode === 'saved'"
-      @day="app.openDay($event)"
+      @day="app.turnToDay($event)"
     />
   </div>
 </template>
