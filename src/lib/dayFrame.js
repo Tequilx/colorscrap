@@ -13,7 +13,7 @@ export const dayFrameSvg = ({ mix, dominant = null, p = 'df' }) => {
   }
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${DAY_FRAME_SIZE}" height="${DAY_FRAME_SIZE}" viewBox="0 0 ${DAY_FRAME_SIZE} ${DAY_FRAME_SIZE}">
 <defs>
-<filter id="${p}-s" x="-20%" y="-20%" width="140%" height="150%"><feDropShadow dx="0" dy="10" stdDeviation="14" flood-color="#2D2B33" flood-opacity="0.16"/></filter>
+<filter id="${p}-s" x="-20%" y="-20%" width="140%" height="150%"><feDropShadow dx="0" dy="10" stdDeviation="14" flood-color="${PALETTE.ink}" flood-opacity="0.16"/></filter>
 <filter id="${p}-w" x="-30%" y="-30%" width="160%" height="160%"><feTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="3" seed="3" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="14" result="d"/><feGaussianBlur in="d" stdDeviation="1.2"/></filter>
 </defs>
 <g transform="rotate(-3 190 190)">

@@ -21,7 +21,7 @@
         autocomplete="email"
         inputmode="email"
         placeholder="you@example.com"
-        class="border-0 border-b-2 border-dashed border-[#8E8A93] bg-transparent px-0.5 py-1.5 font-hand text-26 text-ink outline-offset-4"
+        class="border-0 border-b-2 border-dashed border-mute bg-transparent px-0.5 py-1.5 font-hand text-26 text-ink outline-offset-4"
       />
     </div>
 
@@ -33,7 +33,7 @@
         type="password"
         :autocomplete="signingUp ? 'new-password' : 'current-password'"
         :placeholder="signingUp ? 'อย่างน้อย 6 ตัว' : ''"
-        class="border-0 border-b-2 border-dashed border-[#8E8A93] bg-transparent px-0.5 py-1.5 font-hand text-26 text-ink outline-offset-4"
+        class="border-0 border-b-2 border-dashed border-mute bg-transparent px-0.5 py-1.5 font-hand text-26 text-ink outline-offset-4"
       />
     </div>
 

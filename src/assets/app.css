@@ -29,7 +29,7 @@
 
   /* focus ที่มองเห็นชัด (SPEC §10) */
   :focus-visible {
-    outline: 3px dashed #5fa3c8;
+    outline: 3px dashed theme('colors.e.calm');
     outline-offset: 4px;
   }
 }

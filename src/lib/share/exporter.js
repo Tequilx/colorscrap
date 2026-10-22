@@ -2,7 +2,7 @@
 // ภาพที่ยังอยู่ในเครื่อง (entry.image/thumb เป็น Blob) ใช้ตรง ๆ ภาพที่อยู่ใน Storage (bucket private) ขอ signed URL → fetch → blob → createImageBitmap
 // เพื่อให้ canvas ไม่ tainted (วาด <img> ข้ามโดเมนแล้ว toBlob จะ error) โหมดจำลองไม่มีภาพจริง → null (การ์ดวาดหยดสีจำลองจากสี)
 import { signPaths } from '@/lib/remote'
-import { canvasToBlob, makeCanvas } from '@/lib/share/cardDraw'
+import { C, canvasToBlob, makeCanvas } from '@/lib/share/cardDraw'
 import { renderDayCard, renderPhotoCard, renderPlaceholder } from '@/lib/share/cards'
 import { cardPhotoFileName, dayCardFileName, photoOnlyFileName } from '@/lib/share/fileNames'
 
@@ -38,7 +38,7 @@ export const makePhotoOnly = async (entry) => {
   try {
     const canvas = image ? makeCanvas(image.width, image.height) : makeCanvas(1600, 880)
     const ctx = canvas.getContext('2d')
-    ctx.fillStyle = '#FBFAF6'
+    ctx.fillStyle = C.paper
     ctx.fillRect(0, 0, canvas.width, canvas.height)
     if (image) ctx.drawImage(image, 0, 0)
     else {

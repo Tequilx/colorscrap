@@ -295,7 +295,7 @@ watch(active, async (on) => {
 }
 @media (hover: hover) {
   .save-btn:not(:disabled):hover .save-frame {
-    background-color: #3e3c45;
+    @apply bg-ink-2;
   }
 }
 </style>

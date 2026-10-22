@@ -47,7 +47,7 @@
           :aria-label="a.label"
           :title="a.label"
           class="flex h-[60px] w-[60px] cursor-pointer items-center justify-center rounded-[16px_18px_14px_20px] border-2 p-0 text-ink transition-transform duration-450 ease-desk"
-          :class="pickedAvatar === a.key ? 'border-ink bg-[rgba(241,190,72,.28)] -translate-y-[3px] -rotate-3' : 'border-transparent bg-[#F0EEE9]'"
+          :class="pickedAvatar === a.key ? 'border-ink bg-happy-wash -translate-y-[3px] -rotate-3' : 'border-transparent bg-wash'"
           @click="pickedAvatar = a.key"
         >
           <Doodle :name="a.key" :size="38" />

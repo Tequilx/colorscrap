@@ -26,7 +26,7 @@
       <div class="absolute left-[72px] top-[178px] box-border flex w-[284px] rotate-[1.2deg] flex-col gap-1.5 rounded bg-paper px-[26px] py-[22px] shadow-[0_3px_10px_rgba(0,0,0,0.22)]">
         <span class="text-13 text-ink-soft">สมุดระบายความรู้สึก</span>
         <BrandMark :size="40" word class="font-bold" />
-        <span class="border-t-2 border-dotted border-line pt-2 font-hand text-16" :class="name ? 'text-ink' : 'text-[#8E8A93]'">ของ {{ name || 'ชื่อของคุณ' }}</span>
+        <span class="border-t-2 border-dotted border-line pt-2 font-hand text-16" :class="name ? 'text-ink' : 'text-mute'">ของ {{ name || 'ชื่อของคุณ' }}</span>
       </div>
       <span class="absolute inset-y-0 right-[44px] w-[18px] bg-cover-strap shadow-[inset_2px_0_0_rgba(255,255,255,0.08)]"></span>
     </div>

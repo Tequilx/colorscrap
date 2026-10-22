@@ -151,9 +151,9 @@
   - reduced-motion: ปกไม่พลิก (fade 150ms เดิม), แผ่นใช้ `leaf-fade` · ใช้ transform/opacity/clip-path เท่านั้น
   - ภาพ: `scripts/out/screens/flip3d/open.png` (หน้าแรก→สมุด), `close.png` (สมุด→หน้าแรก, ระบาย→สมุด), `turn.png` (พลิกแผ่น) · FPS ระหว่างพลิก วัดในข้อ 29 (`docs/PERF.md`)
 ## ช่วง 4
-- [ ] 23. พื้นที่กด ≥ 44px (tag `pre-tap44`)
-- [ ] 24. motion-scale/lib/motion/DateTabs (tag `pre-motion-tidy`)
-- [ ] 25. สีเทา hardcode → tokens (tag `pre-greytokens`)
+- [x] 23. พื้นที่กด ≥ 44px: สแกนปุ่มจริงทุกหน้า (hello/cover/pick/paint/book/แผ่นแทรก/photo) พบ 4 ตัวต่ำกว่า 44 (ปุ่มเพลง/เอฟเฟกต์ 36, ลูกศรแผ่น 44×32) → ขยายพื้นที่กด หน้าตา/ตำแหน่งไอคอนเท่าเดิม · สแกนซ้ำ 0 ตัว (tag `pre-tap44`) · ยังไม่ได้สแกนหน้า login (ต้องโหมดจริง) และการ์ด saved
+- [x] 24. `.fade`/WarmNote คูณ `--motion-scale` · FluidCanvas ใช้ `reducedMotion` จาก `lib/motion.js` · DateTabs ทุกแท็บสูง 58px แท็บที่ไม่ได้เปิด `translateY(12px)` ซ่อนหลังปก (เลิก animate height) (tag `pre-motion-tidy`)
+- [x] 25. สีเทา hardcode → `PALETTE` (`mute faint edge well wash tray leaf tape-ink happy-wash`) + `EmotionBlob`/`HelloSheet`/`dayFrame`/focus ring/`cardDraw.C`/`exporter` อ่านจาก tokens · ภาพก่อน/หลัง (kit, hello, cover, pick, book, แผ่นแทรก, photo) ต่าง **0 พิกเซล** (`scripts/out/screens/greytokens/{before,after}`; ต้องรีสตาร์ท dev server หลังแก้ tokens) (tag `pre-greytokens`)
 - [ ] 26. ลบโค้ดค้าง (tag `pre-deadcode`)
 - [ ] 27. placeholder .wav (tag `pre-wav`)
 - [ ] 28. เอกสารให้ตรงโค้ด (tag `pre-docs-sync`)

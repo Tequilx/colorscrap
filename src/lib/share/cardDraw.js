@@ -3,16 +3,19 @@
 // ขอบไม่เรียบด้วย noise, เส้นประ, เทปกึ่งโปร่งใส, grain (สร้างครั้งเดียวแล้ว cache), วงซ้อนโปร่งใสในหลุมผสมสี
 // ทุกอย่างวาดในเครื่อง ไม่ส่งข้อมูลไปที่อื่น
 
+import { PALETTE } from '@/lib/tokens'
+
 export const CARD_W = 1080
 export const CARD_H = 1350
 
+// สีทั้งหมดมาจาก tokens.js (ที่เดียว)
 export const C = {
-  paper: '#FBFAF6',
-  ink: '#2D2B33',
-  ink2: '#3E3C45',
-  soft: '#5E5B66',
-  line: '#CFCBC3',
-  tape: 'rgba(230, 215, 176, 0.9)',
+  paper: PALETTE.paper,
+  ink: PALETTE.ink,
+  ink2: PALETTE['ink-2'],
+  soft: PALETTE['ink-soft'],
+  line: PALETTE.line,
+  tape: 'rgba(230, 215, 176, 0.9)', // = PALETTE.tape (ค่าเดียวกัน เขียนช่องว่างต่างกันเท่านั้น)
 }
 
 export const FONT_HAND = 'Mali, "Itim", system-ui, sans-serif'

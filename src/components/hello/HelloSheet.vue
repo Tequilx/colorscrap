@@ -16,7 +16,7 @@
         type="text"
         maxlength="20"
         placeholder="เช่น ฝน, มิ้นท์, เจ้าหญิงนอนดึก"
-        class="border-0 border-b-2 border-dashed border-[#8E8A93] bg-transparent px-0.5 py-1.5 font-hand text-26 text-ink outline-offset-4"
+        class="border-0 border-b-2 border-dashed border-mute bg-transparent px-0.5 py-1.5 font-hand text-26 text-ink outline-offset-4"
       />
     </div>
 
@@ -31,7 +31,7 @@
           :aria-label="a.label"
           :title="a.label"
           class="flex h-[60px] cursor-pointer items-center justify-center rounded-[16px_18px_14px_20px] border-2 p-0 text-ink transition-transform duration-450 ease-desk"
-          :class="profile.avatar === a.key ? 'border-ink bg-[rgba(241,190,72,.28)] -translate-y-[3px] -rotate-3' : 'border-transparent bg-[#F0EEE9]'"
+          :class="profile.avatar === a.key ? 'border-ink bg-happy-wash -translate-y-[3px] -rotate-3' : 'border-transparent bg-wash'"
           @click="profile.avatar = a.key"
         >
           <Doodle :name="a.key" :size="38" />
@@ -50,7 +50,7 @@
           :aria-label="c.label"
           :title="c.label"
           class="h-[52px] w-[52px] cursor-pointer rounded-full border-[3px] border-paper p-0"
-          :style="{ background: c.hex, boxShadow: profile.coverColor === c.hex ? '0 0 0 3px #2D2B33' : 'none' }"
+          :style="{ background: c.hex, boxShadow: profile.coverColor === c.hex ? `0 0 0 3px ${PALETTE.ink}` : 'none' }"
           @click="profile.coverColor = c.hex"
         ></button>
       </div>
@@ -86,7 +86,7 @@ import Tape from '@/components/ui/Tape.vue'
 import Doodle from '@/components/ui/Doodle.vue'
 import HandButton from '@/components/ui/HandButton.vue'
 import { AVATARS } from '@/lib/doodles'
-import { COVER_COLORS } from '@/lib/tokens'
+import { COVER_COLORS, PALETTE } from '@/lib/tokens'
 import { MAX_LIKES, isLikeLocked } from '@/lib/likes'
 import { useProfileStore } from '@/stores/profile'
 

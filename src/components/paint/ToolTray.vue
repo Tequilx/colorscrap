@@ -1,6 +1,6 @@
 <template>
   <!-- ถาดเครื่องมือ 620×80 ทับขอบล่างของกระดาษ — SPEC §5.3 -->
-  <div class="absolute left-[270px] top-[690px] box-border flex h-20 w-[740px] items-center gap-2 rounded-[20px_22px_18px_24px] bg-[#C8C2B7] px-3 shadow-[0_6px_14px_rgba(45,43,51,0.18)]">
+  <div class="absolute left-[270px] top-[690px] box-border flex h-20 w-[740px] items-center gap-2 rounded-[20px_22px_18px_24px] bg-tray px-3 shadow-[0_6px_14px_rgba(45,43,51,0.18)]">
     <div role="group" aria-label="เครื่องมือ" class="flex gap-2">
       <button
         v-for="t in tools"

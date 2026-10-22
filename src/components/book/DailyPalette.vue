@@ -78,7 +78,7 @@ import { localDateStr, parseLocalDate, thaiDateShort } from '@/lib/dates'
 import { useAppStore } from '@/stores/app'
 import { useShareStore } from '@/stores/share'
 import { ms, scaled } from '@/lib/motion'
-import { MOTION } from '@/lib/tokens'
+import { MOTION, PALETTE } from '@/lib/tokens'
 
 const props = defineProps({
   date: { type: String, required: true },
@@ -111,7 +111,7 @@ const title = computed(() => (isToday.value ? 'จานสีของวัน
 const shortLabel = (d) => thaiDateShort(parseLocalDate(d))
 
 const color = computed(() => dayColor(props.entries))
-const mix = computed(() => color.value?.mix ?? '#8E8A93')
+const mix = computed(() => color.value?.mix ?? PALETTE.mute)
 const name = computed(() => color.value?.name ?? nameOfDay(mix.value, '12:00'))
 
 const counts = computed(() => {
