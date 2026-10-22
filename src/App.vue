@@ -131,7 +131,7 @@ const Kit = showKit ? defineAsyncComponent(() => import('@/KitGallery.vue')) : n
 <style>
 .fade-enter-active,
 .fade-leave-active {
-  transition: opacity 450ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  transition: opacity calc(450ms * var(--motion-scale, 1)) cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 .fade-enter-from,
 .fade-leave-to {

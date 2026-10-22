@@ -31,7 +31,9 @@ const app = useAppStore()
 <style scoped>
 .note-enter-active,
 .note-leave-active {
-  transition: opacity 0.3s, transform 0.45s cubic-bezier(0.2, 0.8, 0.2, 1);
+  transition:
+    opacity calc(300ms * var(--motion-scale, 1)),
+    transform calc(450ms * var(--motion-scale, 1)) cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 .note-enter-from,
 .note-leave-to {

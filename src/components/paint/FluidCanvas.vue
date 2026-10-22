@@ -27,6 +27,7 @@ import { PALETTE } from '@/lib/tokens'
 import { invertedHex } from '@/lib/dye'
 import { sound } from '@/lib/sound'
 import { canvasCursor, finePointer } from '@/lib/cursors'
+import { reducedMotion } from '@/lib/motion'
 import { DYE_SPLAT_FRAG, PAPER_LIGHT } from '@/lib/dyeLimit'
 import { warmTune as tune, noteDebug as debug, fluidInfo, DEV_PARAMS_EVENT, DEV_NOTE_RESET_EVENT } from '@/lib/devState'
 
@@ -77,8 +78,7 @@ const NOTE_TICK = 250
 // เร่งเวลาโน้ตตอน dev เพื่อทดสอบ (เร่งทั้งเวลาก่อนโน้ตขึ้นและเวลาพักมือ): เปิดหน้าด้วย ?shiftSpeed=10 (ไม่ยุ่งกับ simulation) และ ?debug เปิดแผงปรับค่า (src/dev/DebugPanel.vue)
 const DEBUG = import.meta.env.DEV && new URLSearchParams(location.search).has('debug')
 const NOTE_TIME_SCALE = import.meta.env.DEV ? Number(new URLSearchParams(location.search).get('shiftSpeed')) || 1 : 1
-// prefers-reduced-motion: หยดแต้มแสงตอนกดค้างช้าลงครึ่งหนึ่ง (ห่างขึ้น 2 เท่า)
-const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')
+// prefers-reduced-motion (lib/motion.js reactive): หยดแต้มแสงตอนกดค้างช้าลงครึ่งหนึ่ง (ห่างขึ้น 2 เท่า)
 
 // webgl-fluid-enhanced v0.8 รับ "container" (ไม่ใช่ canvas) แล้วหา <canvas> ข้างในเอง
 const containerRef = ref(null)
@@ -402,7 +402,7 @@ const dropInitial = () => {
   const count = Math.max(1, Math.floor(want + 0.2))
   const fit = Math.sqrt(want / count)
   const mag = 220 * p.speed
-  const calm = Boolean(reducedMotion?.matches)
+  const calm = reducedMotion.value
   const half = Math.min(0.46, 0.35 * level.spread) // ครึ่งช่วงของตำแหน่ง (เดิม 0.35 = 15–85%)
   const radius = p.radius * DROP_RADIUS_SCALE * level.size * fit
   const span = calm ? 0 : FLUID_GLOBAL.splashMs
@@ -694,7 +694,7 @@ const stopBlooms = () => {
 // strength = ความแรงแต้มแสงทั้งหยด gentle = กดค้าง (ยกสีเบาลง เส้นโค้งสั้น ไม่ประคองต่อ)
 const bloomAt = (x, y, hex, { strength = 1, gentle = false } = {}) => {
   if (!fluid) return
-  const calm = Boolean(reducedMotion?.matches)
+  const calm = reducedMotion.value
   const recent = lastBloomAt && performance.now() - lastBloomAt < LIFT_GAP_MS
   const amount = recent ? 0 : tune.lift * (gentle ? 0.6 : 1)
   lastBloomAt = performance.now()
@@ -972,7 +972,7 @@ const onDown = (e) => {
   const holdDrop = () => (warm ? holdWarm() : dropAt(pointer.x, pointer.y, HOLD_STRENGTH))
   pointer.holdStart = setTimeout(() => {
     holdDrop()
-    pointer.hold = setInterval(holdDrop, warm && reducedMotion?.matches ? HOLD_INTERVAL * 2 : HOLD_INTERVAL)
+    pointer.hold = setInterval(holdDrop, warm && reducedMotion.value ? HOLD_INTERVAL * 2 : HOLD_INTERVAL)
   }, HOLD_MS)
 }
 
