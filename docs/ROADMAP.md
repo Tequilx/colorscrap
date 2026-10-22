@@ -125,3 +125,35 @@
   - **ชิป "สีในภาพนี้":** สี HSL L > 90% (`isPale` ใน `lib/color.js`) ได้ขอบ `PALETTE.line` บาง ๆ บิดตามหยด (ใน `WatercolorBlob.vue`) สีและ % ไม่เปลี่ยน
   - **เกณฑ์:** ป้ายทับกัน **0** ทุกกรณี 1–8 ภาพ ทั้งเทสต์ (4 ความกว้าง × 4 ชุดความเข้ม × 1–8 ภาพ) และ bounding box จริงใน `?kit` (แถว 1–8, `ref3`, `dup8`) · การ์ดหลังบันทึกยังอยู่ในหน้าขวา (1280×800: y 70–702 ใน 48–752; 1180×820: y 106–688 ใน 86–734) ไม่มีเฟรมเกิน 50ms · test 147 ผ่าน + build ผ่าน
   - ภาพเทียบ (แบบ / ของเดิม / ของใหม่ — 3 ภาพข้อมูลเดียวกับแบบ และ 8 ภาพมีอารมณ์ซ้ำติดกัน): `scripts/out/screens/ribbon2/compare-ribbon.png` · ภาพแยก `ribbon2/{old,new}-{ref3,dup8}.png` · contact sheet `ribbon2/contact-sheet.png`
+
+
+---
+
+# รอบยาว — ข้อ 15–33 (ทำต่อเนื่องบน feature/polish)
+
+กติกา: tag `pre-<ชื่อ>` ก่อนเริ่ม · test+build ผ่านก่อน commit · ทีละข้อ commit+push · ห้ามแตะ main/merge/force · ฟิลเตอร์ SVG ใหม่ประกาศใน `<defs>` ของ SVG ตัวเองและใช้ attribute `filter="url(#…)"` · แก้ 2 รอบไม่ผ่านให้ revert แล้วจดเหตุผลที่นี่
+
+## ช่วง 1 ดีไซน์ที่ค้าง
+- [ ] 15. หน้าจานสีประจำวัน: ก้อนสีในกรอบกระดาษ #FFFDF8 ขอบเท่ากัน เอียง −3° เงา card ไม่มีเทป/รหัสสี (tag `pre-daypanel`)
+- [ ] 16. DayRibbon: filter + gradient ใน `<defs>` ของ SVG ตัวเอง id ไม่ซ้ำ (tag `pre-ribbon-defs`)
+- [ ] 17. การ์ดเก็บรูปจานสีของวัน ทำใหม่ตามภาพ 12 (tag `pre-daycard2`)
+- [ ] 18. การ์ดภาพเดี่ยว: หัว/ท้ายใช้ BrandMark (tag `pre-photocard2`)
+## ช่วง 2
+- [ ] 19. BrandMark.vue (tag `pre-brandmark`)
+## ช่วง 3
+- [ ] 20. ใจฟูสูงสุด 3 (tag `pre-likes3`)
+- [ ] 21. โน้ตอารมณ์พับเก็บ (tag `pre-moodfold`)
+- [ ] 22. พลิกสมุด 3D (tag `pre-flip3d`)
+## ช่วง 4
+- [ ] 23. พื้นที่กด ≥ 44px (tag `pre-tap44`)
+- [ ] 24. motion-scale/lib/motion/DateTabs (tag `pre-motion-tidy`)
+- [ ] 25. สีเทา hardcode → tokens (tag `pre-greytokens`)
+- [ ] 26. ลบโค้ดค้าง (tag `pre-deadcode`)
+- [ ] 27. placeholder .wav (tag `pre-wav`)
+- [ ] 28. เอกสารให้ตรงโค้ด (tag `pre-docs-sync`)
+## ช่วง 5–6
+- [ ] 29. QA ทั้งแอป + docs/PERF.md
+- [ ] 30. scripts/record-demo.mjs
+- [ ] 31. docs/DEPLOY.md
+- [ ] 32. docs/CHANGELOG.md
+- [ ] 33. screens.mjs ครั้งสุดท้าย + contact sheet
