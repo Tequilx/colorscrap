@@ -158,8 +158,8 @@
 - [x] 27. **ข้าม**: ยังไม่มี `public/audio/music-*.mp3` (มีแต่ `music-day.wav`/`music-night.wav`) จึงไม่ลบ placeholder ตามเงื่อนไข
 - [x] 28. เอกสาร: SPEC §4.1 (`paint→cover`, saved), §7.2 RLS แยก 4 policy ตาม `schema.sql`, §5.0 ใจฟู ≤ 3, §5.3 โน้ตพับเก็บ, §5.6 พลิกแผ่น, §5.7 กรอบสี + DayRibbon (แทน MixingWell/DayTimeline), §5.9 การ์ดวัน (ภาพ 12), §5.10 พลิกปก 3D/เสียง/เพลง/แสงตามเวลา · FILE-GUIDE (ตาราง splash ตามโค้ด, pulse, ตัวกันดำ CPU, ตารางไฟล์ใหม่, โลโก้) · CLAUDE.md · PROJECT-OVERVIEW (แถบอัปเดต + §6 เสียง) (tag `pre-docs-sync`)
 ## ช่วง 5–6
-- [ ] 29. QA ทั้งแอป + docs/PERF.md
-- [ ] 30. scripts/record-demo.mjs
-- [ ] 31. docs/DEPLOY.md
-- [ ] 32. docs/CHANGELOG.md
-- [ ] 33. screens.mjs ครั้งสุดท้าย + contact sheet
+- [x] 29. QA ทั้งแอป: `scripts/qa-flow.mjs` เดินทั้ง flow ผ่าน UI จริง 13 รอบ (1280×800 / 1180×820 × ปกติ/reduced × day/dusk/night) → console error 0, focus ring ขาด 0, ข้อความล้น 0, ใจฟูค้าง 3, โน้ตพับ, ดาวน์โหลด 3 ไฟล์ได้, รีเฟรชแล้วข้อมูลยังอยู่ · **29a** พบ/แก้: แท็บวันที่ (DateTabs) ส่วนที่โผล่พ้นปกสูงแค่ 26/38px → เพิ่มพื้นที่กดโปร่งใสด้านบน 18px (ดูเท่าเดิม) · FPS ใน `docs/PERF.md`
+- [x] 30. `scripts/record-demo.mjs` → `scripts/out/demo/demo-night.webm` (83.6 วิ) และ `demo-day.webm` (82.8 วิ) ไม่ commit · **ไม่มีเสียง** (Playwright อัดเสียงไม่ได้) เคอร์เซอร์เป็นจุดจำลอง · ติดตั้ง ffmpeg ของ Playwright (1.4 MB นอกรีโป)
+- [x] 31. `docs/DEPLOY.md` (Vercel/Netlify, env 3 ตัว ไม่มีค่าจริง, Redirect URL ใน Supabase Auth, เช็กหลัง deploy)
+- [x] 32. `docs/CHANGELOG.md` (5 หมวด ภาษาคนทั่วไป)
+- [x] 33. `scripts/out/screens/final/` (16 ภาพ + `contact-sheet.png`)

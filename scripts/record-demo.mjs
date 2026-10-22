@@ -71,8 +71,8 @@ const run = async (time) => {
   const d = await page.evaluate(() => { const e = document.querySelector('#app').__vue_app__.config.globalProperties.$pinia._s.get('entries'); return e.dates.find((x) => e.entriesOfDay(x).length > 4) })
   if (d) {
     await store((a, x) => a.turnToDay(x), d); await pause(2.5)
-    await click('แผ่นถัดไป'); await pause(2.5)
-    await click('แผ่นก่อนหน้า'); await pause(2)
+    await click('แผ่นก่อนหน้า'); await pause(2.5) // เปิดวันแล้วอยู่แผ่นล่าสุด ย้อนก่อนแล้วค่อยไปต่อ
+    await click('แผ่นถัดไป'); await pause(2)
   }
   await store((a) => { const e = document.querySelector('#app').__vue_app__.config.globalProperties.$pinia._s.get('entries'); const t = e.dates.at(-1); a.openDay(t) }); await pause(1.5)
   await page.locator('[data-entry-id] button').last().click(); await pause(5) // ภาพเดี่ยว (ภาพยังเปียก)
