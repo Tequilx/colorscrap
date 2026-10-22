@@ -28,7 +28,7 @@ const META = {
   tired: { th: 'เหนื่อย', pigment: "Payne's Grey" },
 }
 
-export const EMOTION_KEYS = Object.keys(META)
+const EMOTION_KEYS = Object.keys(META)
 
 export const EMOTIONS = EMOTION_KEYS.map((key) => ({
   key,
@@ -97,7 +97,6 @@ export const FLUID_GLOBAL = { gpuCap: DYE_LIMIT.cap, minLight: DYE_LIMIT.minLigh
 // ค่าเริ่มต้นทั้งหมด (สำเนาตอนโหลดโมดูล) ให้ปุ่ม "รีเซ็ตเป็นค่าเริ่มต้น" ในแผง ?debug คืนค่า
 const clone = (o) => JSON.parse(JSON.stringify(o))
 const FLUID_DEFAULTS = { params: clone(FLUID_PARAMS), splats: clone(INITIAL_SPLATS), global: clone(FLUID_GLOBAL), splash: clone(SPLASH_LEVELS) }
-export const defaultsOf = (key) => ({ ...FLUID_DEFAULTS.params[key], splats: FLUID_DEFAULTS.splats[key] })
 export const resetEmotionParams = (key) => {
   Object.assign(FLUID_PARAMS[key], clone(FLUID_DEFAULTS.params[key])) // clone: ค่า splash เป็น array ห้ามอ้างอิงตัวเดียวกับค่าเริ่มต้น
   INITIAL_SPLATS[key] = FLUID_DEFAULTS.splats[key]

@@ -135,7 +135,7 @@ const inkCells = (x, y, radius) => {
     const i = Math.min(ink.length - 1, cy * inkCols + cx)
     hit.push({ index: Math.max(0, i), weight: 1 })
   }
-  return { hit, centreIndex: Math.min(ink.length - 1, cy * inkCols + cx) }
+  return { hit }
 }
 // แผนที่นี้ใช้ประเมินว่าตรงไหนมีสีมากน้อย (หาที่วาง "ลองดู") ค่าสะสมประมาณ (ไม่ตามสีที่น้ำพาไป) จึงจำกัดไว้ที่ 1 ต่อช่อง
 const depositInk = (x, y, amount, radius) => {
@@ -562,7 +562,7 @@ const buildProgram = (frag, names) => {
 }
 let lift = null // null = ยังไม่สร้าง, false = เครื่องนี้สร้างไม่ได้ (บานแต่ไม่ยกสี)
 const getLift = () => (lift === null ? (lift = buildProgram(LIFT_FRAG, ['uTarget', 'aspectRatio', 'point', 'radius', 'amount', 'rim', 'cap'])) : lift)
-// ลงสีด้วย shader ตัวกันดำ GPU (lib/dyeLimit.js) null/false = ใช้ไม่ได้ → ถอยไปแบบ CPU เก่า
+// ลงสีด้วย shader ตัวกันดำ GPU (lib/dyeLimit.js) null = ยังไม่สร้าง, false = สร้างไม่ได้ (splatGpu คืน false = ไม่ลงสี)
 let dyeProgram = null
 const getDyeProgram = () => (dyeProgram === null ? (dyeProgram = buildProgram(DYE_SPLAT_FRAG, ['uTarget', 'aspectRatio', 'color', 'point', 'radius', 'cap', 'dmax', 'knee'])) : dyeProgram)
 if (typeof window !== 'undefined' && DEBUG) window.__dyeProgramOk = () => Boolean(getDyeProgram())

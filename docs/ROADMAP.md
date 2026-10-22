@@ -154,7 +154,7 @@
 - [x] 23. พื้นที่กด ≥ 44px: สแกนปุ่มจริงทุกหน้า (hello/cover/pick/paint/book/แผ่นแทรก/photo) พบ 4 ตัวต่ำกว่า 44 (ปุ่มเพลง/เอฟเฟกต์ 36, ลูกศรแผ่น 44×32) → ขยายพื้นที่กด หน้าตา/ตำแหน่งไอคอนเท่าเดิม · สแกนซ้ำ 0 ตัว (tag `pre-tap44`) · ยังไม่ได้สแกนหน้า login (ต้องโหมดจริง) และการ์ด saved
 - [x] 24. `.fade`/WarmNote คูณ `--motion-scale` · FluidCanvas ใช้ `reducedMotion` จาก `lib/motion.js` · DateTabs ทุกแท็บสูง 58px แท็บที่ไม่ได้เปิด `translateY(12px)` ซ่อนหลังปก (เลิก animate height) (tag `pre-motion-tidy`)
 - [x] 25. สีเทา hardcode → `PALETTE` (`mute faint edge well wash tray leaf tape-ink happy-wash`) + `EmotionBlob`/`HelloSheet`/`dayFrame`/focus ring/`cardDraw.C`/`exporter` อ่านจาก tokens · ภาพก่อน/หลัง (kit, hello, cover, pick, book, แผ่นแทรก, photo) ต่าง **0 พิกเซล** (`scripts/out/screens/greytokens/{before,after}`; ต้องรีสตาร์ท dev server หลังแก้ tokens) (tag `pre-greytokens`)
-- [ ] 26. ลบโค้ดค้าง (tag `pre-deadcode`)
+- [x] 26. ลบโค้ดค้าง: คอมเมนต์ทางถอย CPU (`FluidCanvas`) · `centreIndex` · `defaultsOf` · de-export `EMOTION_KEYS`/`WARM_DEFAULTS`/`LUMA` · prop `tilt` ของ `HandButton` · `lib/mixingWell.js` (ไม่มีผู้ใช้หลังการ์ดวันทำใหม่) · เศษ SavedWell/MixingWell/DayTimeline: ไม่มีไฟล์คอมโพเนนต์เหลือแล้ว เหลือแต่ข้อความใน docs (แก้ในข้อ 28) · **คงไว้** `timelineX`/`spreadXs`/`TIMELINE_*` ใน `palette.js` เพราะเป็นตัวอย่าง SPEC §8.3 ที่มีเทสต์ (กติกา: ห้ามแก้ตัวอย่างเอง), `visibleLight`/`limitScale` ใช้ในเทสต์, `INK_CAP` ใช้ใน `scripts/measure-fluid.mjs` (tag `pre-deadcode`)
 - [ ] 27. placeholder .wav (tag `pre-wav`)
 - [ ] 28. เอกสารให้ตรงโค้ด (tag `pre-docs-sync`)
 ## ช่วง 5–6

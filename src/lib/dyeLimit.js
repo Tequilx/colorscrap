@@ -11,7 +11,7 @@
 export const DYE_LIMIT = { cap: 0.85, minLight: 0.3, knee: 0.8 }
 // ความสว่างของกระดาษ (ค่าถ่วงน้ำหนัก rec.709 ของ PALETTE.paper #FBFAF6) ใช้หา "ความมืดสูงสุดที่ยอมได้" dmax = paperLight − minLight
 export const PAPER_LIGHT = 0.9796
-export const LUMA = [0.2126, 0.7152, 0.0722]
+const LUMA = [0.2126, 0.7152, 0.0722]
 
 const softAdd = (m0, m1, knee) => {
   if (m1 <= m0 + 1e-6) return 1
