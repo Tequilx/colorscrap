@@ -1,6 +1,6 @@
 <template>
   <!-- แถบสีของวัน: รอยพู่กันแนวนอนเส้นเดียว ภาพที่อยู่ติดกัน อารมณ์เดียวกัน รวมเป็นช่วงเดียว กว้าง ∝ น้ำหนัก รอยต่อซึมเข้าหากัน
-       วาด 3 ชั้น (ไม่มีชั้นอื่น): ฮาโลจางซึมออก (#wcrh) → ตัวแถบเป็นรอยพู่กัน (#wcr) → เกรนกระดาษบาง ๆ gradient เส้นเดียวตลอดแถบ ช่วงละไม่เกิน 2 สีไล่นุ่ม ๆ
+       วาด 3 ชั้น (ไม่มีชั้นอื่น): ฮาโลจางซึมออก (ฟิลเตอร์ -fh) → ตัวแถบเป็นรอยพู่กัน (ฟิลเตอร์ -fm) ฟิลเตอร์อยู่ใน <defs> ของ SVG นี้เอง → เกรนกระดาษบาง ๆ gradient เส้นเดียวตลอดแถบ ช่วงละไม่เกิน 2 สีไล่นุ่ม ๆ
        ป้ายเวลา + อารมณ์ใต้กลางช่วง ป้ายที่ชนกันเยื้องเป็นแถวล่างแทนการซ่อน (ซ่อนเฉพาะช่วงที่แคบกว่า 40px) lib/dayRibbon.js
        animate: 'none' | 'reveal' (ไล่จากซ้ายไปขวา) | 'paintLast' (ปาดเฉพาะช่วงสุดท้าย) ขอบนำสั่นแบบรอยพู่กัน (clip-path polygon เคลื่อนด้วย WAAPI)
        reduced-motion: ไม่ปาด จางเข้า 150ms -->
@@ -11,14 +11,25 @@
           <linearGradient :id="gid" gradientUnits="userSpaceOnUse" x1="0" y1="0" :x2="width" y2="0">
             <stop v-for="(st, i) in stops" :key="i" :offset="st.offset" :stop-color="st.color" />
           </linearGradient>
+          <!-- ฟิลเตอร์ของแถบนี้เอง (id ไม่ซ้ำต่ออินสแตนซ์) region เป็นพิกเซลจริง เผื่อขอบ 20px ให้ฮาโลซึมออกไม่ถูกตัด บิดก่อนเบลอเสมอ -->
+          <filter :id="fMain" filterUnits="userSpaceOnUse" :x="-PAD" :y="-PAD" :width="width + PAD * 2" :height="HEIGHT + PAD * 2">
+            <feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="3" seed="6" result="n" />
+            <feDisplacementMap in="SourceGraphic" in2="n" scale="9" result="d" />
+            <feGaussianBlur in="d" stdDeviation="0.8" />
+          </filter>
+          <filter :id="fHalo" filterUnits="userSpaceOnUse" :x="-PAD" :y="-PAD" :width="width + PAD * 2" :height="HEIGHT + PAD * 2">
+            <feTurbulence type="fractalNoise" baseFrequency="0.05" numOctaves="2" seed="13" result="n" />
+            <feDisplacementMap in="SourceGraphic" in2="n" scale="14" result="d" />
+            <feGaussianBlur in="d" stdDeviation="2.2" />
+          </filter>
           <clipPath :id="clipId"><rect :x="0" :y="MAIN_Y" :width="width" :height="MAIN_H" :rx="MAIN_H * 0.4" /></clipPath>
         </defs>
         <!-- 1. ฮาโล: ใหญ่กว่าแถบ 4px ทุกด้าน -->
-        <g class="filter-wcrh" opacity="0.35">
+        <g :filter="`url(#${fHalo})`" opacity="0.35">
           <rect :x="-4" :y="HALO_Y" :width="width + 8" :height="HALO_H" :rx="HALO_H * 0.4" :fill="`url(#${gid})`" />
         </g>
         <!-- 2. ตัวแถบ: เว้นบนล่างข้างละ 4px -->
-        <g class="filter-wcr" opacity="0.85">
+        <g :filter="`url(#${fMain})`" opacity="0.85">
           <rect :x="0" :y="MAIN_Y" :width="width" :height="MAIN_H" :rx="MAIN_H * 0.4" :fill="`url(#${gid})`" />
         </g>
         <!-- 3. เกรนกระดาษทับบาง ๆ (filter grain ชุดเดียวกับที่ใช้ทั่วแอป) -->
@@ -80,6 +91,9 @@ const MAIN_Y = (HEIGHT - MAIN_H) / 2
 const uid = useId()
 const gid = `${uid}-g`
 const clipId = `${uid}-c`
+const fMain = `${uid}-fm`
+const fHalo = `${uid}-fh`
+const PAD = 20 // เผื่อขอบ region ของฟิลเตอร์ (px)
 const paintRef = ref(null)
 
 const segs = computed(() => layoutRibbon(props.entries, props.width))

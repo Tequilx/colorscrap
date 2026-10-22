@@ -26,18 +26,6 @@
         <feDisplacementMap in="SourceGraphic" in2="n" scale="7" result="d" />
         <feGaussianBlur in="d" stdDeviation="0.5" />
       </filter>
-      <!-- แถบสีของวัน (DayRibbon) ชั้นหลักเป็นรอยพู่กัน: บิดก่อนแล้วค่อยเบลอเล็กน้อย (ขอบสั่น ไม่คม ไม่เป็นวงกลมเรียบ) ใช้กับกลุ่มที่เล็กกว่า ~480×90px -->
-      <filter id="wcr" x="-6%" y="-60%" width="112%" height="220%">
-        <feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="3" seed="6" result="n" />
-        <feDisplacementMap in="SourceGraphic" in2="n" scale="9" result="d" />
-        <feGaussianBlur in="d" stdDeviation="0.8" />
-      </filter>
-      <!-- ฮาโลจางหลังแถบสีของวัน: บิดแรงกว่าแล้วเบลอกว้างกว่า ให้ซึมออกเป็นรอยพู่กัน ไม่ใช่กรอบขอบคม (บิดก่อนเบลอเสมอ) -->
-      <filter id="wcrh" x="-8%" y="-70%" width="116%" height="240%">
-        <feTurbulence type="fractalNoise" baseFrequency="0.05" numOctaves="2" seed="13" result="n" />
-        <feDisplacementMap in="SourceGraphic" in2="n" scale="14" result="d" />
-        <feGaussianBlur in="d" stdDeviation="2.2" />
-      </filter>
       <!-- ภาพยังเปียก (lib/wetPhoto.js ตั้ง scale/baseFrequency ทุกเฟรมช่วง 3 วิแรก แล้วถอดฟิลเตอร์ออก) scale 0 = ไม่บิดเลย -->
       <filter id="wet" x="-4%" y="-4%" width="108%" height="108%">
         <feTurbulence id="wet-turb" type="fractalNoise" baseFrequency="0.012 0.018" numOctaves="2" seed="11" result="n" />

@@ -134,8 +134,8 @@
 กติกา: tag `pre-<ชื่อ>` ก่อนเริ่ม · test+build ผ่านก่อน commit · ทีละข้อ commit+push · ห้ามแตะ main/merge/force · ฟิลเตอร์ SVG ใหม่ประกาศใน `<defs>` ของ SVG ตัวเองและใช้ attribute `filter="url(#…)"` · แก้ 2 รอบไม่ผ่านให้ revert แล้วจดเหตุผลที่นี่
 
 ## ช่วง 1 ดีไซน์ที่ค้าง
-- [ ] 15. หน้าจานสีประจำวัน: ก้อนสีในกรอบกระดาษ #FFFDF8 ขอบเท่ากัน เอียง −3° เงา card ไม่มีเทป/รหัสสี (tag `pre-daypanel`)
-- [ ] 16. DayRibbon: filter + gradient ใน `<defs>` ของ SVG ตัวเอง id ไม่ซ้ำ (tag `pre-ribbon-defs`)
+- [x] 15. หน้าจานสีประจำวัน: ก้อนสีในกรอบ `bg-card` 138×138 ขอบ 11px เท่ากัน เอียง −3° เงา card ไม่มีเทป/รหัสสี · ภาพ `scripts/out/screens/daypanel/14-book-วันนี้.png` (tag `pre-daypanel`)
+- [x] 16. DayRibbon: filter + gradient ใน `<defs>` ของ SVG ตัวเอง id ไม่ซ้ำ (`${uid}-fm/-fh`) `filterUnits=userSpaceOnUse` เผื่อ 20px · ลบ `wcr/wcrh` ออกจาก SvgDefs และ tailwind · ภาพก่อน/หลัง `scripts/out/screens/ribbondefs/before.png` / `14-book-วันนี้.png` ดูเหมือนเดิม (tag `pre-ribbon-defs`)
 - [ ] 17. การ์ดเก็บรูปจานสีของวัน ทำใหม่ตามภาพ 12 (tag `pre-daycard2`)
 - [ ] 18. การ์ดภาพเดี่ยว: หัว/ท้ายใช้ BrandMark (tag `pre-photocard2`)
 ## ช่วง 2
