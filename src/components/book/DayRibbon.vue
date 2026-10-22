@@ -6,37 +6,8 @@
        reduced-motion: ไม่ปาด จางเข้า 150ms -->
   <div class="relative" :style="{ width: width + 'px' }" role="img" :aria-label="aria">
     <div ref="paintRef" class="relative" :style="{ width: width + 'px', height: HEIGHT + 'px' }">
-      <svg :width="width" :height="HEIGHT" :viewBox="`0 0 ${width} ${HEIGHT}`" style="overflow: visible" aria-hidden="true">
-        <defs>
-          <linearGradient :id="gid" gradientUnits="userSpaceOnUse" x1="0" y1="0" :x2="width" y2="0">
-            <stop v-for="(st, i) in stops" :key="i" :offset="st.offset" :stop-color="st.color" />
-          </linearGradient>
-          <!-- ฟิลเตอร์ของแถบนี้เอง (id ไม่ซ้ำต่ออินสแตนซ์) region เป็นพิกเซลจริง เผื่อขอบ 20px ให้ฮาโลซึมออกไม่ถูกตัด บิดก่อนเบลอเสมอ -->
-          <filter :id="fMain" filterUnits="userSpaceOnUse" :x="-PAD" :y="-PAD" :width="width + PAD * 2" :height="HEIGHT + PAD * 2">
-            <feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="3" seed="6" result="n" />
-            <feDisplacementMap in="SourceGraphic" in2="n" scale="9" result="d" />
-            <feGaussianBlur in="d" stdDeviation="0.8" />
-          </filter>
-          <filter :id="fHalo" filterUnits="userSpaceOnUse" :x="-PAD" :y="-PAD" :width="width + PAD * 2" :height="HEIGHT + PAD * 2">
-            <feTurbulence type="fractalNoise" baseFrequency="0.05" numOctaves="2" seed="13" result="n" />
-            <feDisplacementMap in="SourceGraphic" in2="n" scale="14" result="d" />
-            <feGaussianBlur in="d" stdDeviation="2.2" />
-          </filter>
-          <clipPath :id="clipId"><rect :x="0" :y="MAIN_Y" :width="width" :height="MAIN_H" :rx="MAIN_H * 0.4" /></clipPath>
-        </defs>
-        <!-- 1. ฮาโล: ใหญ่กว่าแถบ 4px ทุกด้าน -->
-        <g :filter="`url(#${fHalo})`" opacity="0.35">
-          <rect :x="-4" :y="HALO_Y" :width="width + 8" :height="HALO_H" :rx="HALO_H * 0.4" :fill="`url(#${gid})`" />
-        </g>
-        <!-- 2. ตัวแถบ: เว้นบนล่างข้างละ 4px -->
-        <g :filter="`url(#${fMain})`" opacity="0.85">
-          <rect :x="0" :y="MAIN_Y" :width="width" :height="MAIN_H" :rx="MAIN_H * 0.4" :fill="`url(#${gid})`" />
-        </g>
-        <!-- 3. เกรนกระดาษทับบาง ๆ (filter grain ชุดเดียวกับที่ใช้ทั่วแอป) -->
-        <g :clip-path="`url(#${clipId})`" opacity="0.5">
-          <rect :x="0" :y="MAIN_Y" :width="width" :height="MAIN_H" fill="transparent" style="filter: url(#grain)" />
-        </g>
-      </svg>
+      <!-- รอยพู่กัน 3 ชั้น (ฮาโล → ตัวแถบ → เกรน) ฟิลเตอร์/gradient อยู่ใน defs ของ svg นี้เอง markup มาจาก lib/dayRibbon.js ตัวเดียวกับการ์ดเก็บรูป -->
+      <svg :width="width" :height="HEIGHT" :viewBox="`0 0 ${width} ${HEIGHT}`" style="overflow: visible" aria-hidden="true" v-html="markup"></svg>
     </div>
 
     <!-- ป้าย: ขีดบอกกลางช่วง + เวลา + อารมณ์ (เยื้องเป็นแถวเมื่อชนกัน) -->
@@ -67,7 +38,7 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref, useId } from 'vue'
 import Doodle from '@/components/ui/Doodle.vue'
-import { BLEND_FRAC, gradientStops, jaggedOffsets, labelsHeight, layoutRibbon, sweepPolygon } from '@/lib/dayRibbon'
+import { BLEND_FRAC, RIBBON_H, jaggedOffsets, labelsHeight, layoutRibbon, ribbonSvgMarkup, sweepPolygon } from '@/lib/dayRibbon'
 import { MOTION } from '@/lib/tokens'
 import { reducedMotion } from '@/lib/motion'
 import { sound } from '@/lib/sound'
@@ -81,24 +52,13 @@ const props = defineProps({
   delay: { type: Number, default: 0 },
 })
 
-// เรขาคณิตแนวตั้ง: แถบสูง BAR_H กลางพื้นที่ HEIGHT ฮาโล = แถบ +4px ทุกด้าน ตัวแถบ = แถบ −4px ทุกด้าน (สูงน้อยกว่า 8px)
-const HEIGHT = 84
-const BAR_H = 56
-const HALO_H = BAR_H + 8
-const MAIN_H = BAR_H - 8
-const HALO_Y = (HEIGHT - HALO_H) / 2
-const MAIN_Y = (HEIGHT - MAIN_H) / 2
-const uid = useId()
-const gid = `${uid}-g`
-const clipId = `${uid}-c`
-const fMain = `${uid}-fm`
-const fHalo = `${uid}-fh`
-const PAD = 20 // เผื่อขอบ region ของฟิลเตอร์ (px)
+const HEIGHT = RIBBON_H
+const uid = `rb${useId().replace(/[^\w]/g, '')}`
 const paintRef = ref(null)
 
 const segs = computed(() => layoutRibbon(props.entries, props.width))
 const labelled = computed(() => segs.value.filter((s) => s.level > 0))
-const stops = computed(() => gradientStops(segs.value, props.width))
+const markup = computed(() => ribbonSvgMarkup(segs.value, props.width, uid))
 const labelsH = computed(() => labelsHeight(segs.value))
 const lastHighlight = (s) => props.highlightLast && s === segs.value.at(-1)
 const aria = computed(() => segs.value.map((s) => `${s.time} ${s.caption}`).join(', '))

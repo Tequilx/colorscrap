@@ -73,21 +73,39 @@ const files = await page.evaluate(async () => {
   const one = [calm]
   result['card-day-1'] = await toB64(await cards.renderDayCard({ date, entries: one, thumbs: new Map([['a', await imageOf(calm)]]), userName: 'สมใจ' }))
 
-  const five = [
-    mk('d1', date, '08:05', 'happy', 1, false, [0.55, 0.25, 0.2]),
-    mk('d2', date, '10:30', 'calm', 2, false, [0.5, 0.3, 0.2]),
-    mk('d3', date, '13:40', 'tired', 1, true, [0.4, 0.25, 0.2, 0.15]),
-    mk('d4', date, '15:40', 'anxious', 1, false, [0.46, 0.24, 0.14, 0.1, 0.06]),
-    mk('d5', date, '21:50', 'sad', 0, false, [0.6, 0.25, 0.15]),
+  // วัน 3 ภาพ (ข้อมูลเดียวกับแบบ 11): สงบ → เหนื่อย(แต้มแสง) → เศร้า(แต้มแสง)
+  const d3 = [
+    mk('e1', date, '00:45', 'calm', 1, false, [0.5, 0.3, 0.2]),
+    mk('e2', date, '01:07', 'tired', 1, true, [0.5, 0.3, 0.2]),
+    mk('e3', date, '01:59', 'sad', 2, true, [0.5, 0.3, 0.2]),
   ]
+  // วัน 13 ภาพ มีอารมณ์ซ้ำติดกัน (เหมือนแบบ 12)
+  const seq = [['02:10', 'anxious', true], ['04:05', 'excited'], ['04:06', 'excited'], ['04:09', 'excited'], ['04:10', 'anxious'], ['04:53', 'anxious'], ['05:44', 'excited'], ['06:10', 'excited'], ['07:30', 'excited'], ['16:39', 'sad', true], ['16:43', 'tired'], ['18:20', 'happy'], ['21:05', 'calm']]
+  const d13 = seq.map(([t, em, sh], i) => mk('f' + i, date, t, em, 1, !!sh, [0.5, 0.3, 0.2]))
   const thumbs = new Map()
-  for (const e of five) thumbs.set(e.id, await imageOf(e))
-  result['card-day-5'] = await toB64(await cards.renderDayCard({ date, entries: five, thumbs, userName: 'ศศิธร' }))
-  const three = five.slice(0, 3)
-  result['card-day-3'] = await toB64(await cards.renderDayCard({ date, entries: three, thumbs, userName: 'Alexander' }))
+  for (const e of [...d3, ...d13]) thumbs.set(e.id, await imageOf(e))
+  result['card-day-3'] = await toB64(await cards.renderDayCard({ date, entries: d3, thumbs, userName: 'Alexander' }))
+  result['card-day-13'] = await toB64(await cards.renderDayCard({ date, entries: d13, thumbs, userName: 'ไฮแอน' }))
+
+  // Web Share (จำลอง) และดาวน์โหลด: ไฟล์ต้องเป็น PNG 1080×1350 ทั้งสองทาง
+  const { shareOrDownload, makeFile } = await import('/src/lib/share/shareOrDownload.js')
+  const blob = await cards.renderDayCard({ date, entries: d13, thumbs, userName: 'ไฮแอน' })
+  const file = makeFile(blob, 'day.png')
+  let sharedFile = null
+  const orig = { share: navigator.share, canShare: navigator.canShare, touch: Object.getOwnPropertyDescriptor(Navigator.prototype, 'maxTouchPoints') }
+  Object.defineProperty(Navigator.prototype, 'maxTouchPoints', { get: () => 5, configurable: true })
+  navigator.canShare = () => true
+  navigator.share = async ({ files }) => { sharedFile = files[0] }
+  const r1 = await shareOrDownload(file, 'day.png')
+  Object.defineProperty(Navigator.prototype, 'maxTouchPoints', { get: () => 0, configurable: true })
+  const r2 = await shareOrDownload(file, 'day.png')
+  const bmp = await createImageBitmap(sharedFile)
+  result.__share = JSON.stringify({ r1, r2, type: sharedFile?.type, w: bmp.width, h: bmp.height })
   return result
 })
 
+console.log('share/download:', files.__share)
+delete files.__share
 for (const [name, b64] of Object.entries(files)) {
   writeFileSync(join(out, name + '.png'), Buffer.from(b64, 'base64'))
   console.log('เขียน', join(out, name + '.png'))

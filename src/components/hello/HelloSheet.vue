@@ -4,7 +4,7 @@
     <Tape class="left-[270px] top-[-12px]" long :rotate="-3" />
 
     <div class="flex flex-col gap-1">
-      <span class="text-14 text-ink-soft">หน้าแรกของสมุด · แก้ทีหลังได้เสมอ</span>
+      <span class="inline-flex items-center gap-2 text-14 text-ink-soft"><BrandMark :size="28" /> หน้าแรกของสมุด · แก้ทีหลังได้เสมอ</span>
       <h1 class="m-0 font-hand text-38 font-semibold leading-[1.2]">สมุดเล่มนี้เป็นของ...</h1>
     </div>
 
@@ -69,6 +69,7 @@
 </template>
 
 <script setup>
+import BrandMark from '@/components/ui/BrandMark.vue'
 import Tape from '@/components/ui/Tape.vue'
 import Doodle from '@/components/ui/Doodle.vue'
 import HandButton from '@/components/ui/HandButton.vue'

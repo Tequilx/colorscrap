@@ -1,9 +1,12 @@
 // วาดการ์ด PNG 1080×1350 สองแบบ (SPEC ส่วนที่ 2 §3–§4) ตามไฟล์ดีไซน์ docs/design/screens/7a-card-photo.dc.html และ 7b-card-day.dc.html
 // พิกัดทั้งหมดคือพิกัดในดีไซน์ (px ของการ์ด) ข้อมูลจริงมาจากผู้เรียก: ภาพตัวอย่างสีม่วงในดีไซน์เป็นแค่ตัวอย่าง
-import { BLOB_PATHS, timelineDrop } from '@/lib/doodles'
-import { EMOTION_BY_KEY, INTENSITY_LABELS, emotionLabel } from '@/lib/emotions'
-import { wellBlobs } from '@/lib/mixingWell'
-import { TIMELINE_LEFT, TIMELINE_WIDTH, dayColor, percentsOf, rankedColors, spreadXs, timelineX } from '@/lib/palette'
+import { BLOB_PATHS } from '@/lib/doodles'
+import { INTENSITY_LABELS, emotionLabel } from '@/lib/emotions'
+import { brandMarkSvg } from '@/lib/brand'
+import { dayFrameSvg } from '@/lib/dayFrame'
+import { RIBBON_H, layoutRibbon, ribbonSvg } from '@/lib/dayRibbon'
+import { svgToImage } from '@/lib/share/svgImage'
+import { dayColor, dominantColorOfDay, percentsOf } from '@/lib/palette'
 import { localDateStr, parseLocalDate, thaiDateShort } from '@/lib/dates'
 import { formatThaiDate } from '@/lib/share/formatThaiDate'
 import { maskName } from '@/lib/share/maskName'
@@ -15,7 +18,6 @@ import {
   canvasToBlob,
   dashedLine,
   drawCover,
-  drawDropIcon,
   drawGrain,
   drawTape,
   drawText,
@@ -32,15 +34,15 @@ import {
 
 const RAD = Math.PI / 180
 
-// ส่วนหัว: ซ้าย ไอคอนหยด + "ColorScrap" ขวา วันที่ไทย (ใช้ร่วมสองการ์ด)
-const drawHeader = (ctx, dropColor, dateText) => {
-  const top = 56
-  const textBox = 32 * LINE.hand.box // 41.6
-  const dateBox = 26 * LINE.body.box // 42.9
-  const row = Math.max(32, textBox, dateBox)
-  drawDropIcon(ctx, 72, top + (row - 32) / 2, dropColor)
-  drawText(ctx, 'ColorScrap', 72 + 26 + 10, top, { size: 32, weight: 600, kind: 'hand', boxHeight: row })
-  drawText(ctx, dateText, 1008, top, { size: 26, kind: 'body', color: C.soft, align: 'right', boxHeight: row })
+// ส่วนหัว (ใช้ร่วมสองการ์ด): ซ้าย โลโก้ BrandMark (SVG จาก lib/brand.js แปลงเป็นภาพ) + "ColorScrap" ขวา วันที่ไทย
+const BRAND = { size: 64, text: 44, gap: 14, top: 52 }
+let brandImage = null
+const loadBrand = () => (brandImage ??= svgToImage(brandMarkSvg(BRAND.size * 2, 'bmc')))
+const drawHeader = (ctx, brand, dateText) => {
+  const row = BRAND.size
+  ctx.drawImage(brand, 72, BRAND.top, BRAND.size, BRAND.size)
+  drawText(ctx, 'ColorScrap', 72 + BRAND.size + BRAND.gap, BRAND.top, { size: BRAND.text, weight: 600, kind: 'hand', boxHeight: row })
+  drawText(ctx, dateText, 1008, BRAND.top, { size: 26, kind: 'body', color: C.soft, align: 'right', boxHeight: row })
 }
 
 // ท้ายการ์ด: เส้นประ + "โดย {ชื่อ}" (ซ่อนถ้าไม่มีชื่อ) + "สมุดระบายความรู้สึก"
@@ -94,7 +96,7 @@ export const renderPhotoCard = async ({ entry, image = null, userName = '' }) =>
   const colors = topColors(entry)
   const pct = percentsOf(colors)
   const date = formatThaiDate(parseLocalDate(entry.local_date))
-  drawHeader(ctx, colors[0].hex, date)
+  drawHeader(ctx, await loadBrand(), date)
 
   // โพลารอยด์ 820×706 วางที่ (130,150) หมุน −1.5° รอบกึ่งกลาง ขอบขาว padding 22 22 90
   const box = { x: 130, y: 150, w: 820, h: 706 }
@@ -174,137 +176,88 @@ export const renderPhotoCard = async ({ entry, image = null, userName = '' }) =>
   return canvasToBlob(canvas)
 }
 
-// ---- การ์ดจานสีของวัน (7b) ----
+// ---- การ์ดจานสีของวัน (ภาพ 12-card-day-v2) ----
+// กรอบสีของวันและแถบสีของวันเป็น SVG เดียวกับในสมุด (lib/dayFrame.js, lib/dayRibbon.js) แปลงเป็นภาพแล้ว drawImage: ไม่วาดแถบใหม่ด้วย Canvas 2D
+// ป้ายเวลา/อารมณ์ใต้แถบใช้ layoutRibbon ตัวเดียวกับในแอป (รวมช่วง เยื้องแถว) วางที่สเกล RIB_K
 
-// หลุมผสมสี (viewBox 200×200 → 420×420 ที่ (x,y)): เหมือน MixingWell.vue ในแอป หยดเป็นวงซ้อนโปร่งใสหลายชั้นขอบไม่เรียบ
-const drawWell = (ctx, x, y, size, entries) => {
-  const k = size / 200
-  const px = (v) => x + v * k
-  const cy = (v) => y + v * k
-  ctx.save()
-  ctx.fillStyle = 'rgba(45, 43, 51, 0.10)'
-  ctx.beginPath()
-  ctx.ellipse(px(104), cy(108), 94 * k, 92 * k, 0, 0, Math.PI * 2)
-  ctx.fill()
-  ctx.beginPath()
-  ctx.arc(px(100), cy(100), 94 * k, 0, Math.PI * 2)
-  ctx.fillStyle = '#F1EEE8'
-  ctx.fill()
-  ctx.lineWidth = 2 * k
-  ctx.strokeStyle = '#DCD6CC'
-  ctx.stroke()
-  ctx.beginPath()
-  ctx.arc(px(100), cy(100), 78 * k, 0, Math.PI * 2)
-  ctx.fillStyle = '#FFFFFF'
-  ctx.fill()
-  ctx.lineWidth = 3 * k
-  ctx.strokeStyle = '#E4DFD6'
-  ctx.stroke()
-
-  // หยดสีในวงใน (r 76) จากสีของวันชุดเดียวกับหน้าสมุด
-  ctx.save()
-  ctx.beginPath()
-  ctx.arc(px(100), cy(100), 76 * k, 0, Math.PI * 2)
-  ctx.clip()
-  const blobs = wellBlobs(entries)
-  const base = flattenPath(BLOB_PATHS.small)
-  blobs.forEach((b, n) => {
-    const pts = wobble(placePoints(base, b.x, b.y, b.scale), { amp: 9, freq: 0.03, seed: 3 + n })
-    const placed = pts.map(([qx, qy]) => [px(qx), cy(qy)])
-    // วงซ้อนโปร่งใส 3 ชั้น (ใหญ่-จาง → เล็ก-เข้ม) ให้ขอบนุ่มแบบน้ำซึม
-    const mid = placed.reduce((s, p) => [s[0] + p[0] / placed.length, s[1] + p[1] / placed.length], [0, 0])
-    ;[
-      { s: 1.07, a: 0.2 },
-      { s: 1.0, a: 0.38 },
-      { s: 0.9, a: 0.18 },
-    ].forEach((layer) => fillPoints(ctx, placed.map(([qx, qy]) => [mid[0] + (qx - mid[0]) * layer.s, mid[1] + (qy - mid[1]) * layer.s]), b.hex, layer.a))
-  })
-  if (blobs.length) {
-    ctx.save()
-    ctx.globalAlpha = 0.35
-    ctx.strokeStyle = blobs[0].hex
-    ctx.lineWidth = 12 * k
-    ctx.lineCap = 'round'
-    ctx.beginPath()
-    ctx.moveTo(px(40), cy(130))
-    ctx.bezierCurveTo(px(66), cy(92), px(118), cy(90), px(150), cy(122))
-    ctx.stroke()
-    ctx.restore()
-  }
-  ctx.restore()
-
-  // เงาสะท้อนบนหลุม
-  ctx.save()
-  ctx.translate(px(70), cy(52))
-  ctx.rotate(-32 * RAD)
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.55)'
-  ctx.beginPath()
-  ctx.ellipse(0, 0, 24 * k, 9 * k, 0, 0, Math.PI * 2)
-  ctx.fill()
-  ctx.restore()
-  ctx.restore()
-}
-
-// เส้นเวลาของวัน (viewBox 412×118 วาดที่ (x,y) ขยาย scale): ใช้ฟังก์ชันตำแหน่งเดียวกับ DayTimeline.vue
-const drawTimeline = (ctx, x, y, scale, entries) => {
-  ctx.save()
-  ctx.translate(x, y)
-  ctx.scale(scale, scale)
-  ctx.strokeStyle = '#8E8A93'
-  ctx.lineWidth = 1.6
-  ctx.lineCap = 'round'
-  ctx.stroke(new Path2D('M2 82 C80 78 160 86 240 81 S360 84 410 81'))
-  const ticks = [0, 6, 12, 18, 24].map((h) => ({ label: `${String(h).padStart(2, '0')}:00`, x: Math.round(TIMELINE_LEFT + (h / 24) * TIMELINE_WIDTH) }))
-  ctx.font = '400 12px "IBM Plex Sans Thai Looped", "Noto Sans Thai", system-ui, sans-serif'
-  ctx.fillStyle = C.soft
-  ctx.textAlign = 'center'
-  ticks.forEach((t) => {
-    ctx.stroke(new Path2D(`M${t.x} 76 V88`))
-    ctx.fillText(t.label, t.x, 110)
-  })
-
-  const xs = spreadXs(entries.map((e) => Math.round(timelineX(e.local_time))))
-  entries.forEach((e, i) => {
-    const pts = wobble(flattenPath(timelineDrop(xs[i]), 10), { amp: 3.5, freq: 0.09, seed: 4 + i })
-    // ภาพที่ปรับโทนไล่สีแนวตั้งจากสีเด่นไปสีที่ซึมเข้ามา (ล่างขึ้นบน) ภาพปกติสีเดียว
-    const stops = e.shifted ? rankedColors(e.colors).slice(0, 3).map((c) => c.hex) : [rankedColors(e.colors)[0].hex]
-    let fill = stops[0]
-    if (stops.length > 1) {
-      const g = ctx.createLinearGradient(0, 80, 0, 28)
-      stops.forEach((s, k) => g.addColorStop(k / (stops.length - 1), s))
-      fill = g
-    }
-    fillPoints(ctx, pts, fill, 0.82)
-  })
-
-  // ชื่ออารมณ์เหนือหยด เมื่อมีไม่เกิน 3 ภาพ (เหมือนในแอป) วางสลับแถว 22/12 และถ้าทับป้ายก่อนหน้าให้เลื่อนไปทางขวา
-  if (entries.length <= 3) {
-    ctx.font = '600 13px Mali, "Itim", system-ui, sans-serif'
-    ctx.fillStyle = C.ink2
-    ctx.textAlign = 'left'
-    const placed = []
-    entries.forEach((e, i) => {
-      const label = EMOTION_BY_KEY[e.emotion].th + (e.shifted ? ' → มีแสงขึ้น' : '')
-      const w = ctx.measureText(label).width
-      let left = xs[i] - w / 2
-      let row = [22, 12][i % 2]
-      const clash = (r, l) => placed.some((p) => p.row === r && l < p.left + p.w + 6 && l + w + 6 > p.left)
-      if (clash(row, left)) row = row === 22 ? 12 : 22
-      let guard = 0
-      while (clash(row, left) && guard++ < 6) left += 8
-      left = Math.min(left, 410 - w)
-      placed.push({ left, w, row })
-      ctx.fillText(label, left, row)
-    })
-  }
-  ctx.restore()
-}
+const RIB_K = 1.3 // หน่วยของแถบในแอป → px ของการ์ด (ตัวอักษรป้าย 14/15px → ~18/20px)
+const RIB_X = 72
+const RIB_W = 936
 
 const PHOTO_SLOTS = [
-  { r: -3, tape: -4, dy: 10 },
-  { r: 2, tape: 4, dy: 22 },
-  { r: -1.5, tape: -3, dy: 6 },
+  { r: -2, tape: -4, dy: 8 },
+  { r: 1.5, tape: 4, dy: 18 },
+  { r: -1.2, tape: -3, dy: 4 },
 ]
+const PHOTO_W = 300
+const PHOTO_PITCH = 318
+
+// ป้ายเวลา + อารมณ์ของแต่ละช่วงใต้แถบ (ขีดบอกกลางช่วง เยื้องเป็นแถวตาม layoutRibbon)
+const drawRibbonLabels = (ctx, segs, top) => {
+  const k = RIB_K
+  ctx.save()
+  ctx.strokeStyle = C.soft
+  ctx.lineWidth = 1.5
+  segs.filter((s) => s.level > 0).forEach((s) => {
+    const x = RIB_X + s.cx * k
+    ctx.beginPath()
+    ctx.moveTo(x, top)
+    ctx.lineTo(x, top + s.box.y0 * k)
+    ctx.stroke()
+    const cx = RIB_X + ((s.box.x0 + s.box.x1) / 2) * k
+    const y = top + s.box.y0 * k
+    drawText(ctx, s.time, cx, y, { size: 14 * k, kind: 'body', color: C.soft, align: 'center' })
+    if (s.level === 2) drawText(ctx, s.caption, cx, y + 14 * k * 1.25 + 2 * k, { size: 15 * k, weight: 600, kind: 'hand', color: C.ink2, align: 'center' })
+  })
+  ctx.restore()
+}
+
+// โพลารอยด์ภาพย่อ 1 ใบ: ภาพ + แถบสีของภาพ + เวลา · อารมณ์
+const drawDayPolaroid = (ctx, e, thumb, slot, x, y) => {
+  const w = PHOTO_W
+  const imgH = 190
+  const h = 11 + imgH + 12 + 8 + 10 + 30 + 10
+  ctx.save()
+  ctx.translate(x + w / 2, y + h / 2)
+  ctx.rotate(slot.r * RAD)
+  ctx.translate(-w / 2, -h / 2)
+  ctx.save()
+  ctx.shadowColor = 'rgba(45, 43, 51, 0.18)'
+  ctx.shadowBlur = 14
+  ctx.shadowOffsetY = 4
+  ctx.fillStyle = '#FFFFFF'
+  ctx.fillRect(0, 0, w, h)
+  ctx.restore()
+  ctx.fillStyle = C.paper
+  ctx.fillRect(11, 11, w - 22, imgH)
+  if (thumb) drawCover(ctx, thumb, 11, 11, w - 22, imgH)
+  else drawPlaceholderPainting(ctx, 11, 11, w - 22, imgH, e.colors)
+  // แถบสีของภาพตามสัดส่วนสี
+  const colors = topColors(e)
+  const pct = percentsOf(colors)
+  const sy = 11 + imgH + 12
+  ctx.save()
+  const strip = wobblyCapsule(11, sy, w - 22, 8)
+  ctx.beginPath()
+  ctx.moveTo(strip[0][0], strip[0][1])
+  strip.slice(1).forEach(([px, py]) => ctx.lineTo(px, py))
+  ctx.closePath()
+  ctx.clip()
+  let sx = 11
+  colors.forEach((c, i) => {
+    const cw = i === colors.length - 1 ? 11 + w - 22 - sx : Math.round(((w - 22) * pct[i]) / 100)
+    ctx.fillStyle = c.hex
+    ctx.fillRect(sx, sy - 2, cw + 0.5, 12)
+    sx += cw
+  })
+  ctx.restore()
+  const caption = `${e.local_time} · ${emotionLabel(e)}${e.shifted ? ' → มีแสงขึ้น' : ''}`
+  const size = fitSize(ctx, caption, w - 28, { size: 20, min: 14, kind: 'hand' })
+  drawText(ctx, caption, 14, sy + 8 + 10, { size, kind: 'hand', color: C.soft })
+  drawTape(ctx, w / 2, 0, 100, 26, slot.tape)
+  ctx.restore()
+  return h
+}
 
 // thumbs: Map entryId → ภาพย่อ (ImageBitmap) หรือไม่มี (ใช้ภาพจำลองจากสี)
 export const renderDayCard = async ({ date, entries, thumbs = new Map(), userName = '' }) => {
@@ -319,108 +272,64 @@ export const renderDayCard = async ({ date, entries, thumbs = new Map(), userNam
 
   const parsed = parseLocalDate(date)
   const isToday = date === localDateStr()
-  drawHeader(ctx, day.mix.toUpperCase(), formatThaiDate(parsed))
-  drawText(ctx, isToday ? 'จานสีของวันนี้' : `จานสีของ ${thaiDateShort(parsed)}`, 72, 136, { size: 56, weight: 600, kind: 'hand' })
+  drawHeader(ctx, await loadBrand(), formatThaiDate(parsed))
+  drawText(ctx, isToday ? 'จานสีของวันนี้' : `จานสีของ ${thaiDateShort(parsed)}`, 72, 128, { size: 80, weight: 700, kind: 'hand' })
 
-  // หลุมผสมสี 420×420 ซ้าย + ข้อความ 5 บรรทัดขวา กึ่งกลางแนวตั้งเดียวกัน (container top 236)
-  drawWell(ctx, 60, 236, 420, list)
+  // กรอบสีของวัน (SVG 380×380 → ภาพ) ซ้าย + ข้อความขวา กึ่งกลางแนวตั้งเดียวกัน
+  const frame = await svgToImage(dayFrameSvg({ mix: day.mix, dominant: dominantColorOfDay(list), p: 'dfc' }).replace('width="380" height="380"', 'width="760" height="760"'))
+  const frameTop = 240
+  ctx.drawImage(frame, 52, frameTop, 380, 380)
   const moods = new Set(list.map((e) => e.emotion)).size
-  const col = [
-    { h: 24 * LINE.body.box, gap: 12 },
-    { h: 2 * 64 * 1.2, gap: 12 },
-    { h: 60, gap: 12 },
-    { h: Math.max(24 * LINE.mono.box, 24 * LINE.body.box), gap: 0 },
-  ]
-  const colH = col.reduce((s, c) => s + c.h + c.gap, 0)
-  let y = 236 + (420 - colH) / 2
-  const tx = 60 + 420 + 40
-  drawText(ctx, isToday ? 'สีของวันนี้' : 'สีของวัน', tx, y, { size: 24, kind: 'body', color: C.soft })
-  y += col[0].h + col[0].gap
-  // ชื่อสีของวัน 2 บรรทัด Mali 600 64px line-height 1.2
+  const tx = 480
+  const nameSize = Math.min(72, fitSize(ctx, [day.name.colorPart, day.name.periodPart].sort((a, b) => b.length - a.length)[0], CARD_W - 72 - tx, { size: 72, min: 44, kind: 'hand', weight: 700 }))
+  const NL = nameSize * 1.25 // สูงบรรทัดชื่อ (เผื่อสระบน/วรรณยุกต์)
+  const colH = 26 * LINE.body.box + 24 + 2 * NL + 8 + 26 * LINE.body.box
+  let y = frameTop + (380 - colH) / 2
+  drawText(ctx, isToday ? 'สีของวันนี้' : 'สีของวัน', tx, y, { size: 26, kind: 'body', color: C.soft })
+  y += 26 * LINE.body.box + 24
   ;[day.name.colorPart, day.name.periodPart].forEach((line, i) => {
-    drawText(ctx, line, tx, y + i * 76.8, { size: 64, weight: 600, kind: 'hand', boxHeight: 76.8 })
+    drawText(ctx, line, tx, y + i * NL, { size: nameSize, weight: 700, kind: 'hand', boxHeight: NL })
   })
-  y += col[1].h + col[1].gap
-  // ปาดสีของวัน (svg 320×60, viewBox 170×36 → ย่อเท่ากันทั้งสองแกน กึ่งกลาง)
-  const k = Math.min(320 / 170, 60 / 36)
-  const sx = tx + (320 - 170 * k) / 2
-  const sy = y + (60 - 36 * k) / 2
-  ctx.save()
-  ctx.strokeStyle = day.mix
-  ctx.lineWidth = 20 * k
-  ctx.lineCap = 'round'
-  ctx.beginPath()
-  ctx.moveTo(sx + 10 * k, sy + 20 * k)
-  ctx.bezierCurveTo(sx + 50 * k, sy + 12 * k, sx + 110 * k, sy + 26 * k, sx + 160 * k, sy + 16 * k)
-  ctx.stroke()
-  // ซ้อนเส้นบาง ๆ อีกชั้นเหลื่อมกัน ให้ขอบเหมือนรอยพู่กัน ไม่เป็นท่อนเรียบ
-  ctx.globalAlpha = 0.25
-  ctx.lineWidth = 17 * k
-  ctx.beginPath()
-  ctx.moveTo(sx + 12 * k, sy + 22 * k)
-  ctx.bezierCurveTo(sx + 52 * k, sy + 14 * k, sx + 108 * k, sy + 28 * k, sx + 158 * k, sy + 14 * k)
-  ctx.stroke()
-  ctx.restore()
-  y += col[2].h + col[2].gap
-  // hex + "N ภาพ · M อารมณ์" baseline เดียวกัน
-  const baseline = y + 24 * LINE.body.base
-  const hexW = drawTextAt(ctx, day.mix.toUpperCase(), tx, baseline, { size: 24, kind: 'mono', color: C.soft })
-  drawTextAt(ctx, `${list.length} ภาพ · ${moods} อารมณ์`, tx + hexW + 18, baseline, { size: 24, kind: 'body', color: C.soft })
+  y += 2 * NL + 8
+  drawText(ctx, `${list.length} ภาพ · ${moods} อารมณ์`, tx, y, { size: 26, kind: 'body', color: C.soft })
 
-  // ช่วงเวลาของวัน: ชื่อหัวข้อ (top 690) แล้ว svg 760×218 กึ่งกลางความกว้าง 936
-  drawText(ctx, 'ช่วงเวลาของวัน', 72, 690, { size: 30, weight: 600, kind: 'hand' })
-  const tlScale = 760 / 412
-  drawTimeline(ctx, 72 + (936 - 760) / 2, 690 + 30 * LINE.hand.box + 8, tlScale, list)
+  // สีของวันตามลำดับเวลา: แถบ (SVG → ภาพ) เต็มความกว้าง + ป้าย
+  const headTop = 640
+  drawText(ctx, 'สีของวันตามลำดับเวลา', 72, headTop, { size: 36, weight: 700, kind: 'hand' })
+  const segs = layoutRibbon(list, RIB_W / RIB_K)
+  const ribTop = headTop + 36 * LINE.hand.box + 10
+  const ribbon = await svgToImage(ribbonSvg(segs, RIB_W / RIB_K, 'rbc', RIB_K * 2))
+  ctx.drawImage(ribbon, RIB_X, ribTop, RIB_W, RIBBON_H * RIB_K)
+  const labelsTop = ribTop + RIBBON_H * RIB_K
+  drawRibbonLabels(ctx, segs, labelsTop)
+  const labelsH = Math.max(0, ...segs.filter((s) => s.box).map((s) => s.box.y1)) * RIB_K
 
-  // ภาพย่อโพลารอยด์ 3 ใบล่าสุด (ถ้ามีมากกว่า 3 ใส่ป้าย "+N ภาพ")
+  // ภาพย่อโพลารอยด์ 3 ใบล่าสุด (ถ้ามีมากกว่า 3 ใส่ป้าย "+N ภาพ") วางใต้ป้ายของแถบ
   const shown = list.slice(-3)
   const more = list.length - shown.length
-  const pitch = 324
-  const groupW = 272 + (shown.length - 1) * pitch
+  const groupW = PHOTO_W + (shown.length - 1) * PHOTO_PITCH
   const originX = 72 + (936 - groupW) / 2
+  const photoTop = Math.max(912, labelsTop + labelsH + 14)
+  let photoH = 0
   shown.forEach((e, i) => {
     const slot = PHOTO_SLOTS[i]
-    const px = originX + i * pitch
-    const py = 958 + slot.dy
-    const w = 272
-    const h = 11 + 176 + 44
-    ctx.save()
-    ctx.translate(px + w / 2, py + h / 2)
-    ctx.rotate(slot.r * RAD)
-    ctx.translate(-w / 2, -h / 2)
-    ctx.save()
-    ctx.shadowColor = 'rgba(45, 43, 51, 0.18)'
-    ctx.shadowBlur = 14
-    ctx.shadowOffsetY = 4
-    ctx.fillStyle = '#FFFFFF'
-    ctx.fillRect(0, 0, w, h)
-    ctx.restore()
-    ctx.fillStyle = C.paper
-    ctx.fillRect(11, 11, 250, 176)
-    const thumb = thumbs.get(e.id)
-    if (thumb) drawCover(ctx, thumb, 11, 11, 250, 176)
-    else drawPlaceholderPainting(ctx, 11, 11, 250, 176, e.colors)
-    const caption = `${e.local_time} · ${emotionLabel(e)}${e.shifted ? ' → มีแสงขึ้น' : ''}`
-    const size = fitSize(ctx, caption, w - 28, { size: 20, min: 14, kind: 'hand' })
-    drawText(ctx, caption, 14, h - 10 - size * LINE.hand.box, { size, kind: 'hand', color: C.soft })
-    drawTape(ctx, 86 + 50, -12 + 13, 100, 26, slot.tape)
-    ctx.restore()
+    photoH = drawDayPolaroid(ctx, e, thumbs.get(e.id), slot, originX + i * PHOTO_PITCH, photoTop + slot.dy)
   })
   if (more > 0) {
     const label = `+${more} ภาพ`
     ctx.save()
-    ctx.font = '600 22px Mali, "Itim", system-ui, sans-serif'
+    ctx.font = '600 24px Mali, "Itim", system-ui, sans-serif'
     const tw = ctx.measureText(label).width
-    const bw = tw + 28
+    const bw = tw + 30
     const bx = originX + groupW - bw + 6
-    const by = 958 + 6 + 231 - 20
-    ctx.translate(bx + bw / 2, by + 17)
+    const by = photoTop + photoH - 4
+    ctx.translate(bx + bw / 2, by + 18)
     ctx.rotate(3 * RAD)
     ctx.fillStyle = C.paper
     ctx.strokeStyle = C.ink
     ctx.lineWidth = 2
     ctx.beginPath()
-    roundRectPath(ctx, -bw / 2, -17, bw, 34, 12)
+    roundRectPath(ctx, -bw / 2, -18, bw, 36, 13)
     ctx.fill()
     ctx.stroke()
     ctx.fillStyle = C.ink
@@ -433,18 +342,4 @@ export const renderDayCard = async ({ date, entries, thumbs = new Map(), userNam
   drawFooter(ctx, maskName(userName), 52, 22)
   drawGrain(ctx, CARD_W, CARD_H)
   return canvasToBlob(canvas)
-}
-
-// วางข้อความที่ baseline ที่กำหนด คืนความกว้าง (ใช้กับแถวที่ผสมฟอนต์ต่างกัน)
-const drawTextAt = (ctx, text, x, baseline, { size, weight = 400, kind, color }) => {
-  const family = kind === 'mono' ? 'ui-monospace, Menlo, monospace' : '"IBM Plex Sans Thai Looped", "Noto Sans Thai", system-ui, sans-serif'
-  ctx.save()
-  ctx.font = `${weight} ${size}px ${family}`
-  ctx.fillStyle = color
-  ctx.textAlign = 'left'
-  ctx.textBaseline = 'alphabetic'
-  ctx.fillText(text, x, baseline)
-  const w = ctx.measureText(text).width
-  ctx.restore()
-  return w
 }

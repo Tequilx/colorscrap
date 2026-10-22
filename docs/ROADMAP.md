@@ -136,10 +136,10 @@
 ## ช่วง 1 ดีไซน์ที่ค้าง
 - [x] 15. หน้าจานสีประจำวัน: ก้อนสีในกรอบ `bg-card` 138×138 ขอบ 11px เท่ากัน เอียง −3° เงา card ไม่มีเทป/รหัสสี · ภาพ `scripts/out/screens/daypanel/14-book-วันนี้.png` (tag `pre-daypanel`)
 - [x] 16. DayRibbon: filter + gradient ใน `<defs>` ของ SVG ตัวเอง id ไม่ซ้ำ (`${uid}-fm/-fh`) `filterUnits=userSpaceOnUse` เผื่อ 20px · ลบ `wcr/wcrh` ออกจาก SvgDefs และ tailwind · ภาพก่อน/หลัง `scripts/out/screens/ribbondefs/before.png` / `14-book-วันนี้.png` ดูเหมือนเดิม (tag `pre-ribbon-defs`)
-- [ ] 17. การ์ดเก็บรูปจานสีของวัน ทำใหม่ตามภาพ 12 (tag `pre-daycard2`)
-- [ ] 18. การ์ดภาพเดี่ยว: หัว/ท้ายใช้ BrandMark (tag `pre-photocard2`)
+- [x] 17. การ์ดจานสีของวันทำใหม่ตามภาพ 12: หัว BrandMark / กรอบสี (SVG `lib/dayFrame.js`) / DayRibbon (markup จาก `lib/dayRibbon.js` `ribbonSvg` → `lib/share/svgImage.js` → drawImage ไม่วาดแถบใหม่) + ป้ายเยื้องแถวจาก `layoutRibbon` / โพลารอยด์ 3 ใบ + "+N ภาพ" · ทดสอบ 1/3/13 ภาพ + Web Share จำลอง (`shared`) + ดาวน์โหลด (`downloaded`) ได้ PNG 1080×1350 (`scripts/render-cards.mjs`) · ภาพ `scripts/out/cards2/card-day-{1,3,13}.png` เทียบแบบ `docs/design/screens/12-card-day-v2.png` (tag `pre-daycard2`)
+- [x] 18. การ์ดภาพเดี่ยว: หัวใช้ BrandMark ตัวเดียวกับการ์ดวัน (โลโก้ 64px + ชื่อ 44px) ส่วนอื่นไม่เปลี่ยน · `scripts/out/cards2/card-photo-*.png` (tag `pre-photocard2`)
 ## ช่วง 2
-- [ ] 19. BrandMark.vue (tag `pre-brandmark`)
+- [x] 19. BrandMark: `lib/brand.js` ที่เดียว → `BrandMark.vue` (ปกสมุด/login/hello) + favicon (SVG เดียวกัน `installFavicon`) + การ์ดเก็บรูป · FILE-GUIDE หัวข้อ "โลโก้" (tag `pre-brandmark`)
 ## ช่วง 3
 - [ ] 20. ใจฟูสูงสุด 3 (tag `pre-likes3`)
 - [ ] 21. โน้ตอารมณ์พับเก็บ (tag `pre-moodfold`)

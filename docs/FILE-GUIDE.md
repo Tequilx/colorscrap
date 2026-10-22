@@ -939,3 +939,8 @@ git switch -c restore-before-animations backup/main-before-animations
 - **เปลี่ยนเป็นเพลงจริง:** วางไฟล์ mp3 ชื่อเดิม (`music-day.mp3`, `music-night.mp3`) ทับ/เพิ่มใน `public/audio/` แล้วรีเฟรชหน้าเว็บ (ตัวเล่นลอง `.mp3` ก่อน ถ้าไม่มีค่อยใช้ `.wav`; ถ้าไม่มีทั้งคู่เงียบ ไม่ error) แนะนำไฟล์ที่ตัดวนเนียน ความยาว ≥ 60 วินาที ระดับยอดราว −3 dBFS (ระดับเสียงเบากว่าเอฟเฟกต์ ~19 dB ที่ยอดสัญญาณ ตั้งใน `lib/sound.js` `MUSIC_BASE`) ไฟล์ mp3 บางตัวมีช่องว่างสั้น ๆ ตอนวน ให้เลือกไฟล์ที่ตัดแบบ gapless
 - ไฟล์ชั่วคราว `music-day.wav` / `music-night.wav` สร้างด้วย `node scripts/make-placeholder-music.mjs` (เขียน WAV เอง เป็นคอร์ดแพด 24 วินาทีวนเนียน) ลบทิ้งได้เมื่อมี mp3 จริง
 - ปุ่มเพลง/เอฟเฟกต์มุมขวาบนเปิดปิดแยกกัน (`colorscrap.music`, `colorscrap.sound` ใน localStorage) เพลงลดเหลือครึ่งหนึ่งระหว่างลำดับบันทึกและแต้มแสงบาน หยุดเมื่อแท็บถูกซ่อน
+
+
+## โลโก้ (`src/lib/brand.js`) — เปลี่ยนโลโก้แก้ไฟล์เดียว
+
+โลโก้ ColorScrap (กระดาษติดเทปกับหยดสีน้ำ) อยู่ที่ **`src/lib/brand.js` ไฟล์เดียว** (`brandMarkInner` = รูป SVG ขนาด 40×40, `BRAND_NAME` = ชื่อ) ทุกจุดอ่านจากที่นี่: `components/ui/BrandMark.vue` (ปกสมุด, การ์ดเข้าสู่ระบบ, หน้าแรกของสมุด), favicon (`installFavicon()` ใน `main.js` สร้างจาก SVG เดียวกัน), และการ์ดเก็บรูปทั้งสองแบบ (`lib/share/cards.js` แปลง SVG เป็นภาพแล้ววาดลง canvas) ถ้าอยากเปลี่ยนโลโก้ แก้ `brandMarkInner` แล้วทุกที่เปลี่ยนตาม (`public/favicon.ico` เป็นแค่ตัวสำรองของเบราว์เซอร์เก่า)

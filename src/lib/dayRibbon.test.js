@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { BLEND_FRAC, LABEL_GAP, LABEL_NONE_MIN, gradientStops, groupLabel, groupRuns, jaggedOffsets, labelsHeight, layoutRibbon, ribbonCaption, sortedByTime, sweepPolygon, textWidth, timeIcon } from './dayRibbon'
+import { BLEND_FRAC, LABEL_GAP, LABEL_NONE_MIN, gradientStops, groupLabel, groupRuns, jaggedOffsets, labelsHeight, layoutRibbon, ribbonCaption, ribbonSvgMarkup, sortedByTime, sweepPolygon, textWidth, timeIcon } from './dayRibbon'
 
 const mk = (i, time, emotion = 'sad', intensity = 1, shifted = false) => ({
   id: `e${i}`,
@@ -176,5 +176,25 @@ describe('helpers', () => {
     const b = sweepPolygon(300, 80, j)
     expect(a.split(',').length).toBe(b.split(',').length)
     expect(a.startsWith('polygon(')).toBe(true)
+  })
+})
+
+describe('ribbonSvgMarkup', () => {
+  const entries = [
+    { id: 'a', local_time: '01:00', emotion: 'calm', emotions: ['calm'], intensity: 1, shifted: false, colors: [{ hex: '#5FA3C8', ratio: 1 }] },
+    { id: 'b', local_time: '02:00', emotion: 'sad', emotions: ['sad'], intensity: 1, shifted: true, colors: [{ hex: '#4256A8', ratio: 1 }] },
+  ]
+  it('มีฟิลเตอร์/gradient ใน defs ของตัวเอง id ขึ้นต้นด้วย prefix และ region เป็น userSpaceOnUse', () => {
+    const m = ribbonSvgMarkup(layoutRibbon(entries, 400), 400, 'zz')
+    expect(m).toContain('id="zz-fm"')
+    expect(m).toContain('id="zz-fh"')
+    expect(m).toContain('id="zz-g"')
+    expect(m.match(/filterUnits="userSpaceOnUse"/g).length).toBe(2)
+    expect(m).not.toMatch(/url\(#(wcr|wcrh|grain)\)/)
+  })
+  it('สองอินสแตนซ์ id ไม่ซ้ำกัน', () => {
+    const segs = layoutRibbon(entries, 400)
+    const ids = (p) => [...ribbonSvgMarkup(segs, 400, p).matchAll(/id="([^"]+)"/g)].map((x) => x[1])
+    expect(ids('a').some((i) => ids('b').includes(i))).toBe(false)
   })
 })

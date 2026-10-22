@@ -159,3 +159,37 @@ export const gradientStops = (segs, width) => {
   for (let i = 1; i < stops.length; i++) stops[i].offset = Math.max(stops[i].offset, stops[i - 1].offset)
   return stops
 }
+
+// ---- markup ของรอยพู่กัน (ใช้ทั้ง DayRibbon.vue และการ์ดเก็บรูป: การ์ดแปลง SVG นี้เป็นภาพแล้ววาดลง canvas ไม่วาดแถบใหม่) ----
+export const RIBBON_H = 84 // สูงพื้นที่แถบ
+export const RIBBON_BAR_H = 56
+export const RIBBON_PAD = 20 // เผื่อขอบ region ของฟิลเตอร์ (px)
+const HALO_H = RIBBON_BAR_H + 8
+const MAIN_H = RIBBON_BAR_H - 8
+const HALO_Y = (RIBBON_H - HALO_H) / 2
+const MAIN_Y = (RIBBON_H - MAIN_H) / 2
+export const RIBBON_MAIN = { y: MAIN_Y, h: MAIN_H }
+
+// ข้างในของ <svg> ขนาด width × RIBBON_H: defs (gradient/ฟิลเตอร์/คลิป ทุกอย่างเป็นของแถบนี้เอง id ขึ้นต้นด้วย p) + 3 ชั้น ฮาโล → ตัวแถบ → เกรน
+// ฟิลเตอร์: บิดก่อนเบลอเสมอ region เป็นพิกเซลจริงเผื่อขอบ RIBBON_PAD
+export const ribbonSvgMarkup = (segs, width, p) => {
+  const region = `filterUnits="userSpaceOnUse" x="${-RIBBON_PAD}" y="${-RIBBON_PAD}" width="${width + RIBBON_PAD * 2}" height="${RIBBON_H + RIBBON_PAD * 2}"`
+  const stops = gradientStops(segs, width)
+    .map((s) => `<stop offset="${s.offset}" stop-color="${s.color}"/>`)
+    .join('')
+  const fill = `fill="url(#${p}-g)"`
+  return `<defs>
+<linearGradient id="${p}-g" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="${width}" y2="0">${stops}</linearGradient>
+<filter id="${p}-fm" ${region}><feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="3" seed="6" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="9" result="d"/><feGaussianBlur in="d" stdDeviation="0.8"/></filter>
+<filter id="${p}-fh" ${region}><feTurbulence type="fractalNoise" baseFrequency="0.05" numOctaves="2" seed="13" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="14" result="d"/><feGaussianBlur in="d" stdDeviation="2.2"/></filter>
+<filter id="${p}-gr" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="3" stitchTiles="stitch"/><feColorMatrix values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.12 0"/></filter>
+<clipPath id="${p}-c"><rect x="0" y="${MAIN_Y}" width="${width}" height="${MAIN_H}" rx="${MAIN_H * 0.4}"/></clipPath>
+</defs>
+<g filter="url(#${p}-fh)" opacity="0.35"><rect x="-4" y="${HALO_Y}" width="${width + 8}" height="${HALO_H}" rx="${HALO_H * 0.4}" ${fill}/></g>
+<g filter="url(#${p}-fm)" opacity="0.85"><rect x="0" y="${MAIN_Y}" width="${width}" height="${MAIN_H}" rx="${MAIN_H * 0.4}" ${fill}/></g>
+<g clip-path="url(#${p}-c)" opacity="0.5"><rect x="0" y="${MAIN_Y}" width="${width}" height="${MAIN_H}" fill="transparent" filter="url(#${p}-gr)"/></g>`
+}
+
+// <svg> ทั้งก้อนสำหรับแปลงเป็นภาพ (scale = ความละเอียดของภาพ ต่อ 1 หน่วย)
+export const ribbonSvg = (segs, width, p = 'rb', scale = 1) =>
+  `<svg xmlns="http://www.w3.org/2000/svg" width="${width * scale}" height="${RIBBON_H * scale}" viewBox="0 0 ${width} ${RIBBON_H}" style="overflow:visible">${ribbonSvgMarkup(segs, width, p)}</svg>`
