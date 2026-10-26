@@ -30,6 +30,8 @@ export const soundOn = ref(readEnabled())
 // เพลงคลอ (lib/music.js) เปิด/ปิดแยกจากเอฟเฟกต์ จำค่าแยก ค่าเริ่มต้นเปิดทั้งคู่
 const MUSIC_KEY = 'colorscrap.music'
 export const MUSIC_BASE = 0.04 // วัดแล้วยอดเพลงอยู่ราว −22 dBFS เทียบยอดเอฟเฟกต์ −3.4 dBFS (ต่าง ~ −19 dB) ผ่านคอมเพรสเซอร์ที่ชดเชยระดับให้เอง
+const BELL_GAP_MS = 150 // เสียงเติมสีสดใสไม่ซ้อนถ้ากดถี่กว่านี้
+let lastBell = -Infinity
 export const MUSIC_DUCK = 0.5 // ลดเหลือครึ่งหนึ่งระหว่างลำดับบันทึก/แต้มแสงบาน
 export const musicOn = ref(readEnabled(globalThis.localStorage, MUSIC_KEY))
 
@@ -405,50 +407,38 @@ export const sound = {
     pool.remove(b.stopFn)
   },
 
-  // แต้มแสงบาน: เสียงอุ่นนุ่มฟุ้งขึ้นแล้วจางตามเส้นโค้งเดียวกับการบาน (ms = ความยาวเส้นโค้ง) gentle = กดค้าง เบาและสั้น
+  // เติมสีสดใส (bloom): ระฆังแก้วเบา ๆ โทนเดียวกลาง (~740 Hz) + overtone เบามาก attack 30 ms decay ~600 ms lowpass 2 kHz
+  // กดถี่กว่า BELL_GAP_MS ไม่ซ้อนเสียงใหม่ ms = ความยาวเส้นโค้งการบาน ใช้แค่ลดเสียงเพลง gentle = กดค้าง เบากว่า
   bloom({ ms = 3000, gentle = false } = {}) {
     if (!ready()) return
+    const now = performance.now()
+    if (now - lastBell < BELL_GAP_MS) return
+    lastBell = now
     duckMusic(ms)
     if (playSfx('glow', { gain: gentle ? 0.6 : 1 })) return
     const t = ctx.currentTime
-    const dur = ms / 1000
-    const vol = gentle ? 0.035 : 0.06
-    const curve = bloomEnvelope(ms)
+    const peak = gentle ? 0.04 : 0.07 // ≈ 1/3 ของเสียงเดิม
     const g = ctx.createGain()
-    g.gain.value = 0 // เส้นโค้งเริ่มที่ 0 เอง (ไม่ตั้งค่าซ้อนเวลาเดียวกัน: Safari โยน error ถ้าซ้อนกับ setValueCurveAtTime)
-    g.gain.setValueCurveAtTime(curve.map((c) => c * vol), t, dur)
+    g.gain.setValueAtTime(0.0001, t)
+    g.gain.linearRampToValueAtTime(peak, t + 0.03)
+    g.gain.setTargetAtTime(0, t + 0.03, 0.2) // decay ~600 ms (3 time constants)
     const lp = ctx.createBiquadFilter()
     lp.type = 'lowpass'
-    lp.frequency.setValueAtTime(500, t)
-    lp.frequency.linearRampToValueAtTime(1400, t + 0.25)
-    lp.frequency.linearRampToValueAtTime(600, t + dur)
+    lp.frequency.value = 2000
     lp.connect(g).connect(master)
+    const base = 740 * rand(0.97, 1.03)
     const nodes = []
-    const base = 196 * rand(0.99, 1.01)
-    for (const [ratio, det] of [[1, -4], [1.25, 3], [1.5, -2], [2, 5]]) {
+    for (const [type, ratio, level] of [['sine', 1, 1], ['triangle', 2.4, 0.12]]) {
       const o = ctx.createOscillator()
-      o.type = 'sine'
+      o.type = type
       o.frequency.value = base * ratio
-      o.detune.value = det
       const og = ctx.createGain()
-      og.gain.value = ratio === 2 ? 0.35 : 1
+      og.gain.value = level
       o.connect(og).connect(lp)
       o.start(t)
       nodes.push(o)
     }
-    // ลมหายใจฟุ้ง ๆ ใต้เสียงอุ่น
-    const hush = noiseSource(true)
-    const hbp = ctx.createBiquadFilter()
-    hbp.type = 'bandpass'
-    hbp.frequency.setValueAtTime(700, t)
-    hbp.frequency.linearRampToValueAtTime(1800, t + 0.4)
-    hbp.Q.value = 0.6
-    const hg = ctx.createGain()
-    hg.gain.value = 0.25
-    hush.connect(hbp).connect(hg).connect(lp)
-    hush.start(t)
-    nodes.push(hush)
-    voice(nodes, t + dur + 0.05)
+    voice(nodes, t + 0.9)
   },
 
   // บันทึก: กระดาษลอยขึ้น (ลมเบา กวาดความถี่ขึ้น)

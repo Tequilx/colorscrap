@@ -65,7 +65,7 @@
       <h2 class="mb-3 font-hand text-26 font-semibold">Tape / Polaroid / WatercolorBlob</h2>
       <div class="flex flex-wrap items-start gap-10">
         <Polaroid caption="09:12 · สงบ" :rotate="-3" :colors="['#5FA3C8', '#9CC3D8']" />
-        <Polaroid caption="13:40 · เหนื่อย → มีแสงขึ้น" :rotate="2" :tape-rotate="4" :colors="['#5B6773', '#F7DE99']" badge="ใหม่" />
+        <Polaroid caption="13:40 · เหนื่อย → สดใสขึ้น" :rotate="2" :tape-rotate="4" :colors="['#5B6773', '#F7DE99']" badge="ใหม่" />
         <div class="relative h-[60px] w-[140px] bg-paper-deep">
           <Tape class="left-5 top-5" long />
         </div>

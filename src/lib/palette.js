@@ -161,19 +161,41 @@ const modifierOf = (hex, entries) => {
   const second = secondaryGroup(hueGroup(hex), entries)
   if (second) return 'อม' + second
   if (s >= HUE_MIN_SAT && s < 0.33) return 'หม่น'
-  if ((s >= 0.33 && s < 0.45) || l < 0.5) return 'ครึ้ม'
+  if ((s >= 0.33 && s < 0.45 && l <= 0.72) || l < 0.5) return 'ครึ้ม' // สีสว่างมากที่ซีดไม่เรียกครึ้ม (ลาเวนเดอร์ = ม่วงอ่อน)
   if (l > 0.72) return 'อ่อน'
   if (s > 0.6) return 'สด'
   return ''
 }
 
+// กลุ่มสีที่ใช้เรียกจริง (ข้อ 50i) แยกช่วงแดง/ชมพู/ม่วงให้ตรงกับที่ตาเห็น โดย hueGroup (ตาม SPEC §8.2 และเทสต์) ไม่เปลี่ยน:
+//   แดงที่สว่างมาก (L ≥ 0.72: สีที่คนเรียกว่าชมพู ไม่ใช่แดง) → ชมพู · ชมพู hue < 310° ที่ไม่สว่าง (L < 0.6: กล้วยไม้/ม่วงบานเย็น) → ม่วง
+export const displayGroup = (hex) => {
+  const g = hueGroup(hex)
+  const { h, l } = toHsl(hex)
+  if (g === 'แดง' && l >= 0.72) return 'ชมพู'
+  if (g === 'ชมพู' && h < 310 && l < 0.6) return 'ม่วง'
+  return g
+}
+
 // ชื่อสีของวัน: กลุ่มสี + ตัวขยาย + ช่วงเวลา (SPEC §8.2) แบ่ง 2 ส่วนสำหรับตัดบรรทัด
 // entries (ภาพของวัน) ใช้หากลุ่มสีรอง ถ้าไม่ส่งมาจะไม่มี "อม..."
 export const nameOfDay = (mixHex, lastLocalTime, entries = []) => {
-  const colorPart = hueGroup(mixHex) + modifierOf(mixHex, entries)
+  const colorPart = displayGroup(mixHex) + modifierOf(mixHex, entries)
   const periodPart = periodOf(lastLocalTime)
   return { colorPart, periodPart, full: colorPart + periodPart }
 }
+
+// ชื่อสีจากชิ้นที่ครอป (ข้อ 50i ทาง fallback): กลุ่มสีตาม hue ของสีตัวแทน + ตัวขยายตาม L/C ใน OKLab: เข้ม (L < 0.45) · อ่อน (L > 0.80) · จาง (chroma < 0.06) · ไม่เข้าข้อไหนไม่มีตัวขยาย
+export const TONE_DARK_L = 0.45
+export const TONE_LIGHT_L = 0.8
+export const TONE_PALE_C = 0.06
+export const colorPartFromTone = (hex, L, C) => {
+  const mod = L < TONE_DARK_L ? 'เข้ม' : L > TONE_LIGHT_L ? 'อ่อน' : C < TONE_PALE_C ? 'จาง' : ''
+  return displayGroup(hex) + mod
+}
+
+// ชื่อสีของวันที่ตรงกับชิ้นที่แสดง: ทางหลักใช้ชื่อเดิม ทาง fallback เปลี่ยนส่วนสี (ส่วนช่วงเวลาเหมือนเดิม)
+export const nameForCrop = (name, crop) => (crop?.via === 'fallback' && crop.colorPart ? { ...name, colorPart: crop.colorPart, full: crop.colorPart + name.periodPart } : name)
 
 // สีผสมและชื่อของวัน จากค่าผสมตัวเดียวกัน (ชื่อต้องตรงกับสีที่แสดงเสมอ) ไม่มีภาพ = null
 export const dayColor = (entries) => {

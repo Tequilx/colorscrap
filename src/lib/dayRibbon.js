@@ -29,8 +29,8 @@ export const timeIcon = (time) => {
   return h >= 6 && h < 19 ? 'sun' : 'moon'
 }
 
-// ข้อความบรรทัดที่ 2 ของภาพเดียว: "เหนื่อย → มีแสงขึ้น" (ภาพที่ปรับด้วยแต้มแสงต่อท้าย "→ มีแสงขึ้น")
-export const ribbonCaption = (entry) => `${emotionLabel(entry)}${entry.shifted ? ' → มีแสงขึ้น' : ''}`
+// ข้อความบรรทัดที่ 2 ของภาพเดียว: "เหนื่อย → สดใสขึ้น" (ภาพที่ปรับด้วยแต้มแสงต่อท้าย "→ สดใสขึ้น")
+export const ribbonCaption = (entry) => `${emotionLabel(entry)}${entry.shifted ? ' → สดใสขึ้น' : ''}`
 
 // รวมภาพติดกันที่อารมณ์เดียวกันและ shifted เหมือนกัน → [{ entries, weight, count }]
 export const groupRuns = (entries) => {

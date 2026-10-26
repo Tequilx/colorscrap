@@ -1,7 +1,6 @@
 <template>
   <!-- ภาพโพลารอยด์กว้าง 196px มีเทปและคำบรรยายลายมือ (SPEC §5.5) -->
-  <figure class="relative m-0 box-border w-[196px] bg-white px-[9px] pt-[9px] shadow-photo"
-    :class="palette.length ? 'pb-[46px]' : 'pb-8'" :style="{ transform: `rotate(${rotate}deg)` }">
+  <PolaroidFrame class="w-[196px] px-[9px] pt-[9px]" :class="palette.length ? 'pb-[46px]' : 'pb-8'" :rotate="rotate">
     <Tape v-if="tape" class="left-[56px] top-[-11px]" :rotate="tapeRotate" />
     <!-- ช่องภาพสัดส่วนเท่ากระดาษวาด 1112:612 ภาพจริงจึงไม่ถูกตัดขอบ (178×~98) -->
     <div data-wet-target class="aspect-[1112/612] w-[178px] overflow-hidden bg-paper">
@@ -20,14 +19,16 @@
     <!-- คำบรรยายกับป้ายอยู่แถว flex เดียวกันคนละฝั่ง คำบรรยายยาวเกินให้ตัดด้วย ellipsis -->
     <!-- แถบสีที่ดูดได้จากภาพ ใต้ตัวภาพ เหนือคำบรรยาย -->
     <ColorStrip v-if="palette.length" :colors="palette" class="mt-1.5" />
-    <figcaption class="absolute inset-x-3 bottom-1.5 flex items-center justify-between gap-2 font-hand text-15 text-ink-soft">
-      <span class="min-w-0 flex-1 truncate" :class="caption.length > 24 ? 'text-13' : ''" :title="caption">{{ caption }}</span>
+    <!-- คำบรรยายเล็ก ~50% ของเดิม (text-cap 7.5px) ระยะบรรทัดตาม LEADING.thai -->
+    <figcaption class="absolute inset-x-3 bottom-1.5 flex items-center justify-between gap-2 font-hand text-cap leading-thai text-ink-soft">
+      <span class="min-w-0 flex-1 truncate" :title="caption">{{ caption }}</span>
       <span v-if="badge" class="shrink-0 rounded-[10px] bg-cover px-2 text-13 font-semibold text-white">{{ badge }}</span>
     </figcaption>
-  </figure>
+  </PolaroidFrame>
 </template>
 
 <script setup>
+import PolaroidFrame from '@/components/ui/PolaroidFrame.vue'
 import Tape from '@/components/ui/Tape.vue'
 import ColorStrip from '@/components/ui/ColorStrip.vue'
 import { BLOB_PATHS } from '@/lib/doodles'

@@ -67,14 +67,14 @@ watch(
 
 onBeforeUnmount(() => clearTimeout(armTimer))
 
-// ปาดสี/เติมหยด/แต้มแสงเป็นโหมด ส่วน "เริ่มใหม่" ไม่ใช่โหมด กดแล้วล้างทันที (SPEC §5.3)
+// ปาดสี/หยดสี/เติมสีสดใสเป็นโหมด ส่วน "เริ่มใหม่" ไม่ใช่โหมด กดแล้วล้างทันที (SPEC §5.3)
 const TOOLS = [
   { key: 'smear', label: 'ปาดสี', icon: 'smear', mode: true },
-  { key: 'drop', label: 'เติมหยด', icon: 'drop', mode: true },
-  { key: 'warm', label: 'แต้มแสง', mode: true }, // เฉพาะอารมณ์ลบ (SPEC §6.4)
+  { key: 'drop', label: 'หยดสี', icon: 'drop', mode: true },
+  { key: 'warm', label: 'เติมสีสดใส', mode: true }, // เฉพาะอารมณ์ลบ (SPEC §6.4)
   { key: 'clear', label: 'เริ่มใหม่', icon: 'restart', mode: false },
 ]
 
-// "แต้มแสง" โผล่เฉพาะเมื่ออารมณ์ล่าสุดของแผ่นเป็นอารมณ์ลบ
+// "เติมสีสดใส" โผล่เฉพาะเมื่ออารมณ์ล่าสุดของแผ่นเป็นอารมณ์ลบ
 const tools = computed(() => TOOLS.filter((t) => t.key !== 'warm' || app.warmAvailable))
 </script>

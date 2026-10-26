@@ -6,7 +6,7 @@ import { DIVIDER_COLOR, brandIconSvg, brandWordmarkSvg, lockupLayout } from '@/l
 import { CROP_BOX, dayFrameSvg } from '@/lib/dayFrame'
 import { RIBBON_H, layoutRibbon, ribbonSvg } from '@/lib/dayRibbon'
 import { svgToImage } from '@/lib/share/svgImage'
-import { dayColor, dominantColorOfDay, percentsOf } from '@/lib/palette'
+import { dayColor, dominantColorOfDay, nameForCrop, percentsOf } from '@/lib/palette'
 import { localDateStr, parseLocalDate, thaiDateShort } from '@/lib/dates'
 import { formatThaiDate } from '@/lib/share/formatThaiDate'
 import { maskName } from '@/lib/share/maskName'
@@ -88,7 +88,7 @@ const drawPlaceholderPainting = (ctx, x, y, w, h, colors) => {
 // รายการสีของภาพ: สูงสุด 5 สี เรียงมากไปน้อย เปอร์เซ็นต์รวม 100 (ตรงกับแผง "สีในภาพนี้" ในแอป)
 const topColors = (entry) => [...entry.colors].sort((a, b) => b.ratio - a.ratio).slice(0, 5)
 
-export const photoCaption = (entry) => `${entry.local_time} · ${emotionLabel(entry)}${entry.shifted ? ' → มีแสงขึ้น' : ''} · ${INTENSITY_LABELS[entry.intensity]}`
+export const photoCaption = (entry) => `${entry.local_time} · ${emotionLabel(entry)}${entry.shifted ? ' → สดใสขึ้น' : ''} · ${INTENSITY_LABELS[entry.intensity]}`
 
 // ---- การ์ดภาพพร้อมชาร์ตสี (7a) ----
 // image = ภาพที่ผู้ใช้ระบาย (ImageBitmap/Image/canvas) หรือ null (ใช้ภาพจำลองจากสี)
@@ -257,7 +257,7 @@ const drawDayPolaroid = (ctx, e, thumb, slot, x, y) => {
     sx += cw
   })
   ctx.restore()
-  const caption = `${e.local_time} · ${emotionLabel(e)}${e.shifted ? ' → มีแสงขึ้น' : ''}`
+  const caption = `${e.local_time} · ${emotionLabel(e)}${e.shifted ? ' → สดใสขึ้น' : ''}`
   const size = fitSize(ctx, caption, w - 28, { size: 20, min: 14, kind: 'hand' })
   drawText(ctx, caption, 14, sy + 8 + 10, { size, kind: 'hand', color: C.soft })
   drawTape(ctx, w / 2, 0, 100, 26, slot.tape)
@@ -267,10 +267,11 @@ const drawDayPolaroid = (ctx, e, thumb, slot, x, y) => {
 
 // thumbs: Map entryId → ภาพย่อ (ImageBitmap) หรือไม่มี (ใช้ภาพจำลองจากสี)
 // crop: ภาพชิ้นสีของวัน (ImageBitmap จาก lib/dayCrop.js) หรือ null = วาดก้อนสีเดิม
-export const renderDayCard = async ({ date, entries, thumbs = new Map(), crop = null, userName = '' }) => {
+export const renderDayCard = async ({ date, entries, thumbs = new Map(), crop = null, cropInfo = null, userName = '' }) => {
   const list = [...entries].sort((a, b) => a.local_time.localeCompare(b.local_time))
   const day = dayColor(list)
   if (!day) throw new Error('ไม่มีภาพของวันนี้')
+  day.name = nameForCrop(day.name, cropInfo) // ชื่อเดียวกับหน้าจานสี (ทาง fallback ตั้งชื่อใหม่จากชิ้นครอป)
   await loadCardFonts()
   const canvas = makeCanvas()
   const ctx = canvas.getContext('2d')
@@ -293,7 +294,7 @@ export const renderDayCard = async ({ date, entries, thumbs = new Map(), crop = 
     ctx.rotate(-3 * RAD)
     ctx.translate(-190, -190)
     ctx.imageSmoothingQuality = 'high'
-    ctx.drawImage(crop, CROP_BOX.x, CROP_BOX.y, CROP_BOX.size, CROP_BOX.size)
+    drawCover(ctx, crop, CROP_BOX.x, CROP_BOX.y, CROP_BOX.w, CROP_BOX.h)
     ctx.restore()
   }
   const moods = new Set(list.map((e) => e.emotion)).size

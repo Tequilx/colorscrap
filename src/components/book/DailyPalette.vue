@@ -28,9 +28,9 @@
       <p v-if="!entries.length" class="pal-rise absolute left-10 top-[120px] m-0 w-[412px] text-16 leading-[1.7] text-ink-soft" :style="reveal(1, 'rise')">ยังไม่มีสีของวันนี้ ลองระบายสักภาพแล้วสีจะมารวมกันตรงนี้</p>
 
       <template v-else>
-        <!-- สีของวัน: ก้อนสีน้ำก้อนเดียว (สีผสมของวัน ก้อนเล็กข้างในเป็นสีเด่น) ในกรอบกระดาษ bg-card ขอบเท่ากันทุกด้าน (~8%) เอียง −3° เงา card ไม่มีเทป (แบบ 11/12) -->
+        <!-- สีของวัน: ชิ้นภาพจริงของวัน ในกรอบโพลารอยด์ขาวเดียวกับภาพในสมุด (PolaroidFrame ขอบล่างหนากว่า) เอียง −3° ไม่มีเทป -->
         <div class="absolute left-10 top-[80px] flex w-[412px] items-center gap-6">
-          <div class="pal-seep relative h-[138px] w-[138px] shrink-0 -rotate-3 bg-card p-[11px] shadow-card" data-day-frame :style="reveal(0, 'seep')">
+          <PolaroidFrame class="pal-seep h-[138px] w-[138px] shrink-0 px-2.5 pb-[18px] pt-2.5" :rotate="-3" data-day-frame :style="reveal(0, 'seep')">
             <!-- ข้อ 49: ชิ้นที่มีสีมากที่สุดของภาพจริงในวันนั้น (ไม่มี blur/filter) ระหว่างโหลดเป็นพื้นกระดาษเปล่าแล้ว fade เข้า ครอปไม่ได้ = ก้อนสีเดิม -->
             <div class="relative h-full w-full overflow-hidden bg-paper">
               <img v-if="cropUrl" :key="cropUrl" :src="cropUrl" alt="" draggable="false" class="absolute inset-0 h-full w-full object-cover transition-opacity duration-600 ease-desk" :class="cropReady ? 'opacity-100' : 'opacity-0'" @load="cropReady = true" />
@@ -39,7 +39,7 @@
                 <WatercolorBlob v-if="dominant" class="absolute left-[28px] top-[34px]" :color="dominant" :width="58" :height="42" :opacity="0.7" />
               </template>
             </div>
-          </div>
+          </PolaroidFrame>
           <div class="pal-rise flex min-w-0 flex-col gap-1" :style="reveal(1, 'rise')">
             <span class="text-13 text-ink-soft">{{ isToday ? 'สีของวันนี้' : 'สีของวัน' }}</span>
             <span class="font-hand text-26 font-semibold leading-stack">{{ name.colorPart }}<br />{{ name.periodPart }}</span>
@@ -91,10 +91,11 @@
 <script setup>
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import DayRibbon from '@/components/book/DayRibbon.vue'
+import PolaroidFrame from '@/components/ui/PolaroidFrame.vue'
 import WatercolorBlob from '@/components/ui/WatercolorBlob.vue'
 import Doodle from '@/components/ui/Doodle.vue'
 import { useDayCrop } from '@/lib/useDayCrop'
-import { dayColor, dominantColorOfDay, nameOfDay } from '@/lib/palette'
+import { dayColor, dominantColorOfDay, nameForCrop, nameOfDay } from '@/lib/palette'
 import { EMOTION_BY_KEY } from '@/lib/emotions'
 import { localDateStr, parseLocalDate, thaiDateShort } from '@/lib/dates'
 import { useAppStore } from '@/stores/app'
@@ -127,7 +128,7 @@ const reveal = (order, kind) => ({
 // แถบสีเริ่มไล่หลังลำดับที่ 3 ของ stagger (หัวข้อ "สีของวันตามลำดับเวลา" ขึ้นพร้อมกัน)
 const ribbonDelay = ms(MOTION.settle + MOTION.reveal.lead + 3 * MOTION.reveal.step)
 const dominant = computed(() => dominantColorOfDay(props.entries))
-const { url: cropUrl, failed: cropFailed } = useDayCrop(() => props.entries)
+const { url: cropUrl, failed: cropFailed, crop } = useDayCrop(() => props.entries)
 const cropReady = ref(false)
 watch(cropUrl, () => (cropReady.value = false))
 
@@ -137,7 +138,8 @@ const shortLabel = (d) => thaiDateShort(parseLocalDate(d))
 
 const color = computed(() => dayColor(props.entries))
 const mix = computed(() => color.value?.mix ?? PALETTE.mute)
-const name = computed(() => color.value?.name ?? nameOfDay(mix.value, '12:00'))
+// ชื่อต้องตรงกับชิ้นที่แสดง: ไม่มีภาพที่มีสีผสมของวันจริง = ใช้ชื่อจากชิ้นที่ครอป (nameForCrop)
+const name = computed(() => nameForCrop(color.value?.name ?? nameOfDay(mix.value, '12:00'), crop.value))
 
 const counts = computed(() => {
   const map = new Map()
@@ -174,7 +176,7 @@ const summary = computed(() => {
   const [main, second] = ranked
   if (!second) return { text: list.length === 1 ? `${th(main[0])} ตอน${dayPart(list[0].local_time)}` : `${th(main[0])}ทั้งวันเลย`, greet, rows }
   const secondEntry = list[lastIndex(second[0])]
-  const shiftedNote = secondEntry.shifted ? 'ที่ค่อย ๆ มีแสงขึ้น' : ''
+  const shiftedNote = secondEntry.shifted ? 'ที่ค่อย ๆ สดใสขึ้น' : ''
   return { text: `ส่วนใหญ่${th(main[0])} มีช่วง${th(second[0])}ตอน${dayPart(secondEntry.local_time)}${shiftedNote}`, greet, rows }
 })
 

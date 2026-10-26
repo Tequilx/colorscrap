@@ -1,7 +1,8 @@
-// สคริปต์ dev ตรวจชิ้นสีของวัน (ข้อ 49): ใส่ภาพระบายสังเคราะห์ 7 วัน (เต็มหน้า / สีน้อยพื้นขาวเยอะ / หลายสี ฯลฯ) ลง store แล้วถ่ายกรอบ "สีของวัน" + การ์ดวัน
+// สคริปต์ dev ตรวจชิ้นสีของวัน (ข้อ 49, 50i): ใส่ภาพระบายสังเคราะห์ 12 วัน (สีเดียว / หลายสี / สีผสมที่ไม่มีในภาพ ฯลฯ) ลง store แล้วถ่ายกรอบ "สีของวัน"+ชื่อสีในจานสี
+// พร้อมค่าที่ระบบเลือก (ทางหลัก/fallback, คะแนน, สีเป้าหมาย) → contact sheet
 //   1) VITE_USE_MOCK=true npm run dev -- --port 5199
-//   2) PLAYWRIGHT=/path/to/playwright-core/index.mjs node scripts/palcrop.mjs <before|after> [--url http://localhost:5199]
-// ภาพลง scripts/out/screens/palcrop/<tag>/ (git-ignored) + sheet-<tag>.png
+//   2) PLAYWRIGHT=/path/to/playwright-core/index.mjs node scripts/palcrop.mjs <tag> [--url http://localhost:5199] [--min 0.1]
+// ภาพลง scripts/out/screens/palcrop/<tag>/ (git-ignored) + sheet-<tag>.png + scores.json
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
@@ -23,7 +24,7 @@ const days = await page.evaluate(async () => {
   const pinia = document.querySelector('#app').__vue_app__.config.globalProperties.$pinia
   const entries = pinia._s.get('entries')
   const { localDateStr, addDays } = await import('/src/lib/dates.js')
-  const { markRaw } = await import('/node_modules/.vite/deps/vue.js').catch(() => import('vue'))
+  const { markRaw } = await import('/node_modules/.vite/deps/vue.js')
 
   const W = 1600, H = 880
   let seed = 7
@@ -38,7 +39,7 @@ const days = await page.evaluate(async () => {
     }
     g.globalAlpha = 1
   }
-  const paint = async (draw) => {
+  const paint = (draw) => {
     const c = document.createElement('canvas')
     c.width = W
     c.height = H
@@ -48,24 +49,46 @@ const days = await page.evaluate(async () => {
     draw(g)
     return new Promise((res) => c.toBlob(res, 'image/png'))
   }
+  // เข้ารหัสแบบเดียวกับแอป: ภาพเต็ม + thumb 480
+  const thumbOf = async (b) => {
+    const bmp = await createImageBitmap(b)
+    const c = document.createElement('canvas')
+    c.width = 480
+    c.height = Math.round((480 * bmp.height) / bmp.width)
+    c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height)
+    return new Promise((res) => c.toBlob(res, 'image/png'))
+  }
+  const B = (hex, x, y, rx, ry, a, n) => (g) => blob(g, hex, x, y, rx, ry, a, n)
+  const many = (...fs) => (g) => fs.forEach((f) => f(g))
+  const RED = '#C0504D', BLUE = '#5E7FC4', GREEN = '#7BAE7F', YEL = '#E3B04B', ORG = '#E0884A', PINK = '#F4B6C2', LAV = '#C9B8E0', PURP = '#5A3A8C'
+  // [ชื่อ, [[ภาพ: colors, draw], ...]]
   const specs = [
-    ['เต็มหน้า', ['#D98A6C', '#E3B04B', '#C46A8A'], (g) => { [[300, 250], [800, 300], [1300, 250], [500, 650], [1100, 650]].forEach(([x, y], i) => blob(g, ['#D98A6C', '#E3B04B', '#C46A8A'][i % 3], x, y, 420, 300, 0.8, 6)) }],
-    ['สีน้อยมุมซ้ายบน', ['#6C8FD9'], (g) => blob(g, '#6C8FD9', 230, 150, 110, 80, 0.8)],
-    ['หลายสี', ['#C0504D', '#7BAE7F', '#5E7FC4', '#E3B04B', '#9B6BC4'], (g) => { [[250, 220], [750, 640], [1250, 200], [1350, 680], [650, 200]].forEach(([x, y], i) => blob(g, ['#C0504D', '#7BAE7F', '#5E7FC4', '#E3B04B', '#9B6BC4'][i], x, y, 200, 150, 0.8)) }],
-    ['สีน้อยมุมขวาล่าง', ['#7BAE7F'], (g) => blob(g, '#7BAE7F', 1380, 730, 130, 90, 0.75)],
-    ['จางทั้งภาพ', ['#B7C4E0', '#E0C4B7'], (g) => { blob(g, '#B7C4E0', 500, 400, 600, 330, 0.55, 5); blob(g, '#E0C4B7', 1100, 450, 500, 300, 0.5, 5) }],
-    ['จุดเข้มเล็ก+จางกว้าง', ['#3F3A6E', '#D9C4E8'], (g) => { blob(g, '#D9C4E8', 800, 440, 700, 380, 0.4); blob(g, '#3F3A6E', 1400, 160, 70, 60, 0.9) }],
-    ['แถบกลางภาพ', ['#E08A4B', '#4B8AE0'], (g) => { blob(g, '#E08A4B', 800, 440, 150, 330, 0.8); blob(g, '#4B8AE0', 800, 440, 80, 200, 0.6) }],
+    ['ส้ม-เหลืองเต็มหน้า', [[[ORG, YEL], many(B(ORG, 400, 300, 420, 300, 0.8, 6), B(YEL, 1100, 560, 480, 300, 0.8, 6))]]],
+    ['ฟ้าน้อยมุมซ้ายบน', [[[BLUE], B(BLUE, 230, 150, 110, 80, 0.85, 5)]]],
+    ['แดงล้วนกลางภาพ', [[[RED], B(RED, 800, 440, 300, 220, 0.8, 6)]]],
+    ['เขียวน้อยมุมขวาล่าง', [[[GREEN], B(GREEN, 1380, 730, 130, 90, 0.8, 5)]]],
+    ['ชมพูอ่อนจาง', [[[PINK], B(PINK, 800, 440, 600, 330, 0.9, 5)]]],
+    ['ลาเวนเดอร์จาง', [[[LAV], B(LAV, 700, 400, 620, 330, 0.9, 5)]]],
+    ['แดง+น้ำเงิน (สองภาพ ผสม=ม่วง ไม่มีจริง)', [[[RED], B(RED, 600, 440, 380, 260, 0.8, 6)], [[BLUE], B(BLUE, 1000, 440, 380, 260, 0.8, 6)]]],
+    ['เหลือง+ฟ้าภาพเดียว (ผสม=เขียว ไม่มีจริง)', [[[YEL, BLUE], many(B(YEL, 420, 380, 260, 200, 0.85, 5), B(BLUE, 1200, 520, 260, 200, 0.85, 5))]]],
+    ['สามภาพ แดง/เขียว/น้ำเงิน', [[[RED], B(RED, 700, 440, 300, 220, 0.8, 5)], [[GREEN], B(GREEN, 900, 440, 300, 220, 0.8, 5)], [[BLUE], B(BLUE, 800, 440, 300, 220, 0.8, 5)]]],
+    ['ม่วงเข้มมุมขวาบน', [[[PURP], B(PURP, 1330, 170, 200, 150, 0.9, 6)]]],
+    ['จุดเข้มเล็ก+จางกว้าง', [[['#3F3A6E', '#D9C4E8'], many(B('#D9C4E8', 800, 440, 700, 380, 0.5, 5), B('#3F3A6E', 1400, 160, 70, 60, 0.9, 5))]]],
+    ['เขียว ภาพแรก + ส้ม ภาพสอง', [[[GREEN], B(GREEN, 500, 300, 330, 230, 0.8, 5)], [[ORG], B(ORG, 1150, 600, 330, 230, 0.8, 5)]]],
   ]
   const out = []
   for (let i = 0; i < specs.length; i++) {
-    const [name, colors, draw] = specs[i]
+    const [name, imgs] = specs[i]
     const date = localDateStr(addDays(new Date(), -(20 + i)))
-    const b = await paint(draw)
-    entries.entries.push({
-      id: `pc-${i}`, local_date: date, local_time: '10:00', emotion: 'calm', emotions: ['calm'], intensity: 1, shifted: false,
-      colors: colors.map((hex, k) => ({ hex, ratio: 1 / colors.length })), image: markRaw(b), thumb: markRaw(b),
-    })
+    for (let k = 0; k < imgs.length; k++) {
+      const [colors, draw] = imgs[k]
+      const b = await paint(draw)
+      const t = await thumbOf(b)
+      entries.entries.push({
+        id: `pc-${i}-${k}`, local_date: date, local_time: `1${k}:00`, emotion: 'calm', emotions: ['calm'], intensity: 1, shifted: false,
+        colors: colors.map((hex) => ({ hex, ratio: 1 / colors.length })), image: markRaw(b), thumb: markRaw(t),
+      })
+    }
     out.push({ date, name })
   }
   return out
@@ -77,55 +100,48 @@ await page.waitForTimeout(800)
 await app((a) => a.go('book'))
 await page.waitForTimeout(2500)
 
-const shots = []
+const rows = []
 for (const [i, d] of days.entries()) {
   await app((a, date) => a.openDay(date), d.date)
-  await page.waitForTimeout(2800)
-  const frame = page.locator('[data-day-frame]').first()
-  const file = join(OUT, `day${i + 1}.png`)
-  await frame.screenshot({ path: file })
-  shots.push({ file, name: d.name })
+  await page.waitForTimeout(3000)
+  const file = join(OUT, `day${String(i + 1).padStart(2, '0')}.png`)
+  await page.locator('[data-day-frame]').first().locator('..').screenshot({ path: file })
+  const info = await page.evaluate(async (date) => {
+    const pinia = document.querySelector('#app').__vue_app__.config.globalProperties.$pinia
+    const list = pinia._s.get('entries').entriesOfDay(date)
+    const { getDayCrop } = await import('/src/lib/dayCrop.js')
+    const { dayColor, nameForCrop } = await import('/src/lib/palette.js')
+    const crop = await getDayCrop(list)
+    const base = dayColor(list)
+    return { via: crop.via, score: crop.score, target: crop.target, tone: crop.toneHex ?? null, baseName: base.name.colorPart, shownName: nameForCrop(base.name, crop).colorPart, winner: crop.entryId }
+  }, d.date)
+  rows.push({ ...d, file, ...info })
 }
+writeFileSync(join(OUT, 'scores.json'), JSON.stringify(rows.map(({ file, ...r }) => r), null, 1))
+console.table(rows.map((r) => ({ name: r.name, via: r.via, score: +r.score.toFixed(3), target: r.target, base: r.baseName, shown: r.shownName })))
 
-// การ์ดจานสีของวัน (เห็นกรอบ + ชิ้นสี) ครอปเฉพาะส่วนบนของการ์ด
-const cards = await page.evaluate(async (dates) => {
-  const { makeDayCard } = await import('/src/lib/share/exporter.js')
-  const pinia = document.querySelector('#app').__vue_app__.config.globalProperties.$pinia
-  const entries = pinia._s.get('entries')
-  const urls = []
-  for (const date of dates) {
-    const { blob } = await makeDayCard(date, entries.entriesOfDay(date), 'มะลิ')
-    const bmp = await createImageBitmap(blob)
-    const c = document.createElement('canvas')
-    c.width = 1080
-    c.height = 700
-    c.getContext('2d').drawImage(bmp, 0, 0)
-    urls.push(c.toDataURL('image/png'))
-  }
-  return urls
-}, days.map((d) => d.date))
-cards.forEach((u, i) => writeFileSync(join(OUT, `card${i + 1}.png`), Buffer.from(u.split(',')[1], 'base64')))
-
-// contact sheet: แถวบน = กรอบในสมุด แถวล่าง = ส่วนบนของการ์ด
-const sheet = await page.evaluate(async ({ shots, cards }) => {
+const sheet = await page.evaluate(async (rows) => {
   const load = (s) => new Promise((res) => { const i = new Image(); i.onload = () => res(i); i.src = s })
-  const A = await Promise.all(shots.map((s) => load(s.src)))
-  const B = await Promise.all(cards.map(load))
-  const cw = 220, pad = 10, lab = 26
+  const L = await Promise.all(rows.map((r) => load(r.src)))
+  const cols = 3, cw = 412, ch = 170, pad = 12, lab = 44
+  const rowsN = Math.ceil(L.length / cols)
   const c = document.createElement('canvas')
-  c.width = A.length * (cw + pad) + pad
-  c.height = pad + lab + 220 + pad + 220 * 0.65 + pad
+  c.width = pad + cols * (cw + pad)
+  c.height = pad + rowsN * (ch + lab + pad)
   const x = c.getContext('2d')
-  x.fillStyle = '#fff'
-  x.fillRect(0, 0, c.width, c.height)
-  A.forEach((img, k) => {
-    const cx = pad + k * (cw + pad)
-    x.fillStyle = '#000'; x.font = '14px sans-serif'; x.fillText(shots[k].name, cx, pad + 16)
-    x.drawImage(img, cx, pad + lab, cw, cw * img.height / img.width)
-    x.drawImage(B[k], 0, 200, 560, 340, cx, pad + lab + 220 + pad, cw, cw * 340 / 560)
+  x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height)
+  L.forEach((img, k) => {
+    const cx = pad + (k % cols) * (cw + pad), cy = pad + Math.floor(k / cols) * (ch + lab + pad)
+    x.fillStyle = '#FBFAF6'; x.fillRect(cx, cy, cw, ch)
+    x.drawImage(img, cx, cy + (ch - img.height) / 2)
+    x.fillStyle = rows[k].target; x.beginPath(); x.arc(cx + 10, cy + ch + 14, 7, 0, 7); x.fill()
+    x.strokeStyle = '#999'; x.stroke()
+    x.fillStyle = '#000'; x.font = '13px sans-serif'
+    x.fillText(`${rows[k].name}`, cx + 24, cy + ch + 18)
+    x.fillText(`${rows[k].via === 'target' ? 'ทางหลัก (ตามสีเป้าหมาย)' : 'FALLBACK (ข้อ 49 + ตั้งชื่อใหม่)'} · score ${rows[k].score.toFixed(3)} · ชื่อ ${rows[k].baseName}${rows[k].shownName !== rows[k].baseName ? ' → ' + rows[k].shownName : ''}`, cx + 24, cy + ch + 36)
   })
   return c.toDataURL('image/png')
-}, { shots: shots.map((s) => ({ name: s.name, src: 'data:image/png;base64,' + Buffer.from(readFileSync(s.file)).toString('base64') })), cards: cards })
+}, rows.map((r) => ({ name: r.name, via: r.via, score: r.score, target: r.target, baseName: r.baseName, shownName: r.shownName, src: 'data:image/png;base64,' + readFileSync(r.file).toString('base64') })))
 writeFileSync(join(OUT, `sheet-${tag}.png`), Buffer.from(sheet.split(',')[1], 'base64'))
 console.log('sheet:', join(OUT, `sheet-${tag}.png`))
 await browser.close()

@@ -53,9 +53,9 @@ describe('groupLabel', () => {
     expect(groupLabel(one).caption).toBe('ตื่นเต้น')
     expect(groupLabel(one).time).toBe('04:05')
   })
-  it('ภาพ shifted รวมกัน: "เหนื่อย → มีแสงขึ้น ×2"', () => {
+  it('ภาพ shifted รวมกัน: "เหนื่อย → สดใสขึ้น ×2"', () => {
     const [g] = groupRuns([mk(0, '01:00', 'tired', 1, true), mk(1, '01:09', 'tired', 1, true)])
-    expect(groupLabel(g).caption).toBe('เหนื่อย → มีแสงขึ้น ×2')
+    expect(groupLabel(g).caption).toBe('เหนื่อย → สดใสขึ้น ×2')
   })
 })
 
@@ -148,9 +148,9 @@ describe('gradientStops (ไล่นุ่ม ไม่มีแถบตัด
 })
 
 describe('textWidth', () => {
-  it('ไม่นับสระ/วรรณยุกต์ที่ซ้อนอยู่ และใกล้ความกว้างที่วัดจริง (เหนื่อย → มีแสงขึ้น ≈ 111px ที่ 12px)', () => {
+  it('ไม่นับสระ/วรรณยุกต์ที่ซ้อนอยู่ และใกล้ความกว้างที่วัดจริง (เหนื่อย → สดใสขึ้น ≈ 111px ที่ 12px)', () => {
     expect(textWidth('สงบ')).toBeCloseTo(24, 5)
-    const w = textWidth('เหนื่อย → มีแสงขึ้น')
+    const w = textWidth('เหนื่อย → สดใสขึ้น')
     expect(w).toBeGreaterThanOrEqual(111) // ประมาณเผื่อ ไม่ต่ำกว่าจริงที่ 12px (วัดที่ 16px ได้ 148 → 12px ≈ 111)
     expect(w).toBeLessThan(135)
   })
@@ -162,7 +162,7 @@ describe('helpers', () => {
     expect(timeIcon('12:00')).toBe('sun')
     expect(timeIcon('18:59')).toBe('sun')
     expect(timeIcon('19:00')).toBe('moon')
-    expect(ribbonCaption(mk(0, '01:00', 'tired', 1, true))).toBe('เหนื่อย → มีแสงขึ้น')
+    expect(ribbonCaption(mk(0, '01:00', 'tired', 1, true))).toBe('เหนื่อย → สดใสขึ้น')
     expect(ribbonCaption(mk(0, '01:00', 'sad'))).toBe('เศร้า')
   })
   it('เรียงตามเวลา', () => {

@@ -69,6 +69,7 @@ export const EMOTION_COLORS = {
 }
 
 export const FONT_SIZES = {
+  cap: '7.5px', // คำบรรยายใต้โพลารอยด์ (ข้อ 50c ~50% ของ 15px)
   11: '11px',
   12: '12px',
   13: '13px',

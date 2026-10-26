@@ -10,7 +10,7 @@
       <Tape class="left-[30px] top-[-12px] !h-6 !w-[70px]" :rotate="-6" />
       <div class="flex items-start gap-2.5">
         <WarmDrop note class="shrink-0 text-ink" />
-        <span class="font-hand text-19 font-semibold leading-stack">ลองแต้มแสง<br />ลงไปสักนิดไหม</span>
+        <span class="font-hand text-19 font-semibold leading-stack">ลองเติมสีสดใส<br />ลงไปสักนิดไหม</span>
       </div>
       <div class="flex items-center gap-2">
         <button type="button" class="min-h-[44px] flex-grow cursor-pointer rounded-[14px_16px_12px_18px] border-2 border-ink bg-ink font-hand text-16 font-semibold text-paper" @click="app.tryWarm()">ลองดู</button>

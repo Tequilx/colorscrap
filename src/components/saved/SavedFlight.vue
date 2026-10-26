@@ -30,7 +30,7 @@ const props = defineProps({ flight: { type: Object, required: true } })
 
 const entry = computed(() => props.flight.entry)
 const rot = computed(() => photoRotation(entry.value.id))
-const caption = computed(() => `${entry.value.local_time} · ${emotionLabel(entry.value)}${entry.value.shifted ? ' → มีแสงขึ้น' : ''}`)
+const caption = computed(() => `${entry.value.local_time} · ${emotionLabel(entry.value)}${entry.value.shifted ? ' → สดใสขึ้น' : ''}`)
 const fromPaper = Boolean(props.flight.canvas)
 const poses = flightPoses({ target: props.flight.target, rotate: rot.value.rotate, fromPaper })
 

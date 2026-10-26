@@ -69,7 +69,7 @@ export const makeDayCard = async (date, entries, userName) => {
         bitmaps.push(bmp)
       }
     }
-    return { blob: await renderDayCard({ date, entries, thumbs, crop, userName }), filename: dayCardFileName(date) }
+    return { blob: await renderDayCard({ date, entries, thumbs, crop, cropInfo: cropped, userName }), filename: dayCardFileName(date) }
   } finally {
     bitmaps.forEach(closeBitmap)
   }
