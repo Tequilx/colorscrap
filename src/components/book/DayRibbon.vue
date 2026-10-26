@@ -25,10 +25,10 @@
           :class="[lastHighlight(s) ? 'text-ink' : 'text-ink-2', hiddenLabel(s) ? 'opacity-0' : 'opacity-100']"
           :style="{ left: (s.box.x0 + s.box.x1) / 2 + 'px', top: s.box.y0 + 'px' }"
         >
-          <span class="inline-flex items-center gap-1 font-body text-14" :class="lastHighlight(s) ? 'font-semibold' : 'font-normal text-ink-soft'">
-            <Doodle :name="s.icon" :size="14" /> {{ s.time }}
+          <span class="inline-flex items-center gap-1 font-body text-11" :class="lastHighlight(s) ? 'font-semibold' : 'font-normal text-ink-soft'">
+            <Doodle :name="s.icon" :size="12" /> {{ s.time }}
           </span>
-          <span v-if="s.level === 2" class="mt-0.5 font-hand text-15" :class="lastHighlight(s) ? 'font-bold' : 'font-semibold'">{{ s.caption }}</span>
+          <span v-if="s.level === 2" class="mt-px font-hand text-12" :class="lastHighlight(s) ? 'font-bold' : 'font-semibold'">{{ s.caption }}</span>
         </div>
       </template>
     </div>

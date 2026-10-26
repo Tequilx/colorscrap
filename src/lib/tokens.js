@@ -66,6 +66,8 @@ export const EMOTION_COLORS = {
 }
 
 export const FONT_SIZES = {
+  11: '11px',
+  12: '12px',
   13: '13px',
   14: '14px',
   15: '15px',

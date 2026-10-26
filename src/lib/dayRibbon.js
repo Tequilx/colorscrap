@@ -6,17 +6,17 @@ import { entryWeight, rankedColors } from '@/lib/palette'
 import { hexToRgb } from '@/lib/color'
 
 export const BLEND_FRAC = 0.07 // รอยต่อซึมเข้าหากัน ~7% ของความกว้างแถบ (สองฝั่งรวมกัน)
-export const LABEL_FULL_MIN = 90 // ช่วงแคบกว่านี้ใช้ป้ายเวลาอย่างเดียว (ระดับ 1)
-export const LABEL_NONE_MIN = 40 // ซ่อนป้ายได้เฉพาะช่วงที่แคบกว่านี้
+export const LABEL_FULL_MIN = 72 // ช่วงแคบกว่านี้ใช้ป้ายเวลาอย่างเดียว (ระดับ 1)
+export const LABEL_NONE_MIN = 32 // ซ่อนป้ายได้เฉพาะช่วงที่แคบกว่านี้ (ป้ายเล็กลงครึ่งหนึ่งในข้อ 44 จึงลดจาก 40)
 export const LABEL_GAP = 2 // ระยะห่างขั้นต่ำระหว่างป้าย (px) ความกว้างที่ประมาณเผื่อไว้เกินจริง ~2–6px อยู่แล้ว ระยะจริงจึง ≥ 4px
-export const LABEL_TOP = 8 // ขอบบนของป้ายแถวแรก นับจากใต้แถบ (ที่ว่างสำหรับขีดบอกกลางช่วง)
-export const ROW_STEP = 24 // ป้ายเยื้องกันทีละแถว (วางสลับบน/ล่างแทนการซ่อน)
+export const LABEL_TOP = 5 // ขอบบนของป้ายแถวแรก นับจากใต้แถบ (ที่ว่างสำหรับขีดบอกกลางช่วง)
+export const ROW_STEP = 19 // ป้ายเยื้องกันทีละแถว (วางสลับบน/ล่างแทนการซ่อน)
 export const MAX_ROWS = 4
-export const H1 = 22 // สูงของป้ายเวลาอย่างเดียว (14px × leading-thai 1.5 = 21)
-export const H2 = 46 // สูงของป้ายเวลา + อารมณ์ (21 + 2 + 15px × 1.5)
-export const CHAR_W = 10 // ความกว้างต่อ 1 ตัวอักษรฐานที่ 15px Mali ตัวหนา (วัดที่ 16px ได้ 9.8–11.3 → ที่ 15px ราว 9.2–10.6; สระ/วรรณยุกต์ที่ซ้อนอยู่ไม่นับ)
-export const TIME_W = 66 // ไอคอน + HH:MM
-export const RANGE_W = 112 // ไอคอน + HH:MM–HH:MM
+export const H1 = 17 // สูงของป้ายเวลาอย่างเดียว (11px × leading-thai 1.5 = 16.5)
+export const H2 = 37 // สูงของป้ายเวลา + อารมณ์ (16.5 + 1 + 12px × 1.5)
+export const CHAR_W = 8 // (ข้อ 44: ตัวอักษร 12px จาก 15px) เดิม 10 // ความกว้างต่อ 1 ตัวอักษรฐานที่ 15px Mali ตัวหนา (วัดที่ 16px ได้ 9.8–11.3 → ที่ 15px ราว 9.2–10.6; สระ/วรรณยุกต์ที่ซ้อนอยู่ไม่นับ)
+export const TIME_W = 52 // ไอคอน + HH:MM
+export const RANGE_W = 88 // ไอคอน + HH:MM–HH:MM
 
 // ความกว้างข้อความโดยประมาณ: นับเฉพาะตัวอักษรฐาน (ไม่นับสระบน/ล่างและวรรณยุกต์ของภาษาไทยที่ไม่กินความกว้าง)
 export const textWidth = (str) => [...str].filter((c) => !/[\u0E31\u0E34-\u0E3A\u0E47-\u0E4E]/.test(c)).length * CHAR_W
@@ -161,11 +161,12 @@ export const gradientStops = (segs, width) => {
 }
 
 // ---- markup ของรอยพู่กัน (ใช้ทั้ง DayRibbon.vue และการ์ดเก็บรูป: การ์ดแปลง SVG นี้เป็นภาพแล้ววาดลง canvas ไม่วาดแถบใหม่) ----
-export const RIBBON_H = 84 // สูงพื้นที่แถบ
-export const RIBBON_BAR_H = 56
-export const RIBBON_PAD = 20 // เผื่อขอบ region ของฟิลเตอร์ (px)
-const HALO_H = RIBBON_BAR_H + 8
-const MAIN_H = RIBBON_BAR_H - 8
+// ข้อ 44: แถบเตี้ยลงครึ่งหนึ่ง (เดิมพื้นที่ 84 / แถบ 56 / ฮาโล ±4 / ตัวแถบ ±4 / pad 20) ฟิลเตอร์ปรับตามสัดส่วน (ความถี่ ×2, scale/เบลอ ×½)
+export const RIBBON_H = 42 // สูงพื้นที่แถบ
+export const RIBBON_BAR_H = 28
+export const RIBBON_PAD = 10 // เผื่อขอบ region ของฟิลเตอร์ (px)
+const HALO_H = RIBBON_BAR_H + 4
+const MAIN_H = RIBBON_BAR_H - 4
 const HALO_Y = (RIBBON_H - HALO_H) / 2
 const MAIN_Y = (RIBBON_H - MAIN_H) / 2
 export const RIBBON_MAIN = { y: MAIN_Y, h: MAIN_H }
@@ -180,12 +181,12 @@ export const ribbonSvgMarkup = (segs, width, p) => {
   const fill = `fill="url(#${p}-g)"`
   return `<defs>
 <linearGradient id="${p}-g" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="${width}" y2="0">${stops}</linearGradient>
-<filter id="${p}-fm" ${region}><feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="3" seed="6" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="9" result="d"/><feGaussianBlur in="d" stdDeviation="0.8"/></filter>
-<filter id="${p}-fh" ${region}><feTurbulence type="fractalNoise" baseFrequency="0.05" numOctaves="2" seed="13" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="14" result="d"/><feGaussianBlur in="d" stdDeviation="2.2"/></filter>
+<filter id="${p}-fm" ${region}><feTurbulence type="fractalNoise" baseFrequency="0.07" numOctaves="3" seed="6" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="4.5" result="d"/><feGaussianBlur in="d" stdDeviation="0.4"/></filter>
+<filter id="${p}-fh" ${region}><feTurbulence type="fractalNoise" baseFrequency="0.1" numOctaves="2" seed="13" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="7" result="d"/><feGaussianBlur in="d" stdDeviation="1.1"/></filter>
 <filter id="${p}-gr" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="3" stitchTiles="stitch"/><feColorMatrix values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.12 0"/></filter>
 <clipPath id="${p}-c"><rect x="0" y="${MAIN_Y}" width="${width}" height="${MAIN_H}" rx="${MAIN_H * 0.4}"/></clipPath>
 </defs>
-<g filter="url(#${p}-fh)" opacity="0.35"><rect x="-4" y="${HALO_Y}" width="${width + 8}" height="${HALO_H}" rx="${HALO_H * 0.4}" ${fill}/></g>
+<g filter="url(#${p}-fh)" opacity="0.35"><rect x="-2" y="${HALO_Y}" width="${width + 4}" height="${HALO_H}" rx="${HALO_H * 0.4}" ${fill}/></g>
 <g filter="url(#${p}-fm)" opacity="0.85"><rect x="0" y="${MAIN_Y}" width="${width}" height="${MAIN_H}" rx="${MAIN_H * 0.4}" ${fill}/></g>
 <g clip-path="url(#${p}-c)" opacity="0.5"><rect x="0" y="${MAIN_Y}" width="${width}" height="${MAIN_H}" fill="transparent" filter="url(#${p}-gr)"/></g>`
 }

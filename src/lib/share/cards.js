@@ -180,7 +180,7 @@ export const renderPhotoCard = async ({ entry, image = null, userName = '' }) =>
 // กรอบสีของวันและแถบสีของวันเป็น SVG เดียวกับในสมุด (lib/dayFrame.js, lib/dayRibbon.js) แปลงเป็นภาพแล้ว drawImage: ไม่วาดแถบใหม่ด้วย Canvas 2D
 // ป้ายเวลา/อารมณ์ใต้แถบใช้ layoutRibbon ตัวเดียวกับในแอป (รวมช่วง เยื้องแถว) วางที่สเกล RIB_K
 
-const RIB_K = 1.3 // หน่วยของแถบในแอป → px ของการ์ด (ตัวอักษรป้าย 14/15px → ~18/20px)
+const RIB_K = 1.8 // หน่วยของแถบในแอป → px ของการ์ด (ข้อ 44: ป้าย 11/12px ในแอป → ~20/22px บนการ์ด แถบเตี้ยลงครึ่งหนึ่งเหมือนในแอป)
 const RIB_X = 72
 const RIB_W = 936
 
@@ -206,8 +206,8 @@ const drawRibbonLabels = (ctx, segs, top) => {
     ctx.stroke()
     const cx = RIB_X + ((s.box.x0 + s.box.x1) / 2) * k
     const y = top + s.box.y0 * k
-    drawText(ctx, s.time, cx, y, { size: 14 * k, kind: 'body', color: C.soft, align: 'center' })
-    if (s.level === 2) drawText(ctx, s.caption, cx, y + 14 * k * 1.5 + 2 * k, { size: 15 * k, weight: 600, kind: 'hand', color: C.ink2, align: 'center' })
+    drawText(ctx, s.time, cx, y, { size: 11 * k, kind: 'body', color: C.soft, align: 'center' })
+    if (s.level === 2) drawText(ctx, s.caption, cx, y + 11 * k * 1.5 + 1 * k, { size: 12 * k, weight: 600, kind: 'hand', color: C.ink2, align: 'center' })
   })
   ctx.restore()
 }

@@ -42,30 +42,29 @@
           </div>
         </div>
 
-        <!-- แถบสีของวันตามลำดับเวลา: ไล่จากซ้ายไปขวาตอนเข้าสมุด (DayRibbon animate reveal ตาม bookTick เหมือน stagger เดิม) -->
-        <div class="absolute left-10 top-[230px] flex w-[412px] flex-col gap-2">
-          <span class="pal-fade font-hand text-17 font-semibold" :style="reveal(3, 'fade')">สีของวันตามลำดับเวลา</span>
-          <DayRibbon :entries="entries" animate="reveal" :delay="ribbonDelay" :width="412" />
-        </div>
+        <!-- ส่วนล่างของหน้า (ข้อ 44) เรียงไหลลงเป็นคอลัมน์เดียว: หัวข้อ → แถบสี + ป้าย (สูงตามจำนวนแถวป้าย) → ย่อหน้าสรุป (เว้น 20px จากป้าย) → รายการอารมณ์ (เว้น 12px) เห็น 3 แถวเต็ม
+             รายการเกินพื้นที่ → เลื่อนได้ในกล่อง กล่องรวมสูงคงที่ไม่ดันส่วนท้ายของหน้า -->
+        <div class="absolute left-10 top-[230px] flex h-[300px] w-[412px] flex-col">
+          <span class="pal-fade font-hand text-17 font-semibold leading-head" :style="reveal(3, 'fade')">สีของวันตามลำดับเวลา</span>
+          <DayRibbon class="mt-2" :entries="entries" animate="reveal" :delay="ribbonDelay" :width="412" />
 
-        <!-- สรุปอารมณ์ของวัน (ข้อ 39): ประโยคทักบรรทัดบน + รายการ หยดสี · ชื่ออารมณ์ · จำนวนภาพ เรียงมาก→น้อย
-             เกินพื้นที่ → เลื่อนได้ในกล่อง (ขอบจางด้านล่างบอกว่ายังมีต่อ) กล่องสูงคงที่ ไม่ดันส่วนอื่น -->
-        <div class="pal-rise absolute left-10 top-[452px] flex h-[84px] w-[412px] flex-col gap-0.5 text-ink-2" :style="reveal(2, 'rise')">
-          <p class="m-0 text-15 leading-thai">{{ summary.greeting }}</p>
-          <ul
-            ref="moodList"
-            class="mood-list m-0 min-h-0 flex-1 list-none overflow-y-auto p-0 pr-1"
-            :class="moreBelow ? 'mood-fade' : ''"
-            aria-label="อารมณ์ของวันนี้ เรียงจากมากไปน้อย"
-            tabindex="0"
-            @scroll="checkScroll"
-          >
-            <li v-for="row in summary.rows" :key="row.key" class="flex h-[26px] items-center gap-2 text-15 leading-thai">
-              <WatercolorBlob :color="row.hex" :width="22" :height="16" :opacity="0.85" />
-              <span class="font-hand font-semibold">{{ row.th }}</span>
-              <span class="text-ink-soft">{{ row.n }} ภาพ</span>
-            </li>
-          </ul>
+          <div class="pal-rise mt-[28px] flex min-h-0 flex-1 flex-col text-ink-2" :style="reveal(2, 'rise')">
+            <p class="m-0 text-15 leading-thai" data-mood-text>{{ summary.text }}<template v-if="summary.greet"> {{ summary.greet }}</template></p>
+            <ul
+              ref="moodList"
+              class="mood-list m-0 mt-3 min-h-0 flex-1 list-none overflow-y-auto p-0 pr-1"
+              :style="{ '--ft': moreAbove ? '18px' : '0px', '--fb': moreBelow ? '18px' : '0px', '--ta': moreAbove ? 0 : 1, '--tb': moreBelow ? 0 : 1, maxHeight: '72px' }"
+              aria-label="อารมณ์ของวันนี้ เรียงจากมากไปน้อย"
+              tabindex="0"
+              @scroll="checkScroll"
+            >
+              <li v-for="row in summary.rows" :key="row.key" class="flex h-6 items-center gap-2 text-15 leading-thai">
+                <WatercolorBlob :color="row.hex" :width="22" :height="16" :opacity="0.85" />
+                <span class="font-hand font-semibold">{{ row.th }}</span>
+                <span class="text-ink-soft">{{ row.n }} ภาพ</span>
+              </li>
+            </ul>
+          </div>
         </div>
       </template>
 
@@ -155,36 +154,44 @@ const dayPart = (time) => {
   return 'ค่ำ'
 }
 
-// สรุปท้ายหน้า (SPEC §5.7): ประโยคทักจาก template (ไม่ใช้ AI) + รายการอารมณ์ เรียงมาก→น้อย เสมอกันใช้ภาพล่าสุด
+// สรุปท้ายหน้า (SPEC §5.7): ประโยคสรุปจาก template (ไม่ใช้ AI) + ประโยคทัก (ภาพ ≥ 5) ต่อท้ายย่อหน้าเดียวกัน + รายการอารมณ์ เรียงมาก→น้อย เสมอกันใช้ภาพล่าสุด
 const summary = computed(() => {
   const list = props.entries
-  if (!list.length) return { greeting: '', rows: [] }
+  if (!list.length) return { text: '', greet: '', rows: [] }
   const th = (key) => EMOTION_BY_KEY[key].th
   const lastIndex = (key) => list.map((e) => e.emotion).lastIndexOf(key)
   const ranked = [...counts.value.entries()].sort((a, b) => b[1] - a[1] || lastIndex(b[0]) - lastIndex(a[0]))
   const rows = ranked.map(([key, n]) => ({ key, n, th: th(key), hex: EMOTION_BY_KEY[key].hex }))
-  if (list.length >= 5) return { greeting: 'วันนี้แวะมาบ่อยเลยนะ', rows }
+  const greet = list.length >= 5 ? 'วันนี้แวะมาบ่อยเลยนะ' : ''
   const [main, second] = ranked
-  if (!second) return { greeting: list.length === 1 ? `${th(main[0])} ตอน${dayPart(list[0].local_time)}` : `${th(main[0])}ทั้งวันเลย`, rows }
+  if (!second) return { text: list.length === 1 ? `${th(main[0])} ตอน${dayPart(list[0].local_time)}` : `${th(main[0])}ทั้งวันเลย`, greet, rows }
   const secondEntry = list[lastIndex(second[0])]
   const shiftedNote = secondEntry.shifted ? 'ที่ค่อย ๆ มีแสงขึ้น' : ''
-  return { greeting: `ส่วนใหญ่${th(main[0])} มีช่วง${th(second[0])}ตอน${dayPart(secondEntry.local_time)}${shiftedNote}`, rows }
+  return { text: `ส่วนใหญ่${th(main[0])} มีช่วง${th(second[0])}ตอน${dayPart(secondEntry.local_time)}${shiftedNote}`, greet, rows }
 })
 
-// ขอบจางด้านล่างของรายการ: แสดงเมื่อยังเลื่อนลงได้อีก
+// ขอบจางของรายการ: ด้านล่างเมื่อยังเลื่อนลงได้ ด้านบนเฉพาะเมื่อเลื่อนลงไปแล้ว เปิดวัน/เปลี่ยนวันเริ่มที่บนสุดเสมอ
 const moodList = ref(null)
 const moreBelow = ref(false)
+const moreAbove = ref(false)
 const checkScroll = () => {
   const el = moodList.value
   moreBelow.value = Boolean(el) && el.scrollHeight - el.scrollTop - el.clientHeight > 2
+  moreAbove.value = Boolean(el) && el.scrollTop > 2
 }
-watch(() => [props.entries, props.date], () => nextTick(checkScroll), { immediate: false })
-onMounted(() => nextTick(checkScroll))
+const resetScroll = () => {
+  if (moodList.value) moodList.value.scrollTop = 0
+  checkScroll()
+}
+watch(() => [props.entries, props.date], () => nextTick(resetScroll))
+onMounted(() => nextTick(resetScroll))
 </script>
 
 <style>
 /* รายการอารมณ์: scrollbar บางสีตาม token (ink-soft/line) เลื่อนด้วยนิ้วได้ ขอบจางด้านล่างเมื่อยังมีต่อ */
 .mood-list {
+  -webkit-mask-image: linear-gradient(to bottom, rgba(0, 0, 0, var(--ta, 1)), #000 var(--ft, 0px), #000 calc(100% - var(--fb, 0px)), rgba(0, 0, 0, var(--tb, 1)));
+  mask-image: linear-gradient(to bottom, rgba(0, 0, 0, var(--ta, 1)), #000 var(--ft, 0px), #000 calc(100% - var(--fb, 0px)), rgba(0, 0, 0, var(--tb, 1)));
   scrollbar-width: thin;
   scrollbar-color: theme('colors.faint') transparent;
   touch-action: pan-y;
@@ -195,10 +202,6 @@ onMounted(() => nextTick(checkScroll))
 }
 .mood-list::-webkit-scrollbar-thumb {
   @apply rounded-full bg-faint;
-}
-.mood-fade {
-  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 22px), transparent);
-  mask-image: linear-gradient(to bottom, #000 calc(100% - 22px), transparent);
 }
 /* animation-fill-mode: backwards ให้ซ่อนอยู่ระหว่างรอ delay โดยไม่ต้องมี state และไม่ขวางการกดปุ่ม */
 .pal-seep {

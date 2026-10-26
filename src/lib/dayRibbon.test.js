@@ -148,11 +148,11 @@ describe('gradientStops (ไล่นุ่ม ไม่มีแถบตัด
 })
 
 describe('textWidth', () => {
-  it('ไม่นับสระ/วรรณยุกต์ที่ซ้อนอยู่ และใกล้ความกว้างที่วัดจริง (เหนื่อย → มีแสงขึ้น ≈ 139px ที่ 15px)', () => {
-    expect(textWidth('สงบ')).toBeCloseTo(30, 5)
+  it('ไม่นับสระ/วรรณยุกต์ที่ซ้อนอยู่ และใกล้ความกว้างที่วัดจริง (เหนื่อย → มีแสงขึ้น ≈ 111px ที่ 12px)', () => {
+    expect(textWidth('สงบ')).toBeCloseTo(24, 5)
     const w = textWidth('เหนื่อย → มีแสงขึ้น')
-    expect(w).toBeGreaterThanOrEqual(139) // ประมาณเผื่อ ไม่ต่ำกว่าจริงที่ 15px (วัดที่ 16px ได้ 148 → 15px ≈ 139)
-    expect(w).toBeLessThan(165)
+    expect(w).toBeGreaterThanOrEqual(111) // ประมาณเผื่อ ไม่ต่ำกว่าจริงที่ 12px (วัดที่ 16px ได้ 148 → 12px ≈ 111)
+    expect(w).toBeLessThan(135)
   })
 })
 
