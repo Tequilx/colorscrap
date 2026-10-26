@@ -1,5 +1,5 @@
 <template>
-  <div class="flex flex-col gap-2.5 border-t-[1.5px] border-dashed border-[#C4C0B7] pt-[22px]">
+  <div class="flex flex-col gap-2.5 border-t-[1.5px] border-dashed border-faint pt-[22px]">
     <span class="text-14 text-ink-soft">7 วันล่าสุด</span>
     <ul class="m-0 flex list-none gap-3 p-0">
       <li v-for="d in days" :key="d.date" class="flex w-[46px] flex-col items-center gap-1">

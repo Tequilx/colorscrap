@@ -18,9 +18,9 @@
         <!-- การ์ดชาร์ตสี (สไตล์บัตรตัวอย่างสี) -->
         <div ref="cardRef" data-photo="card" class="pointer-events-auto box-border w-[460px] shrink-0 rounded-[22px_26px_20px_24px] border-2 border-ink bg-white px-7 pb-6 pt-5 shadow-[0_24px_44px_rgba(45,43,51,0.24)]">
           <div class="flex items-start justify-between gap-3">
-            <div class="flex flex-col">
-              <h2 class="m-0 font-hand text-26 font-semibold leading-[1.2]">สีในภาพนี้</h2>
-              <span class="text-14 text-ink-soft">{{ entry.local_time }} · {{ emotion.th }}{{ entry.shifted ? ' → อุ่นขึ้น' : '' }} · {{ INTENSITY_LABELS[entry.intensity] }}</span>
+            <div class="flex flex-col gap-1">
+              <h2 class="m-0 font-hand text-26 font-semibold leading-head">สีในภาพนี้</h2>
+              <span class="text-14 text-ink-soft">{{ entry.local_time }} · {{ emotion.th }}{{ entry.shifted ? ' → สดใสขึ้น' : '' }} · {{ INTENSITY_LABELS[entry.intensity] }}</span>
             </div>
             <HandButton ref="closeRef" variant="secondary" @click="close"><Doodle name="close" :size="20" /> ปิด</HandButton>
           </div>
@@ -33,7 +33,7 @@
                   <path :d="swab(c.ratio)" fill="none" :stroke="c.hex" stroke-width="20" stroke-linecap="round" />
                 </g>
               </svg>
-              <span class="flex flex-col leading-tight">
+              <span class="flex flex-col leading-thai">
                 <code class="font-mono text-13 text-ink-2">{{ c.hex.toUpperCase() }}</code>
                 <span class="font-hand text-17 font-semibold">{{ pct[i] }}%</span>
               </span>
@@ -43,6 +43,22 @@
           <!-- แถบสัดส่วนรวมท้ายการ์ด -->
           <div class="mt-3 border-t-[1.5px] border-dashed border-line pt-3">
             <ColorStrip :colors="entry.colors" :height="16" rounded="rounded-[6px]" />
+          </div>
+
+          <!-- เก็บรูปไว้ (SPEC ส่วนที่ 2 §1): สร้างรูปในเครื่อง iPad เปิดหน้าแชร์ เครื่องอื่นดาวน์โหลดเป็น PNG -->
+          <div class="mt-3 flex flex-col gap-2.5 border-t-[1.5px] border-dashed border-line pt-3.5">
+            <span class="font-hand text-16 font-semibold">เก็บรูปไว้</span>
+            <div class="flex gap-2.5">
+              <button type="button" :disabled="share.busy['photo-card']" class="save-btn grow" @click="share.photoCard(entry)">
+                <span class="save-frame border-ink bg-ink" aria-hidden="true"></span>
+                <span class="relative inline-flex items-center gap-2 text-paper"><Doodle name="download" :size="20" /> {{ share.busy['photo-card'] ? 'กำลังทำรูป…' : 'การ์ดพร้อมชาร์ตสี' }}</span>
+              </button>
+              <button type="button" :disabled="share.busy['photo-only']" class="save-btn px-4" @click="share.photoOnly(entry)">
+                <span class="save-frame border-ink bg-white" aria-hidden="true"></span>
+                <span class="relative inline-flex items-center gap-2 text-ink"><Doodle name="image" :size="20" /> {{ share.busy['photo-only'] ? 'กำลังทำรูป…' : 'เฉพาะภาพ' }}</span>
+              </button>
+            </div>
+            <span class="text-[12px] text-ink-soft">{{ saveHint }}</span>
           </div>
         </div>
       </div>
@@ -63,11 +79,16 @@ import { photoRotation } from '@/lib/photos'
 import { centerInStage, flightTransforms } from '@/lib/flip'
 import { ms, reducedMotion } from '@/lib/motion'
 import { MOTION } from '@/lib/tokens'
+import { startWet, stopWet } from '@/lib/wetPhoto'
 import { useAppStore } from '@/stores/app'
 import { useEntriesStore } from '@/stores/entries'
+import { useShareStore } from '@/stores/share'
 
 const app = useAppStore()
 const entries = useEntriesStore()
+const share = useShareStore()
+// เครื่องที่แชร์ไฟล์ได้ (iPad) จะเปิดหน้าแชร์ เครื่องอื่นดาวน์โหลดไฟล์ ข้อความกำกับจึงต่างกัน
+const saveHint = share.canShare() ? 'บน iPad จะเปิดหน้าแชร์ กด "บันทึกรูปภาพ" เพื่อเก็บลงคลังรูป' : 'ไฟล์จะถูกดาวน์โหลดเป็น PNG'
 const closeRef = ref(null)
 const cardRef = ref(null)
 let opener = null // ปุ่มที่เปิดภาพ (คืนโฟกัสให้ตอนปิด)
@@ -75,7 +96,7 @@ let opener = null // ปุ่มที่เปิดภาพ (คืนโฟ
 const active = computed(() => app.view === 'photo')
 const entry = computed(() => entries.entries.find((e) => e.id === app.photoEntryId) ?? null)
 const emotion = computed(() => EMOTION_BY_KEY[entry.value?.emotion ?? 'calm'])
-const caption = computed(() => (entry.value ? `${entry.value.local_time} · ${emotionLabel(entry.value)}${entry.value.shifted ? ' → อุ่นขึ้น' : ''}` : ''))
+const caption = computed(() => (entry.value ? `${entry.value.local_time} · ${emotionLabel(entry.value)}${entry.value.shifted ? ' → สดใสขึ้น' : ''}` : ''))
 // หน้า photo ใช้ภาพเต็ม สร้าง URL เฉพาะตอนเปิดดู (ปิดแล้วคืนหน่วยความจำ)
 const imageUrl = useEntryImage(() => (active.value ? entry.value : null), 'image')
 // ระหว่างบินใช้ thumb ก่อน (เดียวกับที่เห็นในสมุด) แล้วสลับเป็นภาพเต็มหลังบินจบและ decode เสร็จ ไม่สลับกลางทางให้ decode ไม่ทำให้กระตุก
@@ -127,6 +148,7 @@ const play = (node, frames, options) => {
   return a.finished
 }
 const onCancel = () => {
+  stopWet()
   running.forEach((a) => a.cancel())
   running = []
   app.photoFlying = false
@@ -178,11 +200,14 @@ const onEnter = (el, done) => {
   fly(el, () => {
     done()
     showFull()
+    // ภาพที่เปิดดูเดี่ยวพลิ้วเบา ๆ ~3 วิหลังลอยลงที่ (ภาพที่เพิ่งแปะถูกหยุดอัตโนมัติ: เล่นทีละภาพเท่านั้น)
+    startWet(el.querySelector('[data-wet-target]'))
   }, true)
 }
 
 // ออก: ซ่อนช่องในสมุดไว้จนภาพบินถึง แล้วค่อยเลิกซ่อนพร้อมถอดภาพบิน (เฟรมเดียวกัน) แล้วคืนโฟกัสให้ปุ่มที่เปิด
 const onLeave = (el, done) => {
+  stopWet() // ปิดภาพ: เลิกพลิ้วทันที (ถอดฟิลเตอร์ก่อนภาพบินกลับ)
   app.photoHiddenId = app.photoEntryId
   fly(el, () => {
     app.photoHiddenId = null
@@ -239,3 +264,38 @@ watch(active, async (on) => {
   }
 })
 </script>
+
+<style scoped>
+/* ปุ่มเก็บรูป: กรอบมุมโค้งไม่เท่ากันแบบวาดมือ ใส่ filter wob ที่กรอบเท่านั้น (ตัวหนังสือไม่โดน) hover เฉพาะอุปกรณ์ที่มีเมาส์ */
+.save-btn {
+  position: relative;
+  display: inline-flex;
+  min-height: 52px;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  background: transparent;
+  padding: 0 14px;
+  font-family: theme('fontFamily.hand');
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.save-btn:disabled {
+  cursor: progress;
+  opacity: 0.6;
+}
+.save-frame {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  border-width: 2px;
+  border-radius: 16px 20px 14px 18px;
+  filter: url(#wob);
+}
+@media (hover: hover) {
+  .save-btn:not(:disabled):hover .save-frame {
+    @apply bg-ink-2;
+  }
+}
+</style>

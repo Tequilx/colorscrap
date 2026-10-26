@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<title>ColorScrap การ์ดภาพพร้อมชาร์ตสี</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mali:wght@400;500;600;700&amp;family=IBM+Plex+Sans+Thai+Looped:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="position: relative; width: 1080px; height: 1350px; overflow: hidden; background: #FBFAF6; color: #2D2B33; font-family: 'IBM Plex Sans Thai Looped', system-ui, sans-serif">
+  <svg width="0" height="0" style="position: absolute" aria-hidden="true">
+    <defs>
+      <filter id="wc" x="-30%" y="-30%" width="160%" height="160%"><feTurbulence type="fractalNoise" baseFrequency="0.014" numOctaves="3" seed="5" result="n"></feTurbulence><feDisplacementMap in="SourceGraphic" in2="n" scale="30" result="d"></feDisplacementMap><feGaussianBlur in="d" stdDeviation="1.4"></feGaussianBlur></filter>
+      <filter id="wct" x="-10%" y="-60%" width="120%" height="220%"><feTurbulence type="fractalNoise" baseFrequency="0.05" numOctaves="2" seed="4" result="n"></feTurbulence><feDisplacementMap in="SourceGraphic" in2="n" scale="9" result="d"></feDisplacementMap><feGaussianBlur in="d" stdDeviation="0.6"></feGaussianBlur></filter>
+      <filter id="grain"><feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="3" stitchTiles="stitch"></feTurbulence><feColorMatrix values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.10 0"></feColorMatrix></filter>
+    </defs>
+  </svg>
+
+  <div style="position: absolute; left: 72px; top: 56px; width: 936px; display: flex; justify-content: space-between; align-items: center">
+    <span style="display: inline-flex; align-items: center; gap: 10px; font-family: Mali, sans-serif; font-weight: 600; font-size: 32px">
+      <svg width="26" height="32" viewBox="0 0 26 32" aria-hidden="true"><path d="M13 2 C13 2 3 15 3 21 A10 10 0 0 0 23 21 C23 15 13 2 13 2 Z" fill="#B7A6CF" stroke="#2D2B33" stroke-width="2"></path></svg>
+      ColorScrap
+    </span>
+    <span style="font-size: 26px; color: #5E5B66">อังคาร 13 ตุลาคม 2569</span>
+  </div>
+
+  <div style="position: absolute; left: 130px; top: 150px; width: 820px; box-sizing: border-box; padding: 22px 22px 90px; background: #FFFFFF; transform: rotate(-1.5deg); box-shadow: 0 8px 26px rgba(45, 43, 51, 0.20)">
+    <div style="position: absolute; left: 320px; top: -22px; width: 180px; height: 44px; background: rgba(230, 215, 176, 0.9); transform: rotate(-1.5deg)"></div>
+    <svg width="776" height="548" viewBox="0 0 170 120" style="display: block; background: #FBFAF6" aria-label="ภาพสีน้ำที่ระบาย">
+      <g filter="url(#wc)">
+        <path d="M85 18 C118 14 142 38 140 62 C138 92 108 106 80 102 C50 98 28 80 32 54 C36 32 58 21 85 18Z" transform="translate(-26 -10) scale(1.2)" fill="#B7A6CF" fill-opacity="0.55"></path>
+        <path d="M85 18 C118 14 142 38 140 62 C138 92 108 106 80 102 C50 98 28 80 32 54 C36 32 58 21 85 18Z" transform="translate(40 20) scale(0.62)" fill="#8E76B4" fill-opacity="0.55"></path>
+        <path d="M85 18 C118 14 142 38 140 62 C138 92 108 106 80 102 C50 98 28 80 32 54 C36 32 58 21 85 18Z" transform="translate(-10 62) scale(0.4)" fill="#6E4FA0" fill-opacity="0.6"></path>
+        <path d="M85 18 C118 14 142 38 140 62 C138 92 108 106 80 102 C50 98 28 80 32 54 C36 32 58 21 85 18Z" transform="translate(110 64) scale(0.42)" fill="#6E4FA0" fill-opacity="0.45"></path>
+      </g>
+    </svg>
+    <div style="display: flex; width: 776px; height: 28px; margin-top: 18px; border-radius: 14px; overflow: hidden; filter: url(#wct)">
+      <sc-for list="{{colors}}" as="c" hint-placeholder-count="5">
+        <div style="width: {{c.sw}}px; height: 28px; background: {{c.hex}}"></div>
+      </sc-for>
+    </div>
+    <span style="position: absolute; left: 30px; bottom: 22px; font-family: Mali, sans-serif; font-size: 40px; color: #3E3C45">00:24 · กังวล · พอประมาณ</span>
+  </div>
+
+  <div style="position: absolute; left: 112px; top: 900px; width: 856px; display: flex; flex-direction: column; gap: 14px">
+    <span style="font-family: Mali, sans-serif; font-weight: 700; font-size: 34px">สีในภาพนี้</span>
+    <div style="border-top: 2px dashed #CFCBC3; padding-top: 16px; display: flex; flex-direction: column; gap: 14px">
+      <sc-for list="{{colors}}" as="c" hint-placeholder-count="5">
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 24px">
+          <div style="width: {{c.bw}}px; height: 28px; border-radius: 14px; background: {{c.hex}}; filter: url(#wct)"></div>
+          <div style="width: 240px; display: flex; align-items: baseline; justify-content: flex-end; gap: 16px">
+            <code style="font-family: ui-monospace, Menlo, monospace; font-size: 20px; color: #3E3C45">{{c.hex}}</code>
+            <span style="width: 70px; text-align: right; font-family: Mali, sans-serif; font-weight: 700; font-size: 28px">{{c.pct}}%</span>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+
+  <div style="position: absolute; left: 72px; bottom: 48px; width: 936px; display: flex; justify-content: space-between; align-items: center; border-top: 2px dashed #CFCBC3; padding-top: 20px">
+    <span style="font-family: Mali, sans-serif; font-size: 28px">โดย {{masked}}</span>
+    <span style="font-size: 22px; color: #5E5B66">สมุดระบายความรู้สึก</span>
+  </div>
+
+  <svg width="1080" height="1350" style="position: absolute; left: 0; top: 0; pointer-events: none" aria-hidden="true"><rect width="1080" height="1350" filter="url(#grain)"></rect></svg>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1080,"height":1350}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const raw = [
+      { hex: '#B7A6CF', pct: 46 },
+      { hex: '#DED8E3', pct: 24 },
+      { hex: '#8E76B4', pct: 14 },
+      { hex: '#6E4FA0', pct: 10 },
+      { hex: '#E9E5E8', pct: 6 }
+    ];
+    const max = Math.max.apply(null, raw.map((c) => c.pct));
+    const colors = raw.map((c) => ({
+      hex: c.hex, pct: c.pct,
+      bw: Math.max(140, Math.round(580 * c.pct / max)),
+      sw: Math.round(776 * c.pct / 100)
+    }));
+    return { colors: colors, masked: 'ส••จ' };
+  }
+}
+</script>
+</body>
+</html>

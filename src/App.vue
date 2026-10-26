@@ -32,9 +32,10 @@
       <PhotoView />
       <LegacyPrompt />
       <Toast />
+      <SoundToggle />
       <!-- ปุ่มนำทางของหน้า book -->
       <Transition name="fade">
-        <div v-if="app.view === 'book'" class="absolute left-[124px] top-7">
+        <div v-if="app.view === 'book'" class="absolute left-[124px] top-6">
           <HandButton variant="secondary" @click="app.go('cover')"><Doodle name="back" :size="22" /> หน้าแรก</HandButton>
         </div>
       </Transition>
@@ -52,6 +53,10 @@ import Scrapbook from '@/components/book/Scrapbook.vue'
 import EmotionPalette from '@/components/pick/EmotionPalette.vue'
 import LegacyPrompt from '@/components/auth/LegacyPrompt.vue'
 import Toast from '@/components/ui/Toast.vue'
+import SoundToggle from '@/components/ui/SoundToggle.vue'
+import { attachSound, sound } from '@/lib/sound'
+import { installCursors } from '@/lib/cursors'
+import { attachMusic } from '@/lib/music'
 import LoginCard from '@/components/auth/LoginCard.vue'
 import HelloSheet from '@/components/hello/HelloSheet.vue'
 import AccountActions from '@/components/hello/AccountActions.vue'
@@ -77,6 +82,18 @@ const auth = useAuthStore()
 const entries = useEntriesStore()
 
 useHashView(app, profile, auth)
+
+// เสียง (src/lib/sound.js): สร้างระบบเสียงหลังแตะครั้งแรก + เสียงแตะกระดาษเบามากเมื่อกดปุ่ม/ลิงก์
+attachSound()
+attachMusic() // เพลงคลอ (เริ่มหลังแตะครั้งแรก)
+installCursors() // เคอร์เซอร์นิ้วชี้ (เฉพาะเมาส์)
+// การ์ดอารมณ์ (data-no-tap) ไม่มีเสียงแตะ: ให้ได้ยินเสียงจุ่มพู่กันเสียงเดียว (ข้อ 53d)
+const tapSound = (e) => {
+  const hit = e.target?.closest?.('button, a, [role="button"]')
+  if (hit && !hit.hasAttribute('data-no-tap')) sound.tap()
+}
+window.addEventListener('pointerdown', tapSound, true)
+onBeforeUnmount(() => window.removeEventListener('pointerdown', tapSound, true))
 
 // session หมดอายุหรือออกจากระบบ (โหมดจริง): ล้างข้อมูลของคนก่อนแล้วกลับหน้า login
 watch(
@@ -116,7 +133,7 @@ const Kit = showKit ? defineAsyncComponent(() => import('@/KitGallery.vue')) : n
 <style>
 .fade-enter-active,
 .fade-leave-active {
-  transition: opacity 450ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  transition: opacity calc(450ms * var(--motion-scale, 1)) cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 .fade-enter-from,
 .fade-leave-to {

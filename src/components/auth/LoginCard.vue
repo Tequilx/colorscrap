@@ -7,9 +7,9 @@
   >
     <Tape class="left-[190px] top-[-12px]" long :rotate="2" />
 
-    <div class="flex flex-col gap-1">
-      <span class="text-14 text-ink-soft">ColorScrap · สมุดสีน้ำ</span>
-      <h1 class="m-0 font-hand text-38 font-semibold leading-[1.2]">{{ signingUp ? 'เริ่มสมุดเล่มใหม่' : 'เปิดสมุดของฉัน' }}</h1>
+    <div class="flex flex-col gap-3">
+      <BrandMark variant="lockup" :size="68" tagline />
+      <h1 class="m-0 font-hand text-38 font-semibold leading-head">{{ signingUp ? 'เริ่มสมุดเล่มใหม่' : 'เปิดสมุดของฉัน' }}</h1>
     </div>
 
     <div class="flex flex-col gap-1.5">
@@ -21,7 +21,7 @@
         autocomplete="email"
         inputmode="email"
         placeholder="you@example.com"
-        class="border-0 border-b-2 border-dashed border-[#8E8A93] bg-transparent px-0.5 py-1.5 font-hand text-26 text-ink outline-offset-4"
+        class="border-0 border-b-2 border-dashed border-mute bg-transparent px-0.5 py-1.5 font-hand text-26 text-ink outline-offset-4"
       />
     </div>
 
@@ -33,7 +33,7 @@
         type="password"
         :autocomplete="signingUp ? 'new-password' : 'current-password'"
         :placeholder="signingUp ? 'อย่างน้อย 6 ตัว' : ''"
-        class="border-0 border-b-2 border-dashed border-[#8E8A93] bg-transparent px-0.5 py-1.5 font-hand text-26 text-ink outline-offset-4"
+        class="border-0 border-b-2 border-dashed border-mute bg-transparent px-0.5 py-1.5 font-hand text-26 text-ink outline-offset-4"
       />
     </div>
 
@@ -53,6 +53,7 @@
 
 <script setup>
 import { ref, computed } from 'vue'
+import BrandMark from '@/components/ui/BrandMark.vue'
 import Tape from '@/components/ui/Tape.vue'
 import Doodle from '@/components/ui/Doodle.vue'
 import HandButton from '@/components/ui/HandButton.vue'

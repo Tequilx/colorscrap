@@ -37,3 +37,6 @@ __screenshots__/
 
 # Vite
 *.timestamp-*-*.mjs
+
+# ภาพการ์ดตัวอย่างจาก scripts/render-cards.mjs
+scripts/out/

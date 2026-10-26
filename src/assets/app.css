@@ -3,6 +3,14 @@
 @tailwind components;
 @tailwind utilities;
 
+/* เคอร์เซอร์นิ้วชี้ทั่วแอป เฉพาะเมาส์/แทร็กแพด (--cursor-finger ตั้งโดย lib/cursors.js; จอสัมผัสไม่ตั้ง จึงไม่เปลี่ยนอะไร)
+   ยกเว้นองค์ประกอบที่ตั้งเคอร์เซอร์เองด้วย data-cursor (ชั้นรับ pointer ของผ้าใบ: เคอร์เซอร์เปลี่ยนตามเครื่องมือ) */
+@media (pointer: fine) {
+  *:not([data-cursor]) {
+    cursor: var(--cursor-finger, auto) !important;
+  }
+}
+
 @layer base {
   html,
   body,
@@ -21,7 +29,7 @@
 
   /* focus ที่มองเห็นชัด (SPEC §10) */
   :focus-visible {
-    outline: 3px dashed #5fa3c8;
+    outline: 3px dashed theme('colors.e.calm');
     outline-offset: 4px;
   }
 }

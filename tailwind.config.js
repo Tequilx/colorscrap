@@ -1,4 +1,4 @@
-import { PALETTE, EMOTION_COLORS, FONT_SIZES, MOTION } from './src/lib/tokens.js'
+import { PALETTE, EMOTION_COLORS, FONT_SIZES, LEADING, MOTION } from './src/lib/tokens.js'
 
 /** @type {import('tailwindcss').Config} */
 export default {
@@ -19,6 +19,7 @@ export default {
         body: ['"IBM Plex Sans Thai Looped"', '"Noto Sans Thai"', 'system-ui', 'sans-serif'],
         mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace'],
       },
+      lineHeight: LEADING, // leading-thai / leading-head / leading-stack
       fontSize: FONT_SIZES, // text-13 ... text-52 (px ตาม stage 1280×800)
       borderRadius: {
         hand: '18px 22px 16px 24px', // ปุ่มทรงลายมือ

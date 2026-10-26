@@ -10,6 +10,7 @@ import { EMOTION_COLORS, MOTION } from '@/lib/tokens'
 import { NEGATIVE_EMOTIONS } from '@/lib/emotions'
 import { reducedMotion, sequenceActive, TIME_SCALE } from '@/lib/motion'
 import { POLAROID, saveSchedule, slotCenter } from '@/lib/saveTimeline'
+import { sound, duckMusic } from '@/lib/sound'
 
 // สถานะของโต๊ะ (SPEC §4.1) แทนการใช้ router
 export const VIEWS = Object.freeze({
@@ -60,11 +61,11 @@ export const useAppStore = defineStore('app', () => {
   // ผ้าใบมีภาพที่ยังไม่บันทึก (หยดเริ่มต้นก็นับ) และอารมณ์ที่หยดลงแผ่นนี้ตามลำดับ (SPEC §5.3, §7.2)
   const canvasDirty = ref(false)
   const sheetEmotions = ref([])
-  // ผู้ใช้หยดสีอุ่นเองลงแผ่นนี้แล้วอย่างน้อย 1 หยด (SPEC §6.4) ตั้งโดย FluidCanvas
+  // ผู้ใช้หยดแต้มแสงเองลงแผ่นนี้แล้วอย่างน้อย 1 หยด (SPEC §6.4) ตั้งโดย FluidCanvas
   const sheetShifted = ref(false)
-  // โน้ตชวนลองสีอุ่น ถามได้ครั้งเดียวต่อแผ่น: idle → open → done (เริ่มใหม่/แผ่นใหม่/บันทึก = กลับเป็น idle)
+  // โน้ตชวนลองแต้มแสง ถามได้ครั้งเดียวต่อแผ่น: idle → open → done (เริ่มใหม่/แผ่นใหม่/บันทึก = กลับเป็น idle)
   const warmNote = ref('idle')
-  // เพิ่มเมื่อกด "ลองดู" ให้ผ้าใบหยดสีอุ่น 1 หยดที่ขอบกระดาษ
+  // เพิ่มเมื่อกด "ลองดู" ให้ผ้าใบหยดแต้มแสง 1 หยดที่ขอบกระดาษ
   const warmTick = ref(0)
   let pickFrom = null // view ที่มาก่อนเข้า pick ใช้ตัดสินว่าเป็น "เปลี่ยนสี" หรือเริ่มระบายใหม่
   // เพิ่มทุกครั้งที่เข้า book จาก view อื่น (ไม่นับกลับจาก photo) ให้จานสีประจำวันเล่นการปรากฏทีละส่วนใหม่
@@ -78,7 +79,9 @@ export const useAppStore = defineStore('app', () => {
   const leafFlipping = ref(false) // แผ่นแทรกกำลังพลิก
   const photoFlying = ref(false) // ภาพกำลังบินเข้า/ออกหน้า photo
   watch(savePhase, (phase) => (sequenceActive.value = phase !== 'idle'), { flush: 'sync' }) // sync: อัปโหลดที่ตามหลัง addEntry ต้องเห็นค่านี้ทันที
-  const busy = computed(() => savePhase.value !== 'idle' || leafFlipping.value || photoFlying.value)
+  // กำลังสาดสีตอนเข้าหน้า paint (FluidCanvas ตั้งค่า): ยังไม่ให้บันทึกจนหยดลงครบ
+  const splashing = ref(false)
+  const busy = computed(() => savePhase.value !== 'idle' || leafFlipping.value || photoFlying.value || splashing.value)
   // ผู้ขับลำดับ (timer/WAAPI) ลงทะเบียนวิธียกเลิกตัวเองไว้ เรียกตอนปุ่ม back ข้ามหน้าหรือออกจากระบบกลางลำดับ
   const cancellers = new Set()
   const onCancel = (fn) => {
@@ -96,15 +99,23 @@ export const useAppStore = defineStore('app', () => {
   // ผ้าใบ (FluidCanvas) ลงทะเบียนตัวเองไว้ที่นี่ ใช้ตัวแปรธรรมดาไม่ใช้ ref เพื่อไม่ให้ Vue ครอบ proxy
   let painter = null
 
-  // อารมณ์ล่าสุดของแผ่นเป็นอารมณ์ลบ: เครื่องมือ "สีอุ่น" และโน้ตชวนจึงโผล่ (SPEC §6.4)
+  // อารมณ์ล่าสุดของแผ่นเป็นอารมณ์ลบ: เครื่องมือ "แต้มแสง" และโน้ตชวนจึงโผล่ (SPEC §6.4)
   const warmAvailable = computed(() => NEGATIVE_EMOTIONS.includes(sheetEmotions.value.at(-1) ?? selection.value.emotion))
-  // เปลี่ยนไปอารมณ์บวกขณะเลือกเครื่องมือสีอุ่นอยู่ → กลับไปปาดสี
+  // เปลี่ยนไปอารมณ์บวกขณะเลือกเครื่องมือแต้มแสงอยู่ → กลับไปปาดสี
   watch(warmAvailable, (ok) => {
     if (!ok && tool.value === 'warm') tool.value = 'smear'
   })
   const warmNoteOpen = computed(() => warmNote.value === 'open' && warmAvailable.value)
   const resetWarmNote = () => {
     warmNote.value = 'idle'
+    moodFolded.value = false // แผ่นใหม่ โน้ตอารมณ์เปิดเต็มเหมือนเดิม
+  }
+  // โน้ตอารมณ์บนหน้าระบาย (MoodCard): แตะผ้าใบครั้งแรกของแผ่น → เก็บเป็นแถบที่ขอบขวา กดแถบเพื่อกางกลับ จำสถานะไว้จนจบแผ่น
+  const moodFolded = ref(false)
+  const foldMood = (on) => {
+    if (moodFolded.value === on) return
+    moodFolded.value = on
+    sound.paperSlide(!on)
   }
   // FluidCanvas แจ้งว่าระบายรวมครบและพักมือแล้ว
   const offerWarmNote = () => {
@@ -118,7 +129,7 @@ export const useAppStore = defineStore('app', () => {
     tool.value = 'warm'
     warmTick.value += 1
   }
-  // เลือกเครื่องมือจากถาด: เลือกสีอุ่นเองก็ปิดโน้ต
+  // เลือกเครื่องมือจากถาด: เลือกแต้มแสงเองก็ปิดโน้ต
   const pickTool = (key) => {
     tool.value = key
     if (key === 'warm') warmNote.value = 'done'
@@ -127,6 +138,14 @@ export const useAppStore = defineStore('app', () => {
   const leavesOf = (date) => chunk(useEntriesStore().entriesOfDay(date), PHOTOS_PER_LEAF)
 
   // เปิดวันที่ในสมุดแล้วไปที่แผ่นล่าสุดของวันนั้นเสมอ (SPEC §5.6)
+  // เปลี่ยนวันด้วยแท็บ/ปุ่มวัน: พลิกหน้ากระดาษ (PhotoPage อ่านแล้วเคลียร์) / เปิดวันตอนเปิดสมุดใช้ openDay ตรง ๆ ไม่พลิก
+  // pageTurn = { dir: 'next' | 'prev', id } ให้ OpenBook เก็บภาพหน้าเดิมก่อนข้อมูลเปลี่ยนแล้วเล่นพลิกหน้าหนังสือ (next = วันใหม่กว่า: หน้าขวายกพลิกไปซ้าย / prev = วันเก่ากว่า: หน้าซ้ายยกพลิกไปขวา)
+  const pageTurn = ref(null)
+  const turnToDay = (date) => {
+    if (date === openDate.value || busy.value) return
+    pageTurn.value = { dir: date > openDate.value ? 'next' : 'prev', id: Date.now() + Math.random() }
+    openDay(date)
+  }
   const openDay = (date) => {
     openDate.value = date
     leafIndex.value = Math.max(0, leavesOf(date).length - 1)
@@ -147,6 +166,7 @@ export const useAppStore = defineStore('app', () => {
     // กลับจาก saved/photo คงวันและแผ่นเดิมไว้ ไม่รีเซ็ตไปแผ่นล่าสุด
     if (next === VIEWS.book && from !== VIEWS.saved && from !== VIEWS.photo) openBook()
     if (next === VIEWS.book && from !== VIEWS.photo) bookTick.value += 1
+    if (next === VIEWS.book && from !== VIEWS.saved && from !== VIEWS.photo) sound.flip({ long: true }) // เปิดสมุด
     if (next === VIEWS.pick) pickFrom = from
     // เข้า paint ตอนผ้าใบว่างหรือเพิ่งบันทึก: หยดสีของอารมณ์ที่เลือกทันที (SPEC §5.3)
     // ถ้ามีภาพค้างอยู่ beginPaint / continueSheet / newSheet เป็นผู้ตัดสินแล้ว
@@ -237,6 +257,7 @@ export const useAppStore = defineStore('app', () => {
   // พลิกแผ่นโดยผู้ใช้ (ล้างป้าย "แผ่นใหม่")
   const setLeaf = (index) => {
     if (leafFlipping.value || savePhase.value !== 'idle') return // กำลังพลิก/บันทึก: กดซ้ำจะข้ามแผ่น
+    if (leafIndex.value !== index) sound.flip()
     leafIndex.value = index
     freshLeaf.value = null
   }
@@ -264,6 +285,7 @@ export const useAppStore = defineStore('app', () => {
     freshLeaf.value = null
     helloEditing.value = false
     clearTick.value += 1 // ล้างผ้าใบ
+    splashing.value = false
     canvasDirty.value = false
     sheetEmotions.value = []
     sheetShifted.value = false
@@ -274,13 +296,19 @@ export const useAppStore = defineStore('app', () => {
     painter = instance
   }
 
+  const nextFrame = () => new Promise((resolve) => requestAnimationFrame(() => resolve()))
+
   // จับภาพจากผ้าใบ → ดูดสี (SPEC §6.6) ถ้าจับภาพไม่ได้ (ไม่มี WebGL) ใช้สีอารมณ์แทน
   const grabPainting = async () => {
     const fallback = EMOTION_COLORS[sheetEmotions.value.at(-1) ?? selection.value.emotion]
     const canvas = await painter?.capture()
     if (!canvas) return { colors: [{ hex: fallback, ratio: 1 }], images: null, canvas: null }
     // canvas ส่งต่อให้ SavedFlight ใช้เป็นภาพที่หดลงเป็นโพลารอยด์ (ไม่ต้อง decode ภาพใหม่)
-    return { colors: extractColors(canvas, fallback), images: await exportImages(canvas), canvas: markRaw(canvas) }
+    // แบ่งงานหนักข้ามเฟรม (ดูดสี ~17ms, เข้ารหัสภาพอีกก้อน) ไม่ให้งานเดียวทำให้เฟรมเกิน 50ms ตอนเริ่มลำดับบันทึก
+    await nextFrame()
+    const colors = extractColors(canvas, fallback)
+    await nextFrame()
+    return { colors, images: await exportImages(canvas), canvas: markRaw(canvas) }
   }
 
   // ลำดับแอนิเมชันหลังบันทึก (SPEC §5.4 ≈1.6s): state/timer อยู่ที่นี่ ตัวภาพบินเล่นเองใน SavedFlight ด้วยตารางเวลาเดียวกัน
@@ -322,6 +350,8 @@ export const useAppStore = defineStore('app', () => {
       clearPaper()
       settleLeaf()
       enter(VIEWS.saved)
+      sound.tape()
+      duckMusic(MOTION.fade + 900)
       savePhase.value = 'card'
       at(MOTION.fade, () => {
         savePhase.value = 'idle'
@@ -340,6 +370,8 @@ export const useAppStore = defineStore('app', () => {
       schedule: sch,
     }
     savePhase.value = 'shrink'
+    duckMusic(sch.total) // ลดเสียงเพลงครึ่งหนึ่งตลอดลำดับบันทึก
+    sound.paperRise(MOTION.save.shrink + MOTION.save.bookAt)
     at(32, clearPaper) // ให้ภาพบินขึ้นจอก่อนค่อยล้างผ้าใบ (ไม่เห็นกะพริบ)
     at(sch.book[0], () => {
       enter(VIEWS.saved) // กระดานเลื่อนซ้าย สมุดเลื่อนเข้า
@@ -347,6 +379,7 @@ export const useAppStore = defineStore('app', () => {
     })
     if (sch.leaf) {
       at(sch.leaf[0], () => {
+        sound.flip()
         settleLeaf()
         savePhase.value = 'leaf'
       })
@@ -355,6 +388,7 @@ export const useAppStore = defineStore('app', () => {
       savePhase.value = 'drop'
     })
     at(sch.tape[0], () => {
+      sound.tape()
       savePhase.value = 'tape'
     })
     at(sch.tape[1], () => {
@@ -373,7 +407,7 @@ export const useAppStore = defineStore('app', () => {
 
   // บันทึกภาพบนผ้าใบลงสมุด (SPEC §5.3 → §5.4)
   const saveToBook = async () => {
-    if (saving.value) return null
+    if (saving.value || splashing.value) return null
     saving.value = true
     // ล็อกกดซ้ำไว้ตลอดจนจบ และปลดเสมอ (finally) ไม่ให้ปุ่มบันทึกค้างเงียบ ๆ ถ้าพลาดกลางทาง
     try {
@@ -427,8 +461,12 @@ export const useAppStore = defineStore('app', () => {
     sheetEmotions,
     sheetShifted,
     warmAvailable,
+    pageTurn,
+    turnToDay,
     warmNote,
     warmNoteOpen,
+    moodFolded,
+    foldMood,
     warmTick,
     offerWarmNote,
     dismissWarmNote,
@@ -441,6 +479,7 @@ export const useAppStore = defineStore('app', () => {
     leafFlipping,
     photoFlying,
     busy,
+    splashing,
     onCancel,
     cancelSequences,
     registerPainter,

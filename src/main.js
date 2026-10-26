@@ -4,6 +4,7 @@ import App from "./App.vue";
 import { useAuthStore } from "@/stores/auth";
 import { useProfileStore } from "@/stores/profile";
 import { useEntriesStore } from "@/stores/entries";
+import "./fonts";
 import "./assets/app.css";
 
 const app = createApp(App);

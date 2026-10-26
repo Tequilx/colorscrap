@@ -59,10 +59,10 @@ describe('nameOfDay (SPEC §8.2)', () => {
   })
 
   const base = [e('09:00', CALM), e('10:00', CALM), e('18:45', CALM), e('11:05', HAPPY), e('16:30', EXCITED)]
-  it('ไม่ใช้สีอุ่น (tired ไม่ปรับโทน) = ฟ้าอมชมพูยามเย็น', () => {
+  it('ไม่ใช้แต้มแสง (tired ไม่ปรับโทน) = ฟ้าอมชมพูยามเย็น', () => {
     expect(nameOf([...base, e('14:00', TIRED)])).toBe('ฟ้าอมชมพูยามเย็น')
   })
-  it('ใช้สีอุ่น (tired ปรับโทน) = ฟ้าอมเหลืองยามเย็น', () => {
+  it('ใช้แต้มแสง (tired ปรับโทน) = ฟ้าอมเหลืองยามเย็น', () => {
     const shifted = { local_time: '14:00', intensity: 1, colors: [{ hex: TIRED, ratio: 0.7 }, { hex: '#F7DE99', ratio: 0.3 }] }
     expect(nameOf([...base, shifted])).toBe('ฟ้าอมเหลืองยามเย็น')
   })

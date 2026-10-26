@@ -3,7 +3,7 @@
   <svg :width="width" :height="height" :viewBox="viewBox" aria-hidden="true">
     <g :filter="`url(#${filterId})`">
       <!-- ขอบสีเดียวกับเนื้อสี อยู่ใน group filter เดียวกัน ให้ขอบเข้มแบบสีน้ำแห้ง -->
-      <path :d="d" :fill="color" :fill-opacity="opacity" :stroke="color" :stroke-opacity="strokeOpacity" :stroke-width="kind === 'timeline' ? 1 : 2" />
+      <path :d="d" :fill="color" :fill-opacity="opacity" :stroke="pale ? PALETTE.line : color" :stroke-opacity="pale ? 1 : strokeOpacity" :stroke-width="pale ? 1.2 : kind === 'timeline' ? 1 : 2" />
     </g>
   </svg>
 </template>
@@ -11,6 +11,8 @@
 <script setup>
 import { computed } from 'vue'
 import { BLOB_PATHS, timelineDrop } from '@/lib/doodles'
+import { isPale } from '@/lib/color'
+import { PALETTE } from '@/lib/tokens'
 
 const props = defineProps({
   color: { type: String, required: true },
@@ -24,6 +26,8 @@ const props = defineProps({
 const FILTERS = { large: 'wc', small: 'wcm', timeline: 'wct' }
 const VIEWBOXES = { large: '0 0 300 260', small: '0 0 170 120', timeline: '0 0 40 100' }
 
+// สีสว่างมาก (L > 90%) กลืนกระดาษ: ใส่ขอบจาง ๆ สี line รอบหยด (บิดขอบพร้อมหยดด้วยฟิลเตอร์เดียวกัน) ไม่เปลี่ยนสีที่เติมและไม่เปลี่ยน %
+const pale = computed(() => isPale(props.color))
 const filterId = computed(() => FILTERS[props.kind])
 const viewBox = computed(() => VIEWBOXES[props.kind])
 // timeline: วางฐานหยดกลาง viewBox ของตัวเอง (กว้าง 40) ตำแหน่งบนเส้นเวลาให้แม่เลื่อนด้วย CSS

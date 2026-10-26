@@ -6,14 +6,14 @@
     :inert="!active"
     :aria-hidden="!active"
   >
-    <div class="absolute left-8 top-7">
+    <div class="absolute left-8 top-6">
       <HandButton variant="secondary" @click="app.go('cover')">
         <Doodle name="back" :size="22" /> หน้าแรก
       </HandButton>
     </div>
 
-    <div class="absolute left-0 top-16 flex w-[1280px] flex-col items-center gap-2">
-      <h1 class="m-0 font-hand text-44 font-semibold leading-[1.2]">ตอนนี้รู้สึกแบบไหน?</h1>
+    <div class="absolute left-0 top-16 flex w-[1280px] flex-col items-center gap-3">
+      <h1 class="m-0 font-hand text-44 font-semibold leading-head">ตอนนี้รู้สึกแบบไหน?</h1>
       <p class="m-0 text-[18px] text-ink-soft">เลือกสีที่ใกล้ที่สุดหนึ่งสี ไม่มีคำตอบผิด</p>
     </div>
 
@@ -25,6 +25,7 @@
           v-for="e in EMOTIONS"
           :key="e.key"
           type="button"
+          data-no-tap
           :aria-pressed="app.selection.emotion === e.key"
           class="flex h-[150px] cursor-pointer flex-col items-center justify-center gap-0.5 rounded-[18px_22px_16px_20px] border-2 p-0 font-hand text-19 font-semibold text-ink transition-[transform,background-color,border-color,box-shadow] duration-450 ease-desk"
           :class="app.selection.emotion === e.key ? 'border-ink -translate-y-[5px] -rotate-1' : 'border-transparent bg-paper hover:-rotate-[6deg] hover:scale-105 active:scale-[0.98] motion-reduce:hover:rotate-0 motion-reduce:hover:scale-100'"
@@ -36,6 +37,8 @@
         </button>
       </div>
     </div>
+
+    <PickBrush />
 
     <div class="absolute left-0 top-[590px] flex w-[1280px] items-center justify-center gap-3.5">
       <span class="mr-1.5 font-hand text-17 font-semibold">เข้มข้นแค่ไหน</span>
@@ -80,6 +83,7 @@ import { computed, ref, watch } from 'vue'
 import HandButton from '@/components/ui/HandButton.vue'
 import Doodle from '@/components/ui/Doodle.vue'
 import EmotionBlob from '@/components/ui/EmotionBlob.vue'
+import PickBrush from '@/components/pick/PickBrush.vue'
 import { EMOTIONS, EMOTION_BY_KEY, INTENSITY_LABELS } from '@/lib/emotions'
 import { BLOB_PATHS } from '@/lib/doodles'
 import { useAppStore } from '@/stores/app'

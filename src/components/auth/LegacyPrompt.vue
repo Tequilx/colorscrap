@@ -7,7 +7,7 @@
       aria-label="ย้ายภาพเก่าเข้าสมุด"
       class="absolute bottom-8 left-8 z-40 box-border flex w-[340px] -rotate-[0.8deg] flex-col gap-3 bg-paper px-6 py-5 shadow-card"
     >
-      <span class="font-hand text-19 font-semibold leading-[1.3]">พบภาพ {{ entries.legacyCount }} ภาพที่บันทึกไว้ในเครื่องนี้</span>
+      <span class="font-hand text-19 font-semibold leading-stack">พบภาพ {{ entries.legacyCount }} ภาพที่บันทึกไว้ในเครื่องนี้</span>
       <span class="text-14 text-ink-soft">จะย้ายเข้าสมุดของบัญชีนี้ไหม</span>
       <div class="flex gap-2">
         <HandButton variant="secondary" :disabled="busy" @click="move">ย้ายขึ้น</HandButton>

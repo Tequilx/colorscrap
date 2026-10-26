@@ -1,10 +1,9 @@
 <template>
   <!-- ภาพโพลารอยด์กว้าง 196px มีเทปและคำบรรยายลายมือ (SPEC §5.5) -->
-  <figure class="relative m-0 box-border w-[196px] bg-white px-[9px] pt-[9px] shadow-photo"
-    :class="palette.length ? 'pb-[46px]' : 'pb-8'" :style="{ transform: `rotate(${rotate}deg)` }">
+  <PolaroidFrame class="w-[196px] px-[9px] pt-[9px]" :style="{ paddingBottom: padBottom }" :rotate="rotate">
     <Tape v-if="tape" class="left-[56px] top-[-11px]" :rotate="tapeRotate" />
     <!-- ช่องภาพสัดส่วนเท่ากระดาษวาด 1112:612 ภาพจริงจึงไม่ถูกตัดขอบ (178×~98) -->
-    <div class="aspect-[1112/612] w-[178px] overflow-hidden bg-paper">
+    <div data-wet-target class="aspect-[1112/612] w-[178px] overflow-hidden bg-paper">
       <!-- ภาพจริงของผู้ใช้: สัดส่วนเดียวกับช่อง -->
       <img v-if="src" :src="src" :alt="alt" draggable="false" class="block h-full w-full object-cover" />
       <slot v-else>
@@ -20,19 +19,25 @@
     <!-- คำบรรยายกับป้ายอยู่แถว flex เดียวกันคนละฝั่ง คำบรรยายยาวเกินให้ตัดด้วย ellipsis -->
     <!-- แถบสีที่ดูดได้จากภาพ ใต้ตัวภาพ เหนือคำบรรยาย -->
     <ColorStrip v-if="palette.length" :colors="palette" class="mt-1.5" />
-    <figcaption class="absolute inset-x-3 bottom-1.5 flex items-center justify-between gap-2 font-hand text-15 text-ink-soft">
-      <span class="min-w-0 flex-1 truncate" :title="caption">{{ caption }}</span>
+    <!-- คำบรรยาย 16px (ข้อ 52e แทนข้อ 51a; การ์ดดาวน์โหลดใช้ขนาดของตัวเอง) ยาวมี "→" ตัดสองบรรทัดที่ลูกศร ขอบล่างขยายตามให้ไม่แน่น -->
+    <figcaption class="absolute inset-x-3 bottom-2 flex items-end justify-between gap-2 font-hand text-16 leading-thai text-ink-soft">
+      <span class="min-w-0 flex-1" :title="caption">
+        <span class="block truncate">{{ lines[0] }}</span>
+        <span v-if="lines[1]" class="block truncate">{{ lines[1] }}</span>
+      </span>
       <span v-if="badge" class="shrink-0 rounded-[10px] bg-cover px-2 text-13 font-semibold text-white">{{ badge }}</span>
     </figcaption>
-  </figure>
+  </PolaroidFrame>
 </template>
 
 <script setup>
+import { computed } from 'vue'
+import PolaroidFrame from '@/components/ui/PolaroidFrame.vue'
 import Tape from '@/components/ui/Tape.vue'
 import ColorStrip from '@/components/ui/ColorStrip.vue'
 import { BLOB_PATHS } from '@/lib/doodles'
 
-defineProps({
+const props = defineProps({
   caption: { type: String, default: '' },
   // URL ภาพจริง (object URL) ถ้าไม่ใส่แสดงหยดสีจำลองจาก colors
   src: { type: String, default: null },
@@ -47,5 +52,16 @@ defineProps({
   badge: { type: String, default: '' },
   // false = ไม่ใส่เทป (ลำดับบันทึกแปะเทปเองทีหลัง)
   tape: { type: Boolean, default: true },
+})
+
+// ตัดสองบรรทัดที่ " → " (บรรทัดสองขึ้นต้นด้วยลูกศร) ไม่ตัดกลางคำ
+const lines = computed(() => {
+  const k = props.caption.indexOf(' → ')
+  return k < 0 ? [props.caption] : [props.caption.slice(0, k), props.caption.slice(k + 1)]
+})
+// ขอบล่าง: แถบสี 14 + คำบรรยาย 24 ต่อบรรทัด + เว้น 8 (ไม่มีแถบสี: 8 + บรรทัด)
+const padBottom = computed(() => {
+  const base = props.palette.length ? 14 : 0
+  return `${base + 24 * lines.value.length + 8}px`
 })
 </script>

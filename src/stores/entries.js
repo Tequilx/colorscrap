@@ -7,17 +7,19 @@ import { useAuthStore } from '@/stores/auth'
 import { useImageUrlsStore } from '@/stores/imageUrls'
 import { useUploadQueueStore } from '@/stores/uploadQueue'
 import { EMOTION_COLORS } from '@/lib/tokens'
-import { emotionShades, SHIFT_TARGETS } from '@/lib/emotions'
+import { emotionShades, WARM_TONES, warmShade } from '@/lib/emotions'
 import { uuid } from '@/lib/uuid'
 import { addDays, localDateStr, parseLocalDate, thaiWeekdayShort } from '@/lib/dates'
 import { dominantColorOfDay } from '@/lib/palette'
+import { clearDayCrops } from '@/lib/dayCrop'
 import { emotionShades as shadesOf } from '@/lib/emotions'
 
 // สีที่ "ดูดได้" ของภาพจำลอง: รูปแบบเดียวกับ entries.colors ใน SPEC §7.2 (ratio รวม 1)
 const mockColors = (emotion, shifted) => {
   const shades = emotionShades(emotion)
   if (shifted) {
-    const [t1, t2] = SHIFT_TARGETS[emotion]
+    const t1 = WARM_TONES[emotion]
+    const t2 = warmShade(t1, 1)
     return [
       { hex: EMOTION_COLORS[emotion], ratio: 0.4 },
       { hex: t1, ratio: 0.25 },
@@ -159,6 +161,7 @@ export const useEntriesStore = defineStore('entries', () => {
     useUploadQueueStore().stop()
     entries.value = USE_MOCK ? buildMock() : []
     imageUrls.clear()
+    clearDayCrops()
   }
 
   const entriesOfDay = (date) =>

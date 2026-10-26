@@ -1,5 +1,5 @@
 <template>
-  <!-- โน้ตชวนลองสีอุ่น (ครั้งเดียวต่อแผ่น) โผล่ใต้การ์ดอารมณ์ ตามแบบ 3b-warm-tool — SPEC §5.3 -->
+  <!-- โน้ตชวนลองแต้มแสง (ครั้งเดียวต่อแผ่น) โผล่ใต้การ์ดอารมณ์ ตามแบบ 3b-warm-tool — SPEC §5.3 -->
   <Transition name="note">
     <div
       v-if="app.warmNoteOpen"
@@ -10,7 +10,7 @@
       <Tape class="left-[30px] top-[-12px] !h-6 !w-[70px]" :rotate="-6" />
       <div class="flex items-start gap-2.5">
         <WarmDrop note class="shrink-0 text-ink" />
-        <span class="font-hand text-19 font-semibold leading-[1.35]">อยากลองเติม<br />สีอุ่นลงไปไหม</span>
+        <span class="font-hand text-19 font-semibold leading-stack">ลองเติมสีสดใส<br />ลงไปสักนิดไหม</span>
       </div>
       <div class="flex items-center gap-2">
         <button type="button" class="min-h-[44px] flex-grow cursor-pointer rounded-[14px_16px_12px_18px] border-2 border-ink bg-ink font-hand text-16 font-semibold text-paper" @click="app.tryWarm()">ลองดู</button>
@@ -31,7 +31,9 @@ const app = useAppStore()
 <style scoped>
 .note-enter-active,
 .note-leave-active {
-  transition: opacity 0.3s, transform 0.45s cubic-bezier(0.2, 0.8, 0.2, 1);
+  transition:
+    opacity calc(300ms * var(--motion-scale, 1)),
+    transform calc(450ms * var(--motion-scale, 1)) cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 .note-enter-from,
 .note-leave-to {
