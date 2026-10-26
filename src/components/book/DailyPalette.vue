@@ -48,7 +48,25 @@
           <DayRibbon :entries="entries" animate="reveal" :delay="ribbonDelay" :width="412" />
         </div>
 
-        <p class="pal-rise absolute left-10 top-[472px] m-0 w-[412px] text-16 leading-[1.7] text-ink-2" :style="reveal(2, 'rise')">{{ summary }}</p>
+        <!-- สรุปอารมณ์ของวัน (ข้อ 39): ประโยคทักบรรทัดบน + รายการ หยดสี · ชื่ออารมณ์ · จำนวนภาพ เรียงมาก→น้อย
+             เกินพื้นที่ → เลื่อนได้ในกล่อง (ขอบจางด้านล่างบอกว่ายังมีต่อ) กล่องสูงคงที่ ไม่ดันส่วนอื่น -->
+        <div class="pal-rise absolute left-10 top-[452px] flex h-[84px] w-[412px] flex-col gap-0.5 text-ink-2" :style="reveal(2, 'rise')">
+          <p class="m-0 text-15 leading-thai">{{ summary.greeting }}</p>
+          <ul
+            ref="moodList"
+            class="mood-list m-0 min-h-0 flex-1 list-none overflow-y-auto p-0 pr-1"
+            :class="moreBelow ? 'mood-fade' : ''"
+            aria-label="อารมณ์ของวันนี้ เรียงจากมากไปน้อย"
+            tabindex="0"
+            @scroll="checkScroll"
+          >
+            <li v-for="row in summary.rows" :key="row.key" class="flex h-[26px] items-center gap-2 text-15 leading-thai">
+              <WatercolorBlob :color="row.hex" :width="22" :height="16" :opacity="0.85" />
+              <span class="font-hand font-semibold">{{ row.th }}</span>
+              <span class="text-ink-soft">{{ row.n }} ภาพ</span>
+            </li>
+          </ul>
+        </div>
       </template>
 
       <div class="absolute inset-x-10 bottom-[22px] flex items-center justify-between border-t-[1.5px] border-dashed border-line pt-2">
@@ -68,7 +86,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import DayRibbon from '@/components/book/DayRibbon.vue'
 import WatercolorBlob from '@/components/ui/WatercolorBlob.vue'
 import Doodle from '@/components/ui/Doodle.vue'
@@ -137,24 +155,51 @@ const dayPart = (time) => {
   return 'ค่ำ'
 }
 
-// สรุปท้ายหน้า: ข้อความสั้นหนึ่งบรรทัดจาก template ไม่ใช้ AI (SPEC §5.7)
+// สรุปท้ายหน้า (SPEC §5.7): ประโยคทักจาก template (ไม่ใช้ AI) + รายการอารมณ์ เรียงมาก→น้อย เสมอกันใช้ภาพล่าสุด
 const summary = computed(() => {
   const list = props.entries
-  if (!list.length) return ''
+  if (!list.length) return { greeting: '', rows: [] }
   const th = (key) => EMOTION_BY_KEY[key].th
-  // เรียงตามจำนวนมาก→น้อย เสมอกันใช้ภาพล่าสุด
   const lastIndex = (key) => list.map((e) => e.emotion).lastIndexOf(key)
   const ranked = [...counts.value.entries()].sort((a, b) => b[1] - a[1] || lastIndex(b[0]) - lastIndex(a[0]))
-  if (list.length >= 5) return `${ranked.map(([k, n]) => `${th(k)} ${n}`).join(' · ')} วันนี้แวะมาบ่อยเลยนะ`
+  const rows = ranked.map(([key, n]) => ({ key, n, th: th(key), hex: EMOTION_BY_KEY[key].hex }))
+  if (list.length >= 5) return { greeting: 'วันนี้แวะมาบ่อยเลยนะ', rows }
   const [main, second] = ranked
-  if (!second) return list.length === 1 ? `${th(main[0])} ตอน${dayPart(list[0].local_time)}` : `${th(main[0])}ทั้งวันเลย`
+  if (!second) return { greeting: list.length === 1 ? `${th(main[0])} ตอน${dayPart(list[0].local_time)}` : `${th(main[0])}ทั้งวันเลย`, rows }
   const secondEntry = list[lastIndex(second[0])]
   const shiftedNote = secondEntry.shifted ? 'ที่ค่อย ๆ มีแสงขึ้น' : ''
-  return `ส่วนใหญ่${th(main[0])} มีช่วง${th(second[0])}ตอน${dayPart(secondEntry.local_time)}${shiftedNote}`
+  return { greeting: `ส่วนใหญ่${th(main[0])} มีช่วง${th(second[0])}ตอน${dayPart(secondEntry.local_time)}${shiftedNote}`, rows }
 })
+
+// ขอบจางด้านล่างของรายการ: แสดงเมื่อยังเลื่อนลงได้อีก
+const moodList = ref(null)
+const moreBelow = ref(false)
+const checkScroll = () => {
+  const el = moodList.value
+  moreBelow.value = Boolean(el) && el.scrollHeight - el.scrollTop - el.clientHeight > 2
+}
+watch(() => [props.entries, props.date], () => nextTick(checkScroll), { immediate: false })
+onMounted(() => nextTick(checkScroll))
 </script>
 
 <style>
+/* รายการอารมณ์: scrollbar บางสีตาม token (ink-soft/line) เลื่อนด้วยนิ้วได้ ขอบจางด้านล่างเมื่อยังมีต่อ */
+.mood-list {
+  scrollbar-width: thin;
+  scrollbar-color: theme('colors.faint') transparent;
+  touch-action: pan-y;
+  overscroll-behavior: contain;
+}
+.mood-list::-webkit-scrollbar {
+  width: 4px;
+}
+.mood-list::-webkit-scrollbar-thumb {
+  @apply rounded-full bg-faint;
+}
+.mood-fade {
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 22px), transparent);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 22px), transparent);
+}
 /* animation-fill-mode: backwards ให้ซ่อนอยู่ระหว่างรอ delay โดยไม่ต้องมี state และไม่ขวางการกดปุ่ม */
 .pal-seep {
   animation: pal-seep var(--dur) cubic-bezier(0.2, 0.8, 0.2, 1) var(--d) backwards;
