@@ -1,6 +1,7 @@
 // สร้างรูปที่จะเก็บ: โหลดภาพของ entry (ทำในเครื่องทั้งหมด ไม่อัปโหลดอะไรขึ้นไป) แล้วเรียกตัววาดการ์ด
 // ภาพที่ยังอยู่ในเครื่อง (entry.image/thumb เป็น Blob) ใช้ตรง ๆ ภาพที่อยู่ใน Storage (bucket private) ขอ signed URL → fetch → blob → createImageBitmap
 // เพื่อให้ canvas ไม่ tainted (วาด <img> ข้ามโดเมนแล้ว toBlob จะ error) โหมดจำลองไม่มีภาพจริง → null (การ์ดวาดหยดสีจำลองจากสี)
+import { getDayCrop } from '@/lib/dayCrop'
 import { signPaths } from '@/lib/remote'
 import { C, canvasToBlob, makeCanvas } from '@/lib/share/cardDraw'
 import { renderDayCard, renderPhotoCard, renderPlaceholder } from '@/lib/share/cards'
@@ -57,6 +58,10 @@ export const makeDayCard = async (date, entries, userName) => {
   const thumbs = new Map()
   const bitmaps = []
   try {
+    // ชิ้นสีของวัน: ผลครอปเดียวกับหน้าจานสี (ถ้าเคยคำนวณแล้วใช้ซ้ำ) ครอปไม่ได้ = null
+    const cropped = await getDayCrop(entries)
+    const crop = cropped ? await createImageBitmap(cropped.blob) : null
+    if (crop) bitmaps.push(crop)
     for (const e of latest) {
       const bmp = await loadEntryBitmap(e, 'thumb')
       if (bmp) {
@@ -64,7 +69,7 @@ export const makeDayCard = async (date, entries, userName) => {
         bitmaps.push(bmp)
       }
     }
-    return { blob: await renderDayCard({ date, entries, thumbs, userName }), filename: dayCardFileName(date) }
+    return { blob: await renderDayCard({ date, entries, thumbs, crop, userName }), filename: dayCardFileName(date) }
   } finally {
     bitmaps.forEach(closeBitmap)
   }

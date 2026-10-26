@@ -31,9 +31,13 @@
         <!-- สีของวัน: ก้อนสีน้ำก้อนเดียว (สีผสมของวัน ก้อนเล็กข้างในเป็นสีเด่น) ในกรอบกระดาษ bg-card ขอบเท่ากันทุกด้าน (~8%) เอียง −3° เงา card ไม่มีเทป (แบบ 11/12) -->
         <div class="absolute left-10 top-[80px] flex w-[412px] items-center gap-6">
           <div class="pal-seep relative h-[138px] w-[138px] shrink-0 -rotate-3 bg-card p-[11px] shadow-card" data-day-frame :style="reveal(0, 'seep')">
-            <div class="relative h-full w-full bg-paper-deep">
-              <WatercolorBlob class="absolute left-[-4px] top-[10px]" :color="mix" :width="124" :height="96" :opacity="0.85" />
-              <WatercolorBlob v-if="dominant" class="absolute left-[28px] top-[34px]" :color="dominant" :width="58" :height="42" :opacity="0.7" />
+            <!-- ข้อ 49: ชิ้นที่มีสีมากที่สุดของภาพจริงในวันนั้น (ไม่มี blur/filter) ระหว่างโหลดเป็นพื้นกระดาษเปล่าแล้ว fade เข้า ครอปไม่ได้ = ก้อนสีเดิม -->
+            <div class="relative h-full w-full overflow-hidden bg-paper">
+              <img v-if="cropUrl" :key="cropUrl" :src="cropUrl" alt="" draggable="false" class="absolute inset-0 h-full w-full object-cover transition-opacity duration-600 ease-desk" :class="cropReady ? 'opacity-100' : 'opacity-0'" @load="cropReady = true" />
+              <template v-else-if="cropFailed">
+                <WatercolorBlob class="absolute left-[-4px] top-[10px]" :color="mix" :width="124" :height="96" :opacity="0.85" />
+                <WatercolorBlob v-if="dominant" class="absolute left-[28px] top-[34px]" :color="dominant" :width="58" :height="42" :opacity="0.7" />
+              </template>
             </div>
           </div>
           <div class="pal-rise flex min-w-0 flex-col gap-1" :style="reveal(1, 'rise')">
@@ -89,6 +93,7 @@ import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import DayRibbon from '@/components/book/DayRibbon.vue'
 import WatercolorBlob from '@/components/ui/WatercolorBlob.vue'
 import Doodle from '@/components/ui/Doodle.vue'
+import { useDayCrop } from '@/lib/useDayCrop'
 import { dayColor, dominantColorOfDay, nameOfDay } from '@/lib/palette'
 import { EMOTION_BY_KEY } from '@/lib/emotions'
 import { localDateStr, parseLocalDate, thaiDateShort } from '@/lib/dates'
@@ -122,6 +127,9 @@ const reveal = (order, kind) => ({
 // แถบสีเริ่มไล่หลังลำดับที่ 3 ของ stagger (หัวข้อ "สีของวันตามลำดับเวลา" ขึ้นพร้อมกัน)
 const ribbonDelay = ms(MOTION.settle + MOTION.reveal.lead + 3 * MOTION.reveal.step)
 const dominant = computed(() => dominantColorOfDay(props.entries))
+const { url: cropUrl, failed: cropFailed } = useDayCrop(() => props.entries)
+const cropReady = ref(false)
+watch(cropUrl, () => (cropReady.value = false))
 
 const isToday = computed(() => props.date === localDateStr())
 const title = computed(() => (isToday.value ? 'จานสีของวันนี้' : `จานสีของ ${thaiDateShort(parseLocalDate(props.date))}`))

@@ -3,7 +3,7 @@
 import { BLOB_PATHS } from '@/lib/doodles'
 import { INTENSITY_LABELS, emotionLabel } from '@/lib/emotions'
 import { DIVIDER_COLOR, brandIconSvg, brandWordmarkSvg, lockupLayout } from '@/lib/brand'
-import { dayFrameSvg } from '@/lib/dayFrame'
+import { CROP_BOX, dayFrameSvg } from '@/lib/dayFrame'
 import { RIBBON_H, layoutRibbon, ribbonSvg } from '@/lib/dayRibbon'
 import { svgToImage } from '@/lib/share/svgImage'
 import { dayColor, dominantColorOfDay, percentsOf } from '@/lib/palette'
@@ -266,7 +266,8 @@ const drawDayPolaroid = (ctx, e, thumb, slot, x, y) => {
 }
 
 // thumbs: Map entryId → ภาพย่อ (ImageBitmap) หรือไม่มี (ใช้ภาพจำลองจากสี)
-export const renderDayCard = async ({ date, entries, thumbs = new Map(), userName = '' }) => {
+// crop: ภาพชิ้นสีของวัน (ImageBitmap จาก lib/dayCrop.js) หรือ null = วาดก้อนสีเดิม
+export const renderDayCard = async ({ date, entries, thumbs = new Map(), crop = null, userName = '' }) => {
   const list = [...entries].sort((a, b) => a.local_time.localeCompare(b.local_time))
   const day = dayColor(list)
   if (!day) throw new Error('ไม่มีภาพของวันนี้')
@@ -282,9 +283,19 @@ export const renderDayCard = async ({ date, entries, thumbs = new Map(), userNam
   drawText(ctx, isToday ? 'จานสีของวันนี้' : `จานสีของ ${thaiDateShort(parsed)}`, 72, 128, { size: 80, weight: 700, kind: 'hand' })
 
   // กรอบสีของวัน (SVG 380×380 → ภาพ) ซ้าย + ข้อความขวา กึ่งกลางแนวตั้งเดียวกัน
-  const frame = await svgToImage(dayFrameSvg({ mix: day.mix, dominant: dominantColorOfDay(list), p: 'dfc' }).replace('width="380" height="380"', 'width="760" height="760"'))
+  const frame = await svgToImage(dayFrameSvg({ mix: day.mix, dominant: dominantColorOfDay(list), p: 'dfc', crop: Boolean(crop) }).replace('width="380" height="380"', 'width="760" height="760"'))
   const frameTop = 240
   ctx.drawImage(frame, 52, frameTop, 380, 380)
+  if (crop) {
+    // ชิ้นสีของวัน (ผลครอปเดียวกับหน้าจานสี) วางในกรอบ เอียง −3° ตามกรอบ ไม่มี filter
+    ctx.save()
+    ctx.translate(52 + 190, frameTop + 190)
+    ctx.rotate(-3 * RAD)
+    ctx.translate(-190, -190)
+    ctx.imageSmoothingQuality = 'high'
+    ctx.drawImage(crop, CROP_BOX.x, CROP_BOX.y, CROP_BOX.size, CROP_BOX.size)
+    ctx.restore()
+  }
   const moods = new Set(list.map((e) => e.emotion)).size
   const tx = 480
   const nameSize = Math.min(72, fitSize(ctx, [day.name.colorPart, day.name.periodPart].sort((a, b) => b.length - a.length)[0], CARD_W - 72 - tx, { size: 72, min: 44, kind: 'hand', weight: 700 }))

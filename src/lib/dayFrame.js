@@ -5,7 +5,10 @@ import { PALETTE } from '@/lib/tokens'
 
 export const DAY_FRAME_SIZE = 380
 
-export const dayFrameSvg = ({ mix, dominant = null, p = 'df' }) => {
+// crop = true: ไม่วาดก้อนสี (การ์ดวางภาพครอปของวันลงในกรอบเอง ที่ CROP_BOX) · ไม่งั้นวาดก้อนสีจาก mix/dominant
+export const CROP_BOX = { x: 48, y: 48, size: 284 }
+
+export const dayFrameSvg = ({ mix, dominant = null, p = 'df', crop = false }) => {
   const blob = (hex, k, opacity) => {
     const tx = 190 - 85 * k
     const ty = 190 - 60 * k
@@ -19,6 +22,6 @@ export const dayFrameSvg = ({ mix, dominant = null, p = 'df' }) => {
 <g transform="rotate(-3 190 190)">
 <rect x="20" y="20" width="340" height="340" fill="${PALETTE.card}" filter="url(#${p}-s)"/>
 <rect x="48" y="48" width="284" height="284" fill="${PALETTE['paper-deep']}"/>
-${blob(mix, 2.1, 0.85)}${dominant ? blob(dominant, 0.95, 0.7) : ''}
+${crop ? '' : blob(mix, 2.1, 0.85) + (dominant ? blob(dominant, 0.95, 0.7) : '')}
 </g></svg>`
 }
