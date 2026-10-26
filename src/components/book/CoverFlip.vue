@@ -9,7 +9,7 @@
       <div ref="boardRef" class="absolute inset-0" style="transform-origin: 0 50%; transform-style: preserve-3d">
         <div class="absolute inset-0 [backface-visibility:hidden]">
           <div class="h-[540px] w-[420px] origin-top-left" :style="{ transform: `scale(${506 / 420}, ${640 / 540})` }">
-            <BookCover :name="name" :avatar="avatar" :likes="likes" :tabs="[]" />
+            <BookCover :name="name" :avatar="avatar" :likes="likes" :tabs="tabs" />
           </div>
         </div>
         <!-- ด้านในปก: ขอบสีปกรอบกระดาษ ตรงกับหน้าซ้ายของสมุดเปิดที่มันไปลงจอด -->
@@ -31,6 +31,7 @@ defineProps({
   name: { type: String, default: '' },
   avatar: { type: String, default: 'cat' },
   likes: { type: Array, default: () => [] },
+  tabs: { type: Array, default: () => [] }, // แท็บคั่นหน้าบนปก ติดไปกับปกที่พลิก (ข้อ 41)
 })
 
 const boardRef = ref(null)

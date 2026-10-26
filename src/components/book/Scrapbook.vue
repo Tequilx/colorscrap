@@ -10,7 +10,7 @@
       :name="profile.shownName"
       :avatar="profile.avatar"
       :likes="profile.likes"
-      :tabs="view === 'cover' ? entries.recentTabs : []"
+      :tabs="view === 'hello' ? [] : entries.recentTabs"
     />
   </div>
 
@@ -26,7 +26,7 @@
       <OpenBook :mode="view === 'saved' ? 'saved' : 'book'" />
     </div>
     <!-- ปกที่พลิกรอบสัน (ข้อ 22) ซ่อนอยู่เสมอ ยกเว้นช่วงพลิก -->
-    <CoverFlip ref="flipRef" :name="profile.shownName" :avatar="profile.avatar" :likes="profile.likes" />
+    <CoverFlip ref="flipRef" :name="profile.shownName" :avatar="profile.avatar" :likes="profile.likes" :tabs="entries.recentTabs" />
   </div>
 </template>
 
