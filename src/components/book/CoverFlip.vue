@@ -1,5 +1,5 @@
 <template>
-  <!-- ปกสมุดที่พลิกรอบสันซ้ายของหน้าขวา (ข้อ 22): วางทับหน้าขวาของสมุดเปิด 506×640 (พิกัดในชั้นสมุดเปิด จึงตามการซูมของหน้า saved เอง)
+  <!-- ปกสมุดที่พลิกรอบสันซ้ายของหน้าขวา (เฉพาะหน้าแรก ↔ สมุด) (ข้อ 22): วางทับหน้าขวาของสมุดเปิด 506×640 (พิกัดในชั้นสมุดเปิด จึงตามการซูมของหน้า saved เอง)
        หน้าหน้า = ปกสมุดปิด (BookCover) หน้าหลัง = กระดาษในปก (backface-visibility hidden) เวลาพลิก ~1.3 วิ มีเงาของปกทอดลงหน้าขวา
        ใช้ transform/opacity เท่านั้น (WAAPI) พักอยู่ในสถานะซ่อน ไม่ทำงานเมื่อ reduced-motion (Scrapbook ไม่เรียก) -->
   <div class="pointer-events-none absolute left-[506px] top-0 h-[640px] w-[506px]" aria-hidden="true">
@@ -49,19 +49,18 @@ const stop = () => {
   anims = []
 }
 
-// kind: 'open' (หน้าแรก → สมุด ปกมาจากการเลื่อนของชั้นปกปิด) | 'openShort' (ระบาย/บันทึก → สมุด) | 'close' (สมุด → หน้าแรก เล่นย้อน)
+// kind: 'open' (หน้าแรก → สมุด ปกมาจากการเลื่อนของชั้นปกปิด) | 'close' (สมุด → หน้าแรก เล่น 'open' ย้อนกลับ)
 // bodyEl = ชั้น OpenBook ที่ต้องซ่อนครึ่งซ้ายระหว่างพลิก คืน Promise ที่จบเมื่อแอนิเมชันจบ (หรือถูกยกเลิก)
 const play = (kind, bodyEl) => {
   stop()
-  const short = kind === 'openShort'
-  const T = (short ? MOTION.flip.short : MOTION.flip.full) * TIME_SCALE
+  const T = MOTION.flip.full * TIME_SCALE
   const opts = { duration: T, fill: 'both', direction: kind === 'close' ? 'reverse' : 'normal' }
-  // 'open': ปกนอนบนหน้าขวา 35% แรก (ชั้นปกปิดเลื่อนมาทับ) แล้วพลิก 65% ที่เหลือ / short: พลิกทั้งช่วง
-  const a = short ? 0 : 0.35
+  // ปกนอนบนหน้าขวา 35% แรก (ชั้นปกปิดเลื่อนมาทับ) แล้วพลิก 65% ที่เหลือ
+  const a = 0.35
   const frames = (list) => list.map(([offset, props]) => ({ offset, ...props }))
   anims = [
-    boardRef.value.animate(short ? [{ transform: rot(0), easing: SWING }, { transform: rot(-180) }] : frames([[0, { transform: rot(0) }], [a, { transform: rot(0), easing: SWING }], [1, { transform: rot(-180) }]]), opts),
-    fadeRef.value.animate(frames([[0, { opacity: 0 }], [short ? 0.1 : 0.12, { opacity: 1 }], [0.93, { opacity: 1 }], [1, { opacity: 0 }]]), opts),
+    boardRef.value.animate(frames([[0, { transform: rot(0) }], [a, { transform: rot(0), easing: SWING }], [1, { transform: rot(-180) }]]), opts),
+    fadeRef.value.animate(frames([[0, { opacity: 0 }], [0.12, { opacity: 1 }], [0.93, { opacity: 1 }], [1, { opacity: 0 }]]), opts),
     shadowRef.value.animate(frames([[0, { opacity: 0 }], [a, { opacity: 0 }], [a + (1 - a) * 0.55, { opacity: 0.42 }], [1, { opacity: 0 }]]), opts),
   ]
   if (bodyEl) anims.push(bodyEl.animate(frames([[0, { clipPath: CLIP_HALF }], [0.9, { clipPath: CLIP_HALF, easing: 'ease-out' }], [1, { clipPath: CLIP_FULL }]]), opts))

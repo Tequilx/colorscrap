@@ -3,11 +3,11 @@ import { PAPER, POLAROID, ZOOM, flightPoses, poseTransform, saveSchedule, slotCe
 import { FIRST_LEAF_SLOTS, INSERT_LEAF_SLOTS } from '@/lib/photos'
 
 describe('saveSchedule', () => {
-  it('ภาพปกติรวมประมาณ 1.6 วินาที + พลิกปก 3D ไม่เกิน 0.3 วิ (SPEC §5.4) และเรียงตามลำดับ', () => {
+  it('ภาพปกติรวมประมาณ 1.6 วินาที (SPEC §5.4) และเรียงตามลำดับ', () => {
     const s = saveSchedule()
     expect(s.leaf).toBeNull()
     expect(s.total).toBeGreaterThanOrEqual(1500)
-    expect(s.total).toBeLessThanOrEqual(1700 + 300) // พลิกปก 3D เพิ่มได้ไม่เกิน 0.3 วิ
+    expect(s.total).toBeLessThanOrEqual(1700)
     expect(s.shrink[0]).toBe(0)
     expect(s.book[0]).toBeGreaterThan(0) // สมุดเข้าหลังเริ่มหด
     expect(s.book[0]).toBeLessThan(s.shrink[1]) // แต่ซ้อนกับช่วงหด

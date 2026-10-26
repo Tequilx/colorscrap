@@ -81,7 +81,7 @@ const openVisible = computed(() => view.value in OPEN)
 const openInteractive = computed(() => view.value === 'book' || view.value === 'saved')
 
 // ---- พลิกปกสมุด 3D (ข้อ 22) ----
-// หน้าแรก → สมุด: ปกปิดเลื่อนไปทับหน้าขวาแล้วพลิก / ระบาย → สมุด และลำดับบันทึก → saved: ปกวางบนหน้าขวาแล้วพลิกทันที /
+// หน้าแรก → สมุด: ปกปิดเลื่อนไปทับหน้าขวาแล้วพลิก (ระบาย → สมุด และลำดับบันทึก ไม่พลิก ข้อ 42) /
 // สมุด → หน้าแรก: พลิกกลับก่อน แล้วชั้นสมุดเปิดจางหาย ชั้นปกปิดเลื่อนกลับ (transition-delay ตาม closeDelay)
 // reduced-motion: ไม่พลิก ใช้ fade 150ms ตามเดิม
 const flipRef = ref(null)
@@ -97,10 +97,9 @@ watch(
     flipRef.value?.stop()
     closing.value = false
     if (reducedMotion.value) return
-    const opening = (to === 'book' || to === 'saved') && (from === 'cover' || from === 'paint')
-    if (opening) {
-      flipRef.value?.play(from === 'cover' ? 'open' : 'openShort', bodyRef.value)
-      if (to === 'saved') sound.flip({ long: true }) // ไป book จาก paint store เล่นเสียงให้แล้ว
+    // ระบาย → สมุด และลำดับบันทึก → saved ไม่พลิกปก (ตอนระบายถือว่าสมุดเปิดอยู่แล้ว) สมุดเลื่อนเข้าด้วย transition ของชั้นเอง
+    if (to === 'book' && from === 'cover') {
+      flipRef.value?.play('open', bodyRef.value)
     } else if (from === 'book' && to === 'cover') {
       closing.value = true
       sound.flip({ long: true })
