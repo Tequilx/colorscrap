@@ -8,7 +8,7 @@
 - โปรเจกต์ Supabase ที่รัน `supabase/schema.sql` ใน SQL Editor แล้ว (ตาราง `profiles`, `entries`, bucket `paintings` แบบ private)
 - ค่าสองตัวจากหน้า Supabase → Project Settings → API: **Project URL** และ **publishable key** (`sb_publishable_…`) ห้ามใช้ service role key ในเว็บ
 - รีโปบน GitHub (branch ที่จะ deploy) · Node `^22.18.0 || >=24.12.0`
-- ไฟล์เพลง `public/audio/music-day.mp3` / `music-night.mp3` ถ้ามี (ไม่มีก็ใช้ .wav placeholder ที่มีอยู่ หรือเงียบ)
+- ไฟล์เพลง `public/audio/music-day.mp3` / `music-night.mp3` (เพลงจริงอยู่ในรีโปแล้ว ไฟล์ night ~8.8 MB / day ~4.4 MB ไม่มี = เงียบ)
 
 ## 1. ตัวแปรสภาพแวดล้อม (ตั้งในหน้าเว็บของผู้ให้บริการ)
 | ชื่อ | ค่า |

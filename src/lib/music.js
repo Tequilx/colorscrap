@@ -10,8 +10,24 @@ export const FADE_IN_MS = 3000 // fade in หลังแตะครั้ง�
 export const CROSSFADE_MS = 4000 // สลับกลางวัน↔กลางคืน
 
 export const trackOf = (p) => (p === 'night' ? 'night' : 'day')
-// ลำดับที่ลองโหลด: mp3 ก่อน ถ้าไม่มีใช้ wav
-export const candidates = (track) => [`/audio/music-${track}.mp3`, `/audio/music-${track}.wav`]
+// ไฟล์เพลง: public/audio/music-<day|night>.mp3 (ไม่มี = เงียบ) ข้อ 45: เพลงจริงแทน placeholder .wav ลบ wav แล้ว
+export const candidates = (track) => [`/audio/music-${track}.mp3`]
+
+// ช่วงที่มีเสียงจริงของบัฟเฟอร์ (ตัดเงียบหัว/ท้ายของ mp3 ไม่ให้วนแล้วมีช่องว่าง): หาตัวอย่างแรก/สุดท้ายที่ดังเกิน thresholdDb ในช่องใดก็ได้ คืนวินาที { start, end }
+// channels = Float32Array[] ของแต่ละช่อง ไม่มีเสียงเลย = ทั้งไฟล์
+export const trimSilence = (channels, sampleRate, thresholdDb = -50) => {
+  const thr = 10 ** (thresholdDb / 20)
+  const n = channels[0]?.length ?? 0
+  let first = n
+  let last = -1
+  for (const ch of channels) {
+    for (let i = 0; i < first; i++) if (Math.abs(ch[i]) > thr) { first = i; break }
+    for (let i = n - 1; i > last; i--) if (Math.abs(ch[i]) > thr) { last = i; break }
+  }
+  if (last < first) return { start: 0, end: n / sampleRate }
+  return { start: first / sampleRate, end: (last + 1) / sampleRate }
+}
+const trimOf = (buf) => trimSilence(Array.from({ length: buf.numberOfChannels }, (_, c) => buf.getChannelData(c)), buf.sampleRate)
 
 const buffers = new Map() // track → AudioBuffer | null (null = ไม่มีไฟล์)
 let current = null // { track, src, gain }
@@ -50,11 +66,14 @@ const play = async (track, fadeMs) => {
   if (current?.track === track) return
   const src = ctx.createBufferSource()
   src.buffer = buf
-  src.loop = true // วนไม่มีช่องว่าง
+  src.loop = true // วนไม่มีช่องว่าง: วนเฉพาะช่วงที่มีเสียง (ตัดเงียบหัว/ท้ายของ mp3)
+  const { start, end } = trimOf(buf)
+  src.loopStart = start
+  src.loopEnd = end
   const gain = ctx.createGain()
   gain.gain.value = 0
   src.connect(gain).connect(bus)
-  src.start()
+  src.start(0, start)
   rampTo(gain, ctx, 1, fadeMs)
   const old = current
   current = { track, src, gain }

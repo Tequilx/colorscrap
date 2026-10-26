@@ -935,7 +935,7 @@ git switch -c restore-before-animations backup/main-before-animations
 
 - เล่นจาก `public/audio/music-day.mp3` (กลางวัน+เย็น) และ `public/audio/music-night.mp3` (กลางคืน) ใช้ช่วงเวลาเดียวกับแสงบนโต๊ะ (`lib/daylight.js`, บังคับได้ด้วย `?time=day|dusk|night`) เปลี่ยนช่วงแล้ว crossfade 4 วินาที วนไม่มีช่องว่าง ไม่เปลี่ยนตามอารมณ์
 - **เปลี่ยนเป็นเพลงจริง:** วางไฟล์ mp3 ชื่อเดิม (`music-day.mp3`, `music-night.mp3`) ทับ/เพิ่มใน `public/audio/` แล้วรีเฟรชหน้าเว็บ (ตัวเล่นลอง `.mp3` ก่อน ถ้าไม่มีค่อยใช้ `.wav`; ถ้าไม่มีทั้งคู่เงียบ ไม่ error) แนะนำไฟล์ที่ตัดวนเนียน ความยาว ≥ 60 วินาที ระดับยอดราว −3 dBFS (ระดับเสียงเบากว่าเอฟเฟกต์ ~19 dB ที่ยอดสัญญาณ ตั้งใน `lib/sound.js` `MUSIC_BASE`) ไฟล์ mp3 บางตัวมีช่องว่างสั้น ๆ ตอนวน ให้เลือกไฟล์ที่ตัดแบบ gapless
-- ไฟล์ชั่วคราว `music-day.wav` / `music-night.wav` สร้างด้วย `node scripts/make-placeholder-music.mjs` (เขียน WAV เอง เป็นคอร์ดแพด 24 วินาทีวนเนียน) ลบทิ้งได้เมื่อมี mp3 จริง
+- เพลงจริง `music-day.mp3` (~137 วิ, 4.4 MB) และ `music-night.mp3` (~276 วิ, 8.8 MB) อยู่ใน `public/audio/` แล้ว ตัวเล่นตัดความเงียบหัว/ท้ายไฟล์อัตโนมัติตอนโหลดแล้ววนเฉพาะช่วงที่มีเสียง · ระดับเสียงวัดแล้ว (integrated −16.3 / −19.2 LUFS เทียบเพลงชั่วคราว −16.9 / −17.5) ไม่ต้องปรับ `MUSIC_BASE` · สคริปต์ `scripts/make-placeholder-music.mjs` ยังอยู่ไว้สร้างเพลงชั่วคราว (เขียน .wav) ถ้าต้องการ
 - ปุ่มเพลง/เอฟเฟกต์มุมขวาบนเปิดปิดแยกกัน (`colorscrap.music`, `colorscrap.sound` ใน localStorage) เพลงลดเหลือครึ่งหนึ่งระหว่างลำดับบันทึกและแต้มแสงบาน หยุดเมื่อแท็บถูกซ่อน
 
 
