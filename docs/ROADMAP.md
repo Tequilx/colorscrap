@@ -181,3 +181,13 @@
 - [x] 41. แท็บคั่นหน้าบนปกปิดติดไปกับปกที่พลิก: ชั้นปกปิด (`Scrapbook`) แสดงแท็บทุก view ยกเว้น hello (เดิมแสดงเฉพาะ cover จึงหายตั้งแต่เริ่มพลิก) และ `CoverFlip` ส่ง `tabs` ให้ `BookCover` ในหน้าหน้าของแผ่นที่หมุน (ทั้งเปิด/ปิด) · ภาพเฟรมกลางก่อน/หลัง `scripts/out/screens/covertabs/compare-rot.png`, `compare.png` (tag `pre-covertabs`)
 - [x] 42. ระบาย→สมุด และลำดับบันทึก ไม่พลิกปกแล้ว (เหลือ `open`/`close` ของหน้าแรก↔สมุด) สมุดเลื่อนเข้าตามก่อนข้อ 22 · ลบ `openShort`, `MOTION.flip.short`, `MOTION.save.flipExtra` · วัดลำดับบันทึก (ช่วง active) **ก่อน 1851 ms → หลัง 1551 ms** (= ก่อนข้อ 22) เฟรมสูงสุด 17 ms เกิน 50ms = 0 · ไม่มีปกจางขึ้นบนหน้าขวา · ภาพ `scripts/out/screens/nopaintflip/compare.png` (tag `pre-nopaintflip`)
 - [x] 43. ฟอนต์ในแอปเอง: เพิ่ม `@fontsource/mali` + `@fontsource/ibm-plex-sans-thai-looped` (v5.3.0) นำเข้าใน `src/fonts.js` (Mali 400–700 / Plex 400–600 เฉพาะ thai+latin รวม 14 ไฟล์ woff2 ~230 KB ใน dist) ลบ Google Fonts ออกจาก `index.html` · `scripts/check-fonts.mjs` บล็อก fonts.googleapis/gstatic แล้วทุก weight โหลดจากไฟล์ของแอป (คำขอภายนอก 0) และการ์ดเก็บรูปยังใช้ฟอนต์ถูก (`scripts/out/cards-fonts/`) · ผู้ใช้ไม่ได้ใช้ไลบรารี่ใหญ่ >100 KB ในโค้ดแอป ไฟล์ฟอนต์อนุญาตตามข้อกำหนด (tag `pre-fonts`)
+
+
+---
+
+# รอบเก็บงาน — ข้อ 44–47
+
+- [ ] 44. หน้าจานสีประจำวัน: DayRibbon เตี้ยลงครึ่งหนึ่ง ป้ายเล็กลง ประโยคสรุป/ทักเว้นระยะ รายการอารมณ์ 3 แถวเต็ม (tag `pre-ribbon-half`)
+- [ ] 45. เพลงจริง (mp3) แทน placeholder .wav (tag `pre-realmusic`)
+- [ ] 46. sfx ไม่ให้เกิด 404 (รายการไฟล์รู้ตอน build) (tag `pre-sfx-glob`)
+- [ ] 47. QA flow สั้น + contact sheet `final3`
