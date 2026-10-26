@@ -53,12 +53,12 @@
             <ul
               ref="moodList"
               class="mood-list m-0 mt-3 min-h-0 flex-1 list-none overflow-y-auto p-0 pr-1"
-              :style="{ '--ft': moreAbove ? '18px' : '0px', '--fb': moreBelow ? '18px' : '0px', '--ta': moreAbove ? 0 : 1, '--tb': moreBelow ? 0 : 1, maxHeight: '72px' }"
+              :style="{ '--ft': moreAbove ? '18px' : '0px', '--fb': moreBelow ? '18px' : '0px', '--ta': moreAbove ? 0 : 1, '--tb': moreBelow ? 0 : 1, maxHeight: '78px' }"
               aria-label="อารมณ์ของวันนี้ เรียงจากมากไปน้อย"
               tabindex="0"
               @scroll="checkScroll"
             >
-              <li v-for="row in summary.rows" :key="row.key" class="flex h-6 items-center gap-2 text-15 leading-thai">
+              <li v-for="row in summary.rows" :key="row.key" class="flex h-[26px] items-center gap-2 text-15 leading-thai">
                 <WatercolorBlob :color="row.hex" :width="22" :height="16" :opacity="0.85" />
                 <span class="font-hand font-semibold">{{ row.th }}</span>
                 <span class="text-ink-soft">{{ row.n }} ภาพ</span>
