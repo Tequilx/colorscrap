@@ -11,8 +11,8 @@
         <path d="M23 4.5 C34 4 42 12.5 41.5 23.5 C41 34.5 33 42 22.5 41.5 C12 41 4.5 33 5 22.5 C5.4 13 12.5 5 23 4.5 C26 4.4 28 5 29.5 5.6" />
         <path d="M13.5 23.5 L20 30 L32.5 15.5" />
       </svg>
-      <div role="status" class="flex min-w-0 flex-col">
-        <span class="font-hand text-26 font-semibold leading-[1.2]">แปะลงสมุดแล้ว</span>
+      <div role="status" class="flex min-w-0 flex-col gap-1">
+        <span class="font-hand text-26 font-semibold leading-head">แปะลงสมุดแล้ว</span>
         <span class="text-14 text-ink-soft">{{ entry.local_time }} · {{ emotionLabel(entry) }} · {{ INTENSITY_LABELS[entry.intensity] }}</span>
       </div>
     </div>
@@ -41,11 +41,11 @@
         <WatercolorBlob class="absolute left-0 top-2 transition-opacity duration-600 ease-desk" :class="changed || !before.length ? 'opacity-100' : 'opacity-0'" :color="afterMix" :width="76" :height="54" :opacity="0.85" />
         <!-- ชื่อ: ก่อนเปลี่ยนแสดงชื่อเดิมตัวหนา หลังเปลี่ยนเหลือชื่อเดิมเทาขีดฆ่าตัวเล็ก + ชื่อใหม่ตัวหนา -->
         <div class="absolute left-[92px] right-0 top-0 flex h-full flex-col justify-center transition-opacity duration-450 ease-desk" :class="showOld ? 'opacity-100' : 'opacity-0'">
-          <span class="font-hand text-[22px] font-semibold leading-[1.25]">{{ beforeName }}</span>
+          <span class="font-hand text-[22px] font-semibold leading-stack">{{ beforeName }}</span>
         </div>
         <div class="absolute left-[92px] right-0 top-0 flex h-full flex-col justify-center transition-opacity duration-450 ease-desk" :class="showOld ? 'opacity-0' : 'opacity-100'">
           <span v-if="before.length && !unchanged" class="text-14 text-ink-soft line-through">{{ beforeName }}</span>
-          <span class="font-hand text-[22px] font-semibold leading-[1.25]">{{ afterName }}</span>
+          <span class="font-hand text-[22px] font-semibold leading-stack">{{ afterName }}</span>
         </div>
       </div>
     </div>

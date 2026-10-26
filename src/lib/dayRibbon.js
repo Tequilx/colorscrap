@@ -12,8 +12,8 @@ export const LABEL_GAP = 2 // ระยะห่างขั้นต่ำร�
 export const LABEL_TOP = 8 // ขอบบนของป้ายแถวแรก นับจากใต้แถบ (ที่ว่างสำหรับขีดบอกกลางช่วง)
 export const ROW_STEP = 24 // ป้ายเยื้องกันทีละแถว (วางสลับบน/ล่างแทนการซ่อน)
 export const MAX_ROWS = 4
-export const H1 = 20 // สูงของป้ายเวลาอย่างเดียว
-export const H2 = 42 // สูงของป้ายเวลา + อารมณ์
+export const H1 = 22 // สูงของป้ายเวลาอย่างเดียว (14px × leading-thai 1.5 = 21)
+export const H2 = 46 // สูงของป้ายเวลา + อารมณ์ (21 + 2 + 15px × 1.5)
 export const CHAR_W = 10 // ความกว้างต่อ 1 ตัวอักษรฐานที่ 15px Mali ตัวหนา (วัดที่ 16px ได้ 9.8–11.3 → ที่ 15px ราว 9.2–10.6; สระ/วรรณยุกต์ที่ซ้อนอยู่ไม่นับ)
 export const TIME_W = 66 // ไอคอน + HH:MM
 export const RANGE_W = 112 // ไอคอน + HH:MM–HH:MM

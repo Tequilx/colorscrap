@@ -18,8 +18,8 @@
         <!-- การ์ดชาร์ตสี (สไตล์บัตรตัวอย่างสี) -->
         <div ref="cardRef" data-photo="card" class="pointer-events-auto box-border w-[460px] shrink-0 rounded-[22px_26px_20px_24px] border-2 border-ink bg-white px-7 pb-6 pt-5 shadow-[0_24px_44px_rgba(45,43,51,0.24)]">
           <div class="flex items-start justify-between gap-3">
-            <div class="flex flex-col">
-              <h2 class="m-0 font-hand text-26 font-semibold leading-[1.2]">สีในภาพนี้</h2>
+            <div class="flex flex-col gap-1">
+              <h2 class="m-0 font-hand text-26 font-semibold leading-head">สีในภาพนี้</h2>
               <span class="text-14 text-ink-soft">{{ entry.local_time }} · {{ emotion.th }}{{ entry.shifted ? ' → มีแสงขึ้น' : '' }} · {{ INTENSITY_LABELS[entry.intensity] }}</span>
             </div>
             <HandButton ref="closeRef" variant="secondary" @click="close"><Doodle name="close" :size="20" /> ปิด</HandButton>
@@ -33,7 +33,7 @@
                   <path :d="swab(c.ratio)" fill="none" :stroke="c.hex" stroke-width="20" stroke-linecap="round" />
                 </g>
               </svg>
-              <span class="flex flex-col leading-tight">
+              <span class="flex flex-col leading-thai">
                 <code class="font-mono text-13 text-ink-2">{{ c.hex.toUpperCase() }}</code>
                 <span class="font-hand text-17 font-semibold">{{ pct[i] }}%</span>
               </span>

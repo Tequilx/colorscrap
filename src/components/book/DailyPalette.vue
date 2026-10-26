@@ -9,8 +9,8 @@
     <div :key="app.bookTick" class="absolute inset-0">
       <!-- หัวข้อ + จำนวนภาพใต้หัวข้อ (ซ้าย) กับปุ่ม "เก็บรูป" ที่เก็บการ์ดจานสีของวันที่เปิดอยู่ (ขวา) วันที่ไม่มีภาพปุ่มกดไม่ได้ -->
       <div class="absolute left-10 top-[22px] flex w-[412px] items-center justify-between">
-        <div class="flex flex-col">
-          <span class="whitespace-nowrap font-hand text-26 font-semibold leading-[1.25]">{{ title }}</span>
+        <div class="flex flex-col gap-1">
+          <span class="whitespace-nowrap font-hand text-26 font-semibold leading-head">{{ title }}</span>
           <span v-if="entries.length" class="whitespace-nowrap text-13 text-ink-soft">{{ entries.length }} ภาพ · {{ moodCount }} อารมณ์</span>
         </div>
         <button
@@ -38,7 +38,7 @@
           </div>
           <div class="pal-rise flex min-w-0 flex-col gap-1" :style="reveal(1, 'rise')">
             <span class="text-13 text-ink-soft">{{ isToday ? 'สีของวันนี้' : 'สีของวัน' }}</span>
-            <span class="font-hand text-26 font-semibold leading-[1.25]">{{ name.colorPart }}<br />{{ name.periodPart }}</span>
+            <span class="font-hand text-26 font-semibold leading-stack">{{ name.colorPart }}<br />{{ name.periodPart }}</span>
           </div>
         </div>
 

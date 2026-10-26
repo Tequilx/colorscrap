@@ -3,9 +3,9 @@
   <div class="absolute left-[72px] top-[72px] box-border flex w-[640px] -rotate-[0.6deg] flex-col gap-[22px] bg-paper px-11 py-9 shadow-card">
     <Tape class="left-[270px] top-[-12px]" long :rotate="-3" />
 
-    <div class="flex flex-col gap-1">
+    <div class="flex flex-col gap-3">
       <span class="inline-flex items-center gap-2 text-14 text-ink-soft"><BrandMark :size="28" /> หน้าแรกของสมุด · แก้ทีหลังได้เสมอ</span>
-      <h1 class="m-0 font-hand text-38 font-semibold leading-[1.2]">สมุดเล่มนี้เป็นของ...</h1>
+      <h1 class="m-0 font-hand text-38 font-semibold leading-head">สมุดเล่มนี้เป็นของ...</h1>
     </div>
 
     <div class="flex flex-col gap-1.5">

@@ -21,7 +21,7 @@
         ></span>
         <div
           data-ribbon-label
-          class="absolute flex -translate-x-1/2 flex-col items-center whitespace-nowrap leading-tight transition-opacity duration-450 ease-desk"
+          class="absolute flex -translate-x-1/2 flex-col items-center whitespace-nowrap leading-thai transition-opacity duration-450 ease-desk"
           :class="[lastHighlight(s) ? 'text-ink' : 'text-ink-2', hiddenLabel(s) ? 'opacity-0' : 'opacity-100']"
           :style="{ left: (s.box.x0 + s.box.x1) / 2 + 'px', top: s.box.y0 + 'px' }"
         >

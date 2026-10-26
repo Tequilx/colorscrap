@@ -12,8 +12,8 @@
       </HandButton>
     </div>
 
-    <div class="absolute left-0 top-16 flex w-[1280px] flex-col items-center gap-2">
-      <h1 class="m-0 font-hand text-44 font-semibold leading-[1.2]">ตอนนี้รู้สึกแบบไหน?</h1>
+    <div class="absolute left-0 top-16 flex w-[1280px] flex-col items-center gap-3">
+      <h1 class="m-0 font-hand text-44 font-semibold leading-head">ตอนนี้รู้สึกแบบไหน?</h1>
       <p class="m-0 text-[18px] text-ink-soft">เลือกสีที่ใกล้ที่สุดหนึ่งสี ไม่มีคำตอบผิด</p>
     </div>
 

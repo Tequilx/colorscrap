@@ -207,7 +207,7 @@ const drawRibbonLabels = (ctx, segs, top) => {
     const cx = RIB_X + ((s.box.x0 + s.box.x1) / 2) * k
     const y = top + s.box.y0 * k
     drawText(ctx, s.time, cx, y, { size: 14 * k, kind: 'body', color: C.soft, align: 'center' })
-    if (s.level === 2) drawText(ctx, s.caption, cx, y + 14 * k * 1.25 + 2 * k, { size: 15 * k, weight: 600, kind: 'hand', color: C.ink2, align: 'center' })
+    if (s.level === 2) drawText(ctx, s.caption, cx, y + 14 * k * 1.5 + 2 * k, { size: 15 * k, weight: 600, kind: 'hand', color: C.ink2, align: 'center' })
   })
   ctx.restore()
 }

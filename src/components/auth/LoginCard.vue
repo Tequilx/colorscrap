@@ -7,9 +7,9 @@
   >
     <Tape class="left-[190px] top-[-12px]" long :rotate="2" />
 
-    <div class="flex flex-col gap-1">
+    <div class="flex flex-col gap-3">
       <span class="inline-flex items-center gap-2 text-14 text-ink-soft"><BrandMark :size="28" /> ColorScrap · สมุดสีน้ำ</span>
-      <h1 class="m-0 font-hand text-38 font-semibold leading-[1.2]">{{ signingUp ? 'เริ่มสมุดเล่มใหม่' : 'เปิดสมุดของฉัน' }}</h1>
+      <h1 class="m-0 font-hand text-38 font-semibold leading-head">{{ signingUp ? 'เริ่มสมุดเล่มใหม่' : 'เปิดสมุดของฉัน' }}</h1>
     </div>
 
     <div class="flex flex-col gap-1.5">

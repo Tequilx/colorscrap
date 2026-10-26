@@ -78,6 +78,10 @@ export const FONT_SIZES = {
   52: '52px',
 }
 
+// ระยะบรรทัด (line-height) ของข้อความไทย (ข้อ 34): สระบน/วรรณยุกต์ของ Mali สูงเกินกรอบอักษร จึงห้ามต่ำกว่านี้
+// thai = ข้อความทั่วไป/ป้ายเล็ก (≥ 1.35) · head = หัวข้อ Mali บรรทัดเดียวขนาดใหญ่ (ต้องมีระยะจากบรรทัดบน gap ≥ 8px) · stack = Mali ที่ขึ้นหลายบรรทัด
+export const LEADING = { thai: 1.5, head: 1.3, stack: 1.7 }
+
 export const STAGE = { width: 1280, height: 800 }
 
 // เวลาและ easing ของการเคลื่อนไหว (SPEC §3.6) หน่วย ms
