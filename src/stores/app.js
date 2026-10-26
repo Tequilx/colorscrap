@@ -139,9 +139,11 @@ export const useAppStore = defineStore('app', () => {
 
   // เปิดวันที่ในสมุดแล้วไปที่แผ่นล่าสุดของวันนั้นเสมอ (SPEC §5.6)
   // เปลี่ยนวันด้วยแท็บ/ปุ่มวัน: พลิกหน้ากระดาษ (PhotoPage อ่านแล้วเคลียร์) / เปิดวันตอนเปิดสมุดใช้ openDay ตรง ๆ ไม่พลิก
-  const dayTurn = ref(false)
+  // pageTurn = { dir: 'next' | 'prev', id } ให้ OpenBook เก็บภาพหน้าเดิมก่อนข้อมูลเปลี่ยนแล้วเล่นพลิกหน้าหนังสือ (next = วันใหม่กว่า: หน้าขวายกพลิกไปซ้าย / prev = วันเก่ากว่า: หน้าซ้ายยกพลิกไปขวา)
+  const pageTurn = ref(null)
   const turnToDay = (date) => {
-    if (date !== openDate.value) dayTurn.value = true
+    if (date === openDate.value || busy.value) return
+    pageTurn.value = { dir: date > openDate.value ? 'next' : 'prev', id: Date.now() + Math.random() }
     openDay(date)
   }
   const openDay = (date) => {
@@ -459,7 +461,7 @@ export const useAppStore = defineStore('app', () => {
     sheetEmotions,
     sheetShifted,
     warmAvailable,
-    dayTurn,
+    pageTurn,
     turnToDay,
     warmNote,
     warmNoteOpen,

@@ -10,6 +10,8 @@
       <span class="h-[18px] w-[18px] rounded-full bg-line"></span>
     </div>
 
+    <!-- ห่อหน้าซ้าย/ขวาด้วย display: contents (ไม่มีกล่อง ตำแหน่งลูกเหมือนเดิม) ให้เก็บภาพหน้าเดิมและซ่อนระหว่างพลิกได้ -->
+    <div ref="leftWrap" class="contents">
     <PhotoPage
       v-if="date"
       :date="date"
@@ -21,6 +23,8 @@
       @leaf="app.setLeaf"
       @photo="(p) => app.openPhoto(p.id, p.origin)"
     />
+    </div>
+    <div ref="rightWrap" class="contents">
     <DailyPalette
       v-if="date"
       :date="date"
@@ -31,11 +35,26 @@
       :hidden="mode === 'saved'"
       @day="app.turnToDay($event)"
     />
+    </div>
+
+    <!-- หน้าเก่าฝั่งที่แผ่นจะไปลง (สำเนา) คงอยู่ใต้แผ่นจนแผ่นลงถึง แล้วจางให้เห็นหน้าใหม่ -->
+    <div ref="turnUnder" class="turn-snap pointer-events-none invisible absolute top-[14px] h-[612px] w-[492px] overflow-hidden" inert :class="turnSide === 'right' ? 'left-[14px]' : 'left-[506px]'" aria-hidden="true"></div>
+
+    <!-- พลิกหน้าหนังสือรอบสันกลางตอนเปลี่ยนวัน (ข้อ 38): แผ่นกระดาษหน้าเดิม (หน้าหน้า = สำเนาของหน้าเก่า หลัง = กระดาษ) -->
+    <div ref="turnEl" class="pointer-events-none invisible absolute top-[14px] h-[612px] w-[492px]" inert :class="turnSide === 'right' ? 'left-[506px]' : 'left-[14px]'" aria-hidden="true">
+      <div ref="turnShadow" class="absolute inset-0 opacity-0" :style="{ background: turnSide === 'right' ? 'linear-gradient(to left, rgba(45,43,51,.5), rgba(45,43,51,0) 70%)' : 'linear-gradient(to right, rgba(45,43,51,.5), rgba(45,43,51,0) 70%)' }"></div>
+      <div ref="turnFade" class="absolute inset-0">
+        <div ref="turnBoard" class="absolute inset-0" :style="{ transformOrigin: turnSide === 'right' ? '0 50%' : '100% 50%', transformStyle: 'preserve-3d' }">
+          <div ref="turnFront" class="turn-snap absolute inset-0 overflow-hidden bg-paper [backface-visibility:hidden]"></div>
+          <div class="absolute inset-0 bg-paper [backface-visibility:hidden]" style="transform: rotateY(180deg)"></div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 import DateTabs from '@/components/book/DateTabs.vue'
 import PhotoPage from '@/components/book/PhotoPage.vue'
 import DailyPalette from '@/components/book/DailyPalette.vue'
@@ -43,6 +62,9 @@ import { useAppStore, PHOTOS_PER_LEAF } from '@/stores/app'
 import { useEntriesStore } from '@/stores/entries'
 import { chunk, dominantColorOfDay } from '@/lib/palette'
 import { parseLocalDate, thaiDateShort } from '@/lib/dates'
+import { MOTION } from '@/lib/tokens'
+import { TIME_SCALE, reducedMotion } from '@/lib/motion'
+import { sound } from '@/lib/sound'
 
 defineProps({ mode: { type: String, default: 'book' } })
 
@@ -63,4 +85,87 @@ const tabs = computed(() => {
   const window = idx.value >= all.length - 4 || idx.value < 0 ? all.slice(-4) : all.slice(idx.value, idx.value + 4)
   return window.map((d) => ({ date: d, hex: dominantColorOfDay(entries.entriesOfDay(d)), label: thaiDateShort(parseLocalDate(d)) }))
 })
+
+// ---- พลิกหน้าหนังสือตอนเปลี่ยนวัน (ข้อ 38) ----
+// next (วันใหม่กว่า): หน้าขวายกขึ้นแล้วพลิกไปทางซ้ายรอบสันกลาง ไปลงบนหน้าซ้าย · prev (วันเก่ากว่า): หน้าซ้ายยกขึ้นแล้วพลิกกลับไปทางขวา ไปลงบนหน้าขวา
+// ข้อมูลเปลี่ยนทันที (อยู่ใต้แผ่น) หน้าที่แผ่นจะไปลงถูกซ่อนจนแผ่นลงถึงแล้วค่อยจางเผย เงาทอดลงหน้าที่ถูกเปิดเผย
+const leftWrap = ref(null)
+const rightWrap = ref(null)
+const turnEl = ref(null)
+const turnBoard = ref(null)
+const turnFade = ref(null)
+const turnFront = ref(null)
+const turnShadow = ref(null)
+const turnUnder = ref(null)
+const turnSide = ref('right') // ด้านที่แผ่นเริ่มอยู่
+let turnAnims = []
+const stopTurn = () => {
+  turnAnims.forEach((a) => a.cancel())
+  turnAnims = []
+  if (turnEl.value) turnEl.value.style.visibility = ''
+  if (turnUnder.value) turnUnder.value.style.visibility = ''
+  turnFront.value?.replaceChildren() // ทิ้งสำเนา (มี data-entry-id ซ้ำกับของจริง ต้องไม่ค้างใน DOM)
+  turnUnder.value?.replaceChildren()
+  ;[leftWrap.value, rightWrap.value].forEach((w) => w && (w.style.removeProperty('--hide'), w.firstElementChild && (w.firstElementChild.style.opacity = '')))
+  app.leafFlipping = false
+}
+// สำเนาหน้าไว้แสดงอย่างเดียว: ตัด data-entry-id (flip.js หาช่องภาพด้วย attribute นี้) และปิดการโฟกัส
+const snapshot = (el) => {
+  const c = el.cloneNode(true)
+  c.querySelectorAll('[data-entry-id]').forEach((e) => e.removeAttribute('data-entry-id'))
+  c.querySelectorAll('button, a, input').forEach((e) => (e.tabIndex = -1))
+  return c
+}
+const rot = (deg) => `perspective(${MOTION.flip.perspective}px) rotateY(${deg}deg)`
+watch(
+  () => app.pageTurn,
+  async (t) => {
+    if (!t || reducedMotion.value || !turnEl.value) return
+    stopTurn()
+    const next = t.dir === 'next'
+    const from = (next ? rightWrap : leftWrap).value?.firstElementChild
+    const landing = (next ? leftWrap : rightWrap).value?.firstElementChild
+    if (!from || !landing) return
+    // สำเนาหน้าเดิม (ก่อนข้อมูลเปลี่ยน: watcher นี้ทำงานก่อน render) ไปไว้หน้าหน้าของแผ่น
+    const clone = snapshot(from)
+    clone.style.left = '0px'
+    clone.style.top = '0px'
+    clone.style.boxShadow = 'none'
+    const under = snapshot(landing) // หน้าเก่าฝั่งที่แผ่นไปลง
+    under.style.left = '0px'
+    under.style.top = '0px'
+    under.style.boxShadow = 'none'
+    turnSide.value = next ? 'right' : 'left'
+    turnFront.value.replaceChildren(clone)
+    turnUnder.value.replaceChildren(under)
+    turnUnder.value.style.visibility = 'visible'
+    turnEl.value.style.visibility = 'visible'
+    landing.style.opacity = '0' // หน้าที่แผ่นจะไปลง ซ่อนไว้จนแผ่นลงถึง
+    app.leafFlipping = true
+    sound.flip({ long: true })
+    await nextTick()
+    const T = MOTION.flip.turn * TIME_SCALE
+    const opts = { duration: T, fill: 'both' }
+    const end = next ? -180 : 180
+    turnAnims = [
+      turnBoard.value.animate([{ transform: rot(0), easing: 'cubic-bezier(0.45, 0, 0.25, 1)' }, { transform: rot(end) }], opts),
+      turnFade.value.animate([{ opacity: 1, offset: 0 }, { opacity: 1, offset: 0.9 }, { opacity: 0, offset: 1 }], opts),
+      turnShadow.value.animate([{ opacity: 0, offset: 0 }, { opacity: 0.45, offset: 0.5 }, { opacity: 0, offset: 1 }], opts),
+      turnUnder.value.animate([{ opacity: 1, offset: 0 }, { opacity: 1, offset: 0.88 }, { opacity: 0, offset: 1 }], opts),
+      landing.animate([{ opacity: 0, offset: 0 }, { opacity: 0, offset: 0.88 }, { opacity: 1, offset: 1 }], { ...opts, fill: 'none' }),
+    ]
+    await Promise.all(turnAnims.map((a) => a.finished.catch(() => {})))
+    landing.style.opacity = ''
+    if (turnAnims.length && turnAnims.every((a) => a.playState === 'finished')) stopTurn()
+  },
+  { flush: 'pre' },
+)
 </script>
+
+<style>
+/* สำเนาหน้าเดิมบนแผ่นที่พลิก: ห้ามเล่นแอนิเมชัน/ทรานซิชันซ้ำ (ไม่งั้นส่วนที่ปรากฏทีละส่วนจะซ่อนอยู่) */
+.turn-snap * {
+  animation: none !important;
+  transition: none !important;
+}
+</style>
