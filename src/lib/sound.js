@@ -632,3 +632,6 @@ export const sound = {
 
 let brushVoice = null
 let brushTimer = 0
+
+// dev: แก้ไฟล์นี้แล้วโหลดหน้าใหม่ทั้งหน้า (ไม่ HMR) ไม่งั้นโมดูลที่ยังไม่ถูกอัปเดตถือ sound.js ตัวเก่าค้างอยู่คนละ instance กับตัวใหม่ → ได้ยินเสียงเก่า (ข้อ 53d)
+if (import.meta.hot) import.meta.hot.decline()

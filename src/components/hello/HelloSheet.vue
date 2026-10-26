@@ -1,8 +1,6 @@
 <template>
   <!-- กระดาษหน้าแรกของสมุด ฝั่งซ้ายของหน้า hello (SPEC §5.0) -->
   <div class="absolute left-[72px] top-[72px] box-border flex w-[640px] -rotate-[0.6deg] flex-col gap-[22px] bg-paper px-11 py-9 shadow-card">
-    <Tape class="left-[270px] top-[-12px]" long :rotate="-3" />
-
     <div class="flex flex-col gap-3">
       <BrandMark variant="lockup" :size="68" tagline />
       <span class="text-14 text-ink-soft">หน้าแรกของสมุด</span>
@@ -84,7 +82,6 @@
 
 <script setup>
 import BrandMark from '@/components/ui/BrandMark.vue'
-import Tape from '@/components/ui/Tape.vue'
 import Doodle from '@/components/ui/Doodle.vue'
 import HandButton from '@/components/ui/HandButton.vue'
 import { AVATARS } from '@/lib/doodles'

@@ -5,7 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 - `npm install` — install deps (Node `^22.18.0 || >=24.12.0`)
-- `npm run dev` — Vite dev server with HMR (includes vue-devtools plugin). UI kit gallery (dev only) at `/?kit`
+- `npm run dev` — Vite dev server with HMR (vue-devtools plugin is OFF by default; `VITE_DEVTOOLS=true npm run dev` enables it, see README). UI kit gallery (dev only) at `/?kit`
 - `npm run build` / `npm run preview` — production build / serve it
 - `npm test` — Vitest (`vitest run`): `src/lib/*.test.js` (`palette`, `extractColors`, `uuid`, `flip`, `saveTimeline`, `dyeLimit`, `sound`, `daylight`, `cursors`, `dayRibbon`, `wetPhoto`, `music`, `color`, `likes`; `dayRibbon` also checks the ribbon SVG markup), `src/lib/share/*.test.js` (`maskName`, `formatThaiDate`/file names, `shareOrDownload`) and `src/dev/fluidMetrics.test.js`. Pure-function tests only, no component tests; `@` alias works via vite.config.js
 

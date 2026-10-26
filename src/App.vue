@@ -87,8 +87,10 @@ useHashView(app, profile, auth)
 attachSound()
 attachMusic() // เพลงคลอ (เริ่มหลังแตะครั้งแรก)
 installCursors() // เคอร์เซอร์นิ้วชี้ (เฉพาะเมาส์)
+// การ์ดอารมณ์ (data-no-tap) ไม่มีเสียงแตะ: ให้ได้ยินเสียงจุ่มพู่กันเสียงเดียว (ข้อ 53d)
 const tapSound = (e) => {
-  if (e.target?.closest?.('button, a, [role="button"]')) sound.tap()
+  const hit = e.target?.closest?.('button, a, [role="button"]')
+  if (hit && !hit.hasAttribute('data-no-tap')) sound.tap()
 }
 window.addEventListener('pointerdown', tapSound, true)
 onBeforeUnmount(() => window.removeEventListener('pointerdown', tapSound, true))

@@ -53,7 +53,7 @@
 | Node.js + npm | engines `^22.18.0 \|\| >=24.12.0` (เครื่องนี้ v25.5.0) | รันเครื่องมือทั้งหมด | `package.json` |
 | Vite | ^8.2.2 → 8.3.1 | เซิร์ฟเวอร์ตอนพัฒนา (`npm run dev`) และตัว build (`npm run build`) | `vite.config.js` |
 | @vitejs/plugin-vue | ^6.0.8 → 6.0.9 | ให้ Vite เข้าใจไฟล์ `.vue` | `vite.config.js` |
-| vite-plugin-vue-devtools | ^8.2.1 → 8.2.1 | แผงตรวจสถานะ Vue ตอน dev (ปุ่มลอยมุมล่างของหน้า) | `vite.config.js` |
+| vite-plugin-vue-devtools | ^8.2.1 → 8.2.1 | แผงตรวจสถานะ Vue ตอน dev (ปุ่มลอยมุมล่างของหน้า ปิดโดยปริยาย เปิดด้วย `VITE_DEVTOOLS=true`) | `vite.config.js` |
 | Vitest | ^4.1.11 → 4.1.11 | รันชุดทดสอบอัตโนมัติ (`npm test`) | `src/lib/*.test.js` |
 | git + GitHub | – | เก็บประวัติงาน (repo private `Tequilx/colorscrap`) | `.gitignore` |
 | VS Code + ส่วนเสริม Vue (Volar) | – | ตัวแก้โค้ด (แนะนำ) | `.vscode/extensions.json`, `jsconfig.json` |

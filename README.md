@@ -2,6 +2,10 @@
 
 This template should help get you started developing with Vue 3 in Vite.
 
+## Dev
+
+- `npm run dev` — ปุ่มลอย Vue DevTools **ปิดอยู่** เปิดด้วย `VITE_DEVTOOLS=true npm run dev` (หรือใส่ `VITE_DEVTOOLS=true` ใน `.env.local`) แล้วรีสตาร์ท dev server · `npm run build` ไม่มี DevTools เสมอ
+
 ## Recommended IDE Setup
 
 [VS Code](https://code.visualstudio.com/) + [Vue (Official)](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).

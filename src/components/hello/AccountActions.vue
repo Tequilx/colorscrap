@@ -1,6 +1,6 @@
 <template>
-  <!-- บัญชีของฉัน: ออกจากระบบ และลบข้อมูลทั้งหมด (เฉพาะโหมดแก้ไขในหน้า hello ที่ต่อ Supabase จริง) -->
-  <div class="absolute left-[790px] top-[716px] flex w-[420px] flex-col items-center gap-2">
+  <!-- บัญชีของฉัน: ออกจากระบบ และลบข้อมูลทั้งหมด (เฉพาะโหมดแก้ไขในหน้า hello ที่ต่อ Supabase จริง) ห่างขอบล่างของโต๊ะ ≥ 48px + safe-area (ข้อ 53b) -->
+  <div class="absolute bottom-[calc(48px+env(safe-area-inset-bottom))] left-[790px] flex w-[420px] flex-col items-center gap-2">
     <span class="text-13 text-ink-soft">{{ auth.user?.email }}</span>
     <div class="flex items-center gap-3">
       <HandButton variant="secondary" :disabled="busy" @click="onSignOut">{{ confirming === 'out' ? 'กดอีกครั้งเพื่อออก' : 'ออกจากระบบ' }}</HandButton>
