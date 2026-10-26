@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # เตรียมเสียงจุ่มพู่กันจากต้นฉบับ docs/design/audio-src/ (ข้อ 56): ตัดเงียบหัว ยาว ≤ 600 ms fade out 100 ms ตัด < 120 Hz (2 ชั้น) mono แล้วปรับยอด −6 dBFS → mp3 96 kbps
-# ใช้: scripts/make-dip-sfx.sh <ต้นฉบับ> <ปลายทาง> เช่น scripts/make-dip-sfx.sh docs/design/audio-src/dip-b.mp3 src/assets/sfx/dip-1.mp3
+# ใช้: scripts/make-dip-sfx.sh   (สร้างเฉพาะ src/assets/sfx/dip-1.mp3 จาก docs/design/audio-src/dip-b.mp3; ข้อ 57 เอา dip-a ออก)
+#      scripts/make-dip-sfx.sh <ต้นฉบับ> <ปลายทาง> สำหรับไฟล์อื่น
 set -euo pipefail
-in="$1"; out="$2"
+in="${1:-docs/design/audio-src/dip-b.mp3}"; out="${2:-src/assets/sfx/dip-1.mp3}"
 chain="silenceremove=start_periods=1:start_threshold=-45dB:start_silence=0.004,highpass=f=120,highpass=f=120,atrim=0:0.6,asetpts=N/SR/TB"
 peak=$(ffmpeg -hide_banner -i "$in" -ac 1 -af "$chain,volumedetect" -f null - 2>&1 | sed -n 's/.*max_volume: \(-\{0,1\}[0-9.]*\) dB.*/\1/p')
 gain=$(python3 -c "print(round(-6 - ($peak), 2))")

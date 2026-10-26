@@ -13,7 +13,7 @@
 ## 1. ตัวแปรสภาพแวดล้อม (ตั้งในหน้าเว็บของผู้ให้บริการ)
 | ชื่อ | ค่า |
 |---|---|
-| `VITE_USE_MOCK` | `false` (ถ้าไม่ตั้ง แอปจะเข้า "โหมดจำลอง" ไม่ต่อ Supabase) |
+| `VITE_USE_MOCK` | `false` (ไม่ตั้ง = โหมดจริงเหมือนกัน; โหมดจำลองต้องตั้งเป็น `true` เท่านั้น) |
 | `VITE_SUPABASE_URL` | Project URL ของ Supabase |
 | `VITE_SUPABASE_ANON_KEY` | publishable key (`sb_publishable_…`) |
 
@@ -65,3 +65,17 @@
 
 ## 6. อัปเดตเว็บทีหลัง
 push ขึ้น branch ที่ผูกไว้ → Vercel/Netlify build และ deploy ให้เองอัตโนมัติ ถ้าแก้ `supabase/schema.sql` ต้องไปรันใน SQL Editor ของ Supabase เองด้วย (ไม่อยู่ในขั้นตอน deploy)
+
+## 7. Checklist ที่ผู้ใช้ทำเองหลัง merge เข้า main (ข้อ 57)
+ระบบ deploy (Vercel) จะ build `main` ให้เองเมื่อ push ทำตามลำดับ:
+- [ ] **Vercel → Settings → Environment Variables** (Production + Preview) มีครบ: `VITE_USE_MOCK=false`, `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` (publishable key `sb_publishable_…` ห้ามใช้ service_role) ถ้าเพิ่งแก้ค่าต้อง Redeploy
+- [ ] **Vercel → Settings → Git → Production Branch = `main`** และ deployment ล่าสุดสถานะ Ready
+- [ ] **Supabase → Authentication → URL Configuration:** Site URL = URL production ของ Vercel · Redirect URLs มี URL เดียวกัน (+ รูปแบบ Preview ถ้าใช้)
+- [ ] ทดสอบเต็มวงจรบน URL production: **ล็อกอิน → ระบาย → บันทึกลงสมุด → รีเฟรช (ภาพยังอยู่) → ออกจากระบบ → เข้าใหม่ (ข้อมูลยังอยู่)**
+- [ ] เปิด Console/Network: ไม่มีสีแดง ไม่มี 404 ของฟอนต์ เสียง เพลง favicon และไม่มีปุ่มลอยของ Vue DevTools
+- [ ] เสียง: กดการ์ดอารมณ์ได้ยินเสียงน้ำ (ไฟล์ `dip-1.mp3`) · เติมสีสดใสเป็นเสียงระฆังแก้ว
+
+**ย้อนกลับถ้าเว็บพัง**
+1. เร็วที่สุด (ไม่แตะ git): Vercel → **Deployments** → เลือก deployment ก่อน merge (ที่ Ready ตัวก่อนหน้า) → ⋯ → **Promote to Production** (ใช้ Instant Rollback ได้เช่นกัน)
+2. แก้ที่ git: `git revert -m 1 <merge commit>` บน `main` แล้ว push (สร้าง commit ย้อนใหม่ ไม่ rewrite ประวัติ) · จุดก่อน merge ติด tag `pre-merge-polish` ไว้ที่ `main` เดิม
+3. branch `feature/polish` เก็บไว้ทำงานต่อ ไม่ถูกลบ
