@@ -163,3 +163,21 @@
 - [x] 31. `docs/DEPLOY.md` (Vercel/Netlify, env 3 ตัว ไม่มีค่าจริง, Redirect URL ใน Supabase Auth, เช็กหลัง deploy)
 - [x] 32. `docs/CHANGELOG.md` (5 หมวด ภาษาคนทั่วไป)
 - [x] 33. `scripts/out/screens/final/` (16 ภาพ + `contact-sheet.png`)
+
+
+---
+
+# รอบแก้ดีไซน์ — ข้อ 34–43
+
+กติกาเหมือนรอบก่อน: tag `pre-<ชื่อ>` ก่อนแต่ละข้อ · screens/ภาพก่อน-หลัง · test+build ผ่านก่อน commit · commit+push ทีละข้อ · ห้ามแตะ main/merge · แก้ 2 รอบไม่ผ่าน revert แล้วข้าม
+
+- [ ] 34. ระยะบรรทัดภาษาไทย (token `leading`) (tag `pre-leading`)
+- [ ] 35. หน้าปกสมุด: สติกเกอร์อวตารเล็กลงทับมุมป้าย / ชื่อเจ้าของเด่น / รอยสีบนปกเห็นชัดทุกสี (tag `pre-cover2`)
+- [ ] 36. ปุ่มเสียงเป็นปุ่มไอคอนมีกรอบ แถวเดียวกับปุ่มหน้าแรก (tag `pre-soundbtn`)
+- [ ] 37. แผ่นแทรก: พลิกขึ้นลง (rotateX) รอบเทปบน + ตัวเปลี่ยนแผ่นไม่ทับขอบกระดาษ (tag `pre-leaf-x`)
+- [ ] 38. ทิศการพลิกหน้าหนังสือให้ถูกตามจริง + ตารางทิศ (tag `pre-flipdir`)
+- [ ] 39. สรุปอารมณ์ของวันเป็นรายการ bullet + scroll (tag `pre-moodlist`)
+- [ ] 40. เสียงเอฟเฟกต์จากไฟล์ (ทางเลือก) (tag `pre-sfxfiles`)
+- [ ] 41. แท็บบนปกติดไปกับปกที่พลิก (tag `pre-covertabs`)
+- [ ] 42. ระบาย→สมุด/บันทึก ไม่พลิกปก (tag `pre-nopaintflip`)
+- [ ] 43. ฟอนต์ในแอปเอง ใช้ได้ออฟไลน์ (tag `pre-fonts`)
