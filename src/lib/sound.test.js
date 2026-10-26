@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { SFX_NAMES, hasSfx, sfxUrls, MAX_VOICES, SOFT_CEILING, bloomEnvelope, BELL_SCALE, pickBellNotes, createVoicePool, pitchOf, readEnabled, softClipCurve } from './sound'
+import { sfxBase, SFX_NAMES, hasSfx, sfxUrls, MAX_VOICES, SOFT_CEILING, bloomEnvelope, BELL_SCALE, pickBellNotes, createVoicePool, pitchOf, readEnabled, softClipCurve } from './sound'
 
 describe('pitchOf', () => {
   it('อารมณ์ช้าทุ้มกว่าอารมณ์เร็ว', () => {
@@ -76,7 +76,12 @@ describe('readEnabled', () => {
 describe('เสียงเอฟเฟกต์จากไฟล์', () => {
   it('ชื่อไฟล์ครบ 12 ตัว และรายการไฟล์ที่มีจริงมาจากตอน build (ไม่มีไฟล์ = ว่าง ไม่มีคำขอ)', () => {
     expect(SFX_NAMES).toEqual(['drop', 'smear', 'splash', 'glow', 'dip', 'stroke', 'lift', 'tape', 'cover', 'page', 'note', 'tap'])
-    Object.keys(sfxUrls).forEach((n) => expect(SFX_NAMES).toContain(n))
+    Object.keys(sfxUrls).forEach((n) => expect(SFX_NAMES).toContain(sfxBase(n)))
+  })
+  it('รองรับหลายไฟล์ต่อเสียง (dip-1.mp3, dip-2.mp3 → dip)', () => {
+    expect(sfxBase('dip-2')).toBe('dip')
+    expect(sfxBase('dip')).toBe('dip')
+    expect(sfxBase('page-12')).toBe('page')
   })
   it('ยังไม่โหลดอะไร = ไม่มีไฟล์ (ใช้เสียงสังเคราะห์)', () => {
     SFX_NAMES.forEach((n) => expect(hasSfx(n)).toBe(false))

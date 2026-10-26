@@ -1,5 +1,6 @@
 // สคริปต์ dev อัดเสียงจุ่มพู่กัน "จากการกดจริงในแอป" (คลิกการ์ดอารมณ์ในหน้า pick) ด้วย MediaRecorder ที่ดักเอาต์พุตของ AudioContext จริง
 // → scripts/out/audio/dip-app-<n>.wav ฟังเทียบกับ dip-<n>.wav (scripts/record-sfx.mjs) พร้อมสรุปว่าฟังก์ชันเสียงไหนถูกเรียกบ้าง
+// FALLBACK=1 = บล็อกไฟล์ src/assets/sfx/*.mp3 ให้ใช้เสียงสังเคราะห์สำรอง · PREFIX=dip-water ตั้งชื่อไฟล์ (<PREFIX>[-synth]-<n>.wav)
 // DIRECT=1 = เรียก sound.dip ตรง ๆ ในแอปจริง (ใช้เป็นเสียงอ้างอิง dip-<n>.wav ระดับเดียวกับแอป; ไฟล์จาก record-sfx.mjs ที่ render offline เบากว่า ~12 dB)
 //   VITE_USE_MOCK=true npm run dev -- --port 5199
 //   PLAYWRIGHT=/path/to/playwright-core/index.mjs node scripts/record-app-dip.mjs [--url http://localhost:5199] [--takes 3]
@@ -36,6 +37,7 @@ for (let n = 1; n <= takes; n++) {
       return res
     }
   })
+  if (process.env.FALLBACK) await page.route('**/src/assets/sfx/*.mp3', (r) => r.abort())
   await page.goto(url + '/', { waitUntil: 'domcontentloaded' })
   await page.waitForTimeout(1500)
   const urls = await page.evaluate(() => performance.getEntriesByType('resource').map((r) => r.name).filter((u) => /lib\/sound\.js/.test(u)))
@@ -76,8 +78,8 @@ for (let n = 1; n <= takes; n++) {
     new Uint8Array(dv.buffer).forEach((b) => (bin += String.fromCharCode(b)))
     return { data: btoa(bin), peak, calls: window.__calls, secs: buf.duration }
   })
-  writeFileSync(join('scripts/out/audio', `${process.env.DIRECT ? 'dip' : 'dip-app'}-${n}.wav`), Buffer.from(out.data, 'base64'))
-  console.log(`dip-app-${n}.wav (${EMOTIONS[n - 1]}) ${out.secs.toFixed(1)}s peak ${(20 * Math.log10(out.peak || 1e-9)).toFixed(1)} dBFS · เรียก: ${out.calls.join(', ')}`)
+  writeFileSync(join('scripts/out/audio', `${process.env.PREFIX || (process.env.DIRECT ? 'dip' : 'dip-app')}${process.env.FALLBACK ? '-synth' : ''}-${n}.wav`), Buffer.from(out.data, 'base64'))
+  console.log(`${process.env.PREFIX || 'dip-app'}-${n}.wav (${EMOTIONS[n - 1]}) ${out.secs.toFixed(1)}s peak ${(20 * Math.log10(out.peak || 1e-9)).toFixed(1)} dBFS · เรียก: ${out.calls.join(', ')}`)
   await page.close()
 }
 await browser.close()

@@ -40,6 +40,8 @@ export const pickBellNotes = (rnd) => {
   while (out.length < n) out.push(pool.splice(Math.floor(rnd() * pool.length), 1)[0])
   return out
 }
+const DIP_GAP_MS = 150 // จุ่มพู่กันถี่กว่านี้ไม่ซ้อนเสียงใหม่
+let lastDip = -Infinity
 const BELL_GAP_MS = 150 // เสียงเติมสีสดใสไม่ซ้อนถ้ากดถี่กว่านี้
 let lastBell = -Infinity
 export const MUSIC_DUCK = 0.5 // ลดเหลือครึ่งหนึ่งระหว่างลำดับบันทึก/แต้มแสงบาน
@@ -243,27 +245,35 @@ export const getMusicOutput = () => (ctx && musicBus ? { ctx, bus: musicBus } : 
 // ไฟล์ผ่านทางเดียวกับเสียงสังเคราะห์ทุกอย่าง: pool จำกัด ≤ 6 เสียง (voice) → master (เปิด/ปิดเอฟเฟกต์ + ระดับ) → คอมเพรสเซอร์ → soft clip
 export const SFX_NAMES = ['drop', 'smear', 'splash', 'glow', 'dip', 'stroke', 'lift', 'tape', 'cover', 'page', 'note', 'tap']
 const SFX_FILES = import.meta.glob('/src/assets/sfx/*.mp3', { eager: true, query: '?url', import: 'default' })
-// ชื่อ → URL ของไฟล์ที่มีจริง (ชื่อที่ไม่อยู่ใน SFX_NAMES ถูกข้าม)
+// ชื่อไฟล์ (ไม่รวม .mp3) → URL ของไฟล์ที่มีจริง รองรับหลายไฟล์ต่อเสียง: dip.mp3 หรือ dip-1.mp3, dip-2.mp3 … (สุ่มเล่นหนึ่งไฟล์ทุกครั้ง) ชื่อที่ไม่อยู่ใน SFX_NAMES ถูกข้าม
+export const sfxBase = (stem) => stem.replace(/-\d+$/, '')
 export const sfxUrls = Object.fromEntries(
   Object.entries(SFX_FILES)
     .map(([path, url]) => [path.split('/').pop().replace(/\.mp3$/, ''), url])
-    .filter(([name]) => SFX_NAMES.includes(name)),
+    .filter(([stem]) => SFX_NAMES.includes(sfxBase(stem))),
 )
-const sfxBuffers = new Map() // ชื่อ → AudioBuffer | null (null = ไม่มีไฟล์)
+const sfxBuffers = new Map() // ชื่อเสียง → AudioBuffer แรกที่โหลดได้ | null (null = ไม่มีไฟล์)
+const sfxVariants = new Map() // ชื่อเสียง → AudioBuffer[] ทุกไฟล์ของเสียงนั้น
 export const hasSfx = (name) => Boolean(sfxBuffers.get(name))
 const loadSfx = () => {
-  for (const [name, url] of Object.entries(sfxUrls)) {
+  for (const [stem, url] of Object.entries(sfxUrls)) {
+    const name = sfxBase(stem)
     fetch(url)
       .then((res) => (res.ok ? res.arrayBuffer() : null))
       .then((ab) => (ab ? ctx.decodeAudioData(ab) : null)) // โฮสต์แบบ SPA ตอบ index.html แทน 404 → decode ล้ม → null
-      .then((buf) => sfxBuffers.set(name, buf || null))
-      .catch(() => sfxBuffers.set(name, null))
+      .then((buf) => {
+        if (!buf) return
+        sfxVariants.set(name, [...(sfxVariants.get(name) ?? []), buf])
+        if (!sfxBuffers.get(name)) sfxBuffers.set(name, buf)
+      })
+      .catch(() => {})
   }
 }
-// เล่นไฟล์ name หนึ่งครั้ง (gain คูณระดับไฟล์ rate = ปรับความเร็ว/ระดับเสียง) คืน true ถ้ามีไฟล์และเล่นแล้ว
+// เล่นไฟล์ name หนึ่งครั้ง (มีหลายไฟล์ = สุ่มหนึ่งไฟล์) gain คูณระดับไฟล์ rate = ปรับความเร็ว/ระดับเสียง คืน true ถ้ามีไฟล์และเล่นแล้ว
 const playSfx = (name, { gain = 1, rate = 1 } = {}) => {
-  const buf = sfxBuffers.get(name)
-  if (!buf) return false
+  const list = sfxVariants.get(name)
+  if (!list?.length) return false
+  const buf = list[Math.floor(Math.random() * list.length)]
   const src = ctx.createBufferSource()
   src.buffer = buf
   src.playbackRate.value = rate
@@ -533,36 +543,49 @@ export const sound = {
   },
 
   // จุ่มพู่กันลงน้ำสี (หน้าเลือกความรู้สึก): ตูมนุ่ม ๆ + ซู่เบา ๆ ระดับเสียงตามอารมณ์
-  // จุ่มพู่กัน: จิ้มแปรงลงของเหลว (ข้อ 52c) น้ำกระทบ = noise สั้นผ่าน bandpass 1400→700 Hz decay ~150 ms + "จุ๋ม" ทุ้ม sine 320→180 Hz ใน 70 ms เบา ๆ
-  // pitch ไม่ไต่ขึ้น ไม่เด้งซ้ำ สุ่ม pitch/filter ±5% ทุกครั้ง lowpass รวม 3 kHz (ไม่ผูกกับอารมณ์: ทุกอารมณ์เสียงเดียวกัน)
+  // จุ่มพู่กัน (ข้อ 56): ใช้ไฟล์ dip(-n).mp3 ถ้ามี (สุ่มไฟล์ + playbackRate 0.94–1.06) ไม่มีใช้เสียงน้ำสังเคราะห์: noise ผ่าน bandpass ที่ความถี่ขยับขึ้นลง attack ~15 ms decay ~300 ms
+  // + "ฟองน้ำ" 3–5 เม็ด (sine สั้น 20–40 ms pitch ไต่ขึ้นเร็ว เบา ๆ สุ่มเวลา 0–200 ms) lowpass รวม 3 kHz ไม่มีเสียงทุ้ม กันซ้อนถ้ากดถี่กว่า DIP_GAP_MS
   dip() {
     if (!ready()) return
-    if (playSfx('dip')) return
+    const now = performance.now()
+    if (now - lastDip < DIP_GAP_MS) return
+    lastDip = now
+    if (playSfx('dip', { rate: rand(0.94, 1.06), gain: 0.4 })) return
     const t = ctx.currentTime
     const j = () => rand(0.95, 1.05)
     const lp = ctx.createBiquadFilter()
     lp.type = 'lowpass'
     lp.frequency.value = 3000
     lp.connect(master)
-    const osc = ctx.createOscillator()
-    const g = ctx.createGain()
-    osc.type = 'sine'
-    osc.frequency.setValueAtTime(320 * j(), t)
-    osc.frequency.exponentialRampToValueAtTime(180 * j(), t + 0.07)
-    env(g, t, 0.12, 0.006, 0.14)
-    osc.connect(g).connect(lp)
-    osc.start(t)
+    const nodes = []
     const sw = noiseSource(false)
     const bp = ctx.createBiquadFilter()
     bp.type = 'bandpass'
-    bp.Q.value = 0.9
-    bp.frequency.setValueAtTime(1400 * j(), t)
-    bp.frequency.exponentialRampToValueAtTime(700 * j(), t + 0.16)
+    bp.Q.value = 1.1
+    bp.frequency.setValueAtTime(900 * j(), t)
+    bp.frequency.exponentialRampToValueAtTime(1500 * j(), t + 0.09)
+    bp.frequency.exponentialRampToValueAtTime(800 * j(), t + 0.32)
     const sg = ctx.createGain()
-    env(sg, t, 0.09, 0.004, 0.15)
+    env(sg, t, 0.26, 0.015, 0.3)
     sw.connect(bp).connect(sg).connect(lp)
     sw.start(t)
-    voice([osc, sw], t + 0.3)
+    nodes.push(sw)
+    const bubbles = 3 + Math.floor(Math.random() * 3)
+    for (let k = 0; k < bubbles; k++) {
+      const at = t + rand(0, 0.2)
+      const dur = rand(0.02, 0.04)
+      const o = ctx.createOscillator()
+      o.type = 'sine'
+      o.frequency.setValueAtTime(rand(500, 800), at)
+      o.frequency.exponentialRampToValueAtTime(rand(1000, 1400), at + dur)
+      const og = ctx.createGain()
+      env(og, at, rand(0.05, 0.09), 0.004, dur)
+      o.connect(og).connect(lp)
+      o.start(at)
+      o.stop(at + dur + 0.02)
+      nodes.push(o)
+    }
+    voice(nodes, t + 0.5)
   },
 
   // ปาดพู่กันครั้งเดียว (แถบสีของวัน DayRibbon paintLast): เสียงเสียดสีไล่ขึ้นแล้วเบาลงตลอด ms
