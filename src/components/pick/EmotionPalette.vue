@@ -6,7 +6,7 @@
     :inert="!active"
     :aria-hidden="!active"
   >
-    <div class="absolute left-8 top-7">
+    <div class="absolute left-8 top-6">
       <HandButton variant="secondary" @click="app.go('cover')">
         <Doodle name="back" :size="22" /> หน้าแรก
       </HandButton>

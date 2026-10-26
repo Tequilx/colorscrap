@@ -22,10 +22,10 @@
 
       <!-- ปุ่มและอุปกรณ์ของหน้า paint (ซ่อนเมื่อเหลือแถบ) -->
       <div class="transition-opacity duration-450 ease-desk" :class="app.view === 'paint' ? 'opacity-100' : 'pointer-events-none opacity-0'">
-        <div class="absolute left-[52px] top-[50px]">
+        <div class="absolute left-[52px] top-6">
           <HandButton variant="secondary" solid @click="app.go('cover')"><Doodle name="back" :size="22" /> หน้าแรก</HandButton>
         </div>
-        <div class="absolute right-[52px] top-[50px]">
+        <div class="absolute right-[168px] top-6">
           <HandButton variant="secondary" solid @click="app.go('book')">
             <Doodle name="book" :size="22" /> สมุด · วันนี้ {{ entries.todayCount }} ภาพ
           </HandButton>

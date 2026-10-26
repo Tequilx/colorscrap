@@ -1,7 +1,7 @@
 <template>
   <!-- หน้า cover: ข้อความและปุ่มฝั่งขวา (สมุดปิดฝั่งซ้ายคือ Scrapbook) — SPEC §5.1 -->
   <div>
-    <div class="absolute right-9 top-10">
+    <div class="absolute right-9 top-6">
       <HandButton variant="icon" aria-label="ตั้งค่าข้อมูลของฉัน" @click="app.openSettings()">
         <Doodle name="settings" :size="22" />
       </HandButton>

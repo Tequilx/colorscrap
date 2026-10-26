@@ -35,7 +35,7 @@
       <SoundToggle />
       <!-- ปุ่มนำทางของหน้า book -->
       <Transition name="fade">
-        <div v-if="app.view === 'book'" class="absolute left-[124px] top-7">
+        <div v-if="app.view === 'book'" class="absolute left-[124px] top-6">
           <HandButton variant="secondary" @click="app.go('cover')"><Doodle name="back" :size="22" /> หน้าแรก</HandButton>
         </div>
       </Transition>
