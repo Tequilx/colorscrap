@@ -49,7 +49,7 @@ export const BRUSH = {
 export const COVER_COLORS = [
   { hex: '#9E2F2A', label: 'แดงเข้ม' },
   { hex: '#2F5D50', label: 'เขียวเข้ม' },
-  { hex: '#E0704A', label: 'ส้ม' },
+  { hex: '#CC5A30', label: 'ส้ม' },
   { hex: '#34323A', label: 'เทาถ่าน' },
 ]
 
