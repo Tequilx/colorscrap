@@ -38,7 +38,7 @@ AI ใช้ช่วยพัฒนาเท่านั้น ไม่มี 
 | State | Pinia |
 | Backend | Supabase (Auth, Postgres, Storage) |
 | ผ้าใบ | ไลบรารี npm `webgl-fluid-enhanced` v0.8 (MIT, พัฒนาต่อจาก PavelDoGreat/WebGL-Fluid-Simulation) ผ่าน `components/paint/FluidCanvas.vue` |
-| ฟอนต์ | Google Fonts: Mali (หัวข้อและลายมือ), IBM Plex Sans Thai Looped (เนื้อหา) |
+| ฟอนต์ | ไฟล์ในแอปเอง (`@fontsource`, subset thai+latin): Mali 400–700 (หัวข้อและลายมือ), IBM Plex Sans Thai Looped 400–600 (เนื้อหา) ใช้ได้ออฟไลน์ |
 | Animation | CSS transitions, `<Transition>` ของ Vue และ Web Animations API (ภาพบินตอนบันทึกและหน้า photo) ไม่ต้องใช้ไลบรารีเพิ่ม |
 
 ---

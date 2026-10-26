@@ -5,6 +5,7 @@ import { useAuthStore } from "@/stores/auth";
 import { useProfileStore } from "@/stores/profile";
 import { useEntriesStore } from "@/stores/entries";
 import { installFavicon } from "@/lib/brand";
+import "./fonts";
 import "./assets/app.css";
 
 installFavicon();

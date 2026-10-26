@@ -30,8 +30,8 @@
 | PostCSS + Autoprefixer | ^8.5.28 → 8.5.28 / ^10.6.1 → 10.6.1 | ตัวประมวลผล CSS ที่ Tailwind ทำงานบนนั้น และเติมโค้ดให้ใช้ได้หลายเบราว์เซอร์ | `postcss.config.js` |
 | webgl-fluid-enhanced | ^0.8.0 → 0.8.0 | **ผ้าใบสีน้ำไหล** (จำลองน้ำด้วย WebGL) แอปควบคุมผ่านการตั้งค่าและการหยดสี | `src/components/paint/FluidCanvas.vue`, `src/lib/dye.js`, `src/lib/emotions.js` |
 | colorthief | ^3.5.0 → 3.5.0 | **ดูดสีเด่น** จากภาพที่ระบายตอนบันทึก (`getPaletteSync`) | `src/lib/extractColors.js` |
-| ฟอนต์ Mali | ผ่าน Google Fonts | ตัวหนังสือลายมือ (หัวข้อ ปุ่ม คำบรรยาย) class `font-hand` | `index.html`, `tailwind.config.js` |
-| ฟอนต์ IBM Plex Sans Thai Looped | ผ่าน Google Fonts | ตัวหนังสือเนื้อหา class `font-body` | `index.html`, `tailwind.config.js` |
+| ฟอนต์ Mali | ไฟล์ในแอปเอง (`@fontsource/mali`) | ตัวหนังสือลายมือ (หัวข้อ ปุ่ม คำบรรยาย) class `font-hand` · น้ำหนัก 400–700 subset thai+latin | `src/fonts.js`, `tailwind.config.js` |
+| ฟอนต์ IBM Plex Sans Thai Looped | ไฟล์ในแอปเอง (`@fontsource/ibm-plex-sans-thai-looped`) | ตัวหนังสือเนื้อหา class `font-body` · น้ำหนัก 400–600 subset thai+latin | `src/fonts.js`, `tailwind.config.js` |
 
 **ความสามารถของเบราว์เซอร์ที่ใช้โดยตรง (ไม่ใช่ไลบรารี ไม่ต้องติดตั้ง):** WebGL (ผ้าใบ), Canvas 2D (จับภาพ ย่อภาพ ดูดสี), Pointer Events (รับนิ้ว/เมาส์), Web Animations API และ CSS transitions (แอนิเมชันบิน/เลื่อน — `<Transition>` ของ Vue ใช้ร่วมด้วย ไม่มีไลบรารีแอนิเมชัน), IndexedDB (เก็บภาพในเครื่อง), localStorage (โปรไฟล์ในโหมด mock), `matchMedia` (ตรวจ "ลดการเคลื่อนไหว")
 
@@ -191,7 +191,8 @@ login → hello → cover → pick → paint → saved → book → photo → bo
 | `jsconfig.json` | บอกตัวแก้โค้ด (VS Code) ว่า `@` = `src/` | ตอนแก้โค้ด |
 | `tailwind.config.js` | นำสี/ฟอนต์/ขนาดตัวอักษร/เงา/เวลาแอนิเมชันจาก `tokens.js` มาทำเป็นชื่อ class (เช่น `bg-desk`, `font-hand`) | ทั้งแอป |
 | `postcss.config.js` | เปิดใช้ Tailwind และ autoprefixer (ตัวเติมโค้ดให้ใช้ได้หลายเบราว์เซอร์) | ทั้งแอป |
-| `index.html` | หน้าเว็บตั้งต้น: ชื่อแท็บ "ColorScrap" และโหลดฟอนต์จาก Google Fonts | ทั้งแอป |
+| `index.html` | หน้าเว็บตั้งต้น: ชื่อแท็บ "ColorScrap" (ไม่โหลดอะไรจากภายนอกแล้ว) | ทั้งแอป |
+| `src/fonts.js` | นำเข้าไฟล์ฟอนต์ Mali 400–700 / IBM Plex Sans Thai Looped 400–600 (thai+latin) จาก `@fontsource` ใช้ได้ออฟไลน์ | ทั้งแอป การ์ดเก็บรูป |
 | `.env` | ค่าตั้งต้นตอน dev: `VITE_USE_MOCK=true` (โหมดจำลอง) | ทั้งแอป |
 | `.env.production` | ค่าตอน build จริง: `VITE_USE_MOCK=false` (ต่อ Supabase) | ทั้งแอป |
 | `.env.example` | แม่แบบว่า `.env.local` ต้องมีตัวแปรอะไรบ้าง (ค่าว่าง ไม่มีความลับ) | ทั้งแอป |
@@ -740,14 +741,14 @@ if (h >= 19) return 'ยามค่ำ'              →   if (h >= 20) return 
 ### 3.10 ฟอนต์
 
 - **ฟอนต์ที่ใช้:** `Mali` (น้ำหนัก 400/500/600/700, ใช้กับหัวข้อและตัวอักษรลายมือ class `font-hand`) และ `IBM Plex Sans Thai Looped` (น้ำหนัก 400/500/600 ใช้กับเนื้อหา class `font-body`) พร้อมฟอนต์สำรอง `Itim`, `Noto Sans Thai`, `system-ui` และ `font-mono` ที่เป็นฟอนต์ของระบบ
-- **โหลดจากไหน:** [index.html](../index.html) ลิงก์ Google Fonts (ต้องมีอินเทอร์เน็ตตอนเปิดแอป ถ้าออฟไลน์จะใช้ฟอนต์สำรอง)
+- **โหลดจากไหน:** [src/fonts.js](../src/fonts.js) นำเข้าไฟล์ woff2 จากแพ็กเกจ `@fontsource/mali` และ `@fontsource/ibm-plex-sans-thai-looped` (รวมในแอปตอน build ไม่ต้องมีอินเทอร์เน็ต) ตรวจด้วย `scripts/check-fonts.mjs`
 - **กำหนดชื่อฟอนต์ใช้งาน:** [tailwind.config.js](../tailwind.config.js) → `fontFamily` (`hand`, `body`, `mono`) ตัวเนื้อหาทั้งแอปใช้ `font-body` (ตั้งใน `src/assets/app.css`)
 - **ขนาดตัวอักษร:** `FONT_SIZES` ใน tokens.js (13, 14, 15, 16, 17, 19, 26, 38, 44, 52 px) ใช้เป็น class `text-13` … `text-52`
 
 **ตัวอย่างการแก้ (เปลี่ยนฟอนต์ลายมือ)**
 ```html
-<!-- index.html: เปลี่ยนใน URL ของ Google Fonts -->
-family=Mali:wght@400;500;600;700   →   family=Itim
+// src/fonts.js: เปลี่ยนแพ็กเกจฟอนต์ (npm i @fontsource/itim) แล้วนำเข้าแทน
+import '@fontsource/mali/thai-400.css'   →   import '@fontsource/itim/thai-400.css'
 
 // tailwind.config.js
 hand: ['Mali', 'Itim', 'system-ui', 'sans-serif'],   →   hand: ['Itim', 'system-ui', 'sans-serif'],
