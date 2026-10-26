@@ -25,7 +25,7 @@
       <!-- ป้ายกระดาษ -->
       <div class="absolute left-[72px] top-[178px] box-border flex w-[284px] rotate-[1.2deg] flex-col gap-1.5 rounded bg-paper px-[26px] py-[22px] shadow-[0_3px_10px_rgba(0,0,0,0.22)]">
         <span class="text-13 text-ink-soft">สมุดระบายความรู้สึก</span>
-        <BrandMark :size="40" word class="font-bold" />
+        <BrandMark variant="wordmark" :size="44" />
         <span class="break-words border-t-2 border-dotted border-line pt-2 font-hand font-bold leading-stack" :class="name ? 'text-ink' : 'text-mute'" :style="{ fontSize: ownerSize + 'px' }">ของ {{ name || 'ชื่อของคุณ' }}</span>
       </div>
       <span class="absolute inset-y-0 right-[44px] w-[18px] bg-cover-strap shadow-[inset_2px_0_0_rgba(255,255,255,0.08)]"></span>

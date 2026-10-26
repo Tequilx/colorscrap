@@ -2,7 +2,7 @@
 // พิกัดทั้งหมดคือพิกัดในดีไซน์ (px ของการ์ด) ข้อมูลจริงมาจากผู้เรียก: ภาพตัวอย่างสีม่วงในดีไซน์เป็นแค่ตัวอย่าง
 import { BLOB_PATHS } from '@/lib/doodles'
 import { INTENSITY_LABELS, emotionLabel } from '@/lib/emotions'
-import { brandMarkSvg } from '@/lib/brand'
+import { DIVIDER_COLOR, brandIconSvg, brandWordmarkSvg, lockupLayout } from '@/lib/brand'
 import { dayFrameSvg } from '@/lib/dayFrame'
 import { RIBBON_H, layoutRibbon, ribbonSvg } from '@/lib/dayRibbon'
 import { svgToImage } from '@/lib/share/svgImage'
@@ -34,15 +34,21 @@ import {
 
 const RAD = Math.PI / 180
 
-// ส่วนหัว (ใช้ร่วมสองการ์ด): ซ้าย โลโก้ BrandMark (SVG จาก lib/brand.js แปลงเป็นภาพ) + "ColorScrap" ขวา วันที่ไทย
-const BRAND = { size: 64, text: 44, gap: 14, top: 52 }
-let brandImage = null
-const loadBrand = () => (brandImage ??= svgToImage(brandMarkSvg(BRAND.size * 2, 'bmc')))
+// ส่วนหัว (ใช้ร่วมสองการ์ด): ซ้าย lockup โลโก้ (icon | เส้นคั่น | wordmark จาก lib/brand.js แปลง SVG เป็นภาพ) ขวา วันที่ไทย
+const BRAND = { h: 64, top: 52 }
+let brandImages = null
+const loadBrand = () =>
+  (brandImages ??= Promise.all([
+    svgToImage(brandIconSvg(BRAND.h * 2, { p: 'bci' })),
+    svgToImage(brandWordmarkSvg(lockupLayout(BRAND.h).word * 2, 'bcw')),
+  ]).then(([icon, word]) => ({ icon, word })))
 const drawHeader = (ctx, brand, dateText) => {
-  const row = BRAND.size
-  ctx.drawImage(brand, 72, BRAND.top, BRAND.size, BRAND.size)
-  drawText(ctx, 'ColorScrap', 72 + BRAND.size + BRAND.gap, BRAND.top, { size: BRAND.text, weight: 600, kind: 'hand', boxHeight: row })
-  drawText(ctx, dateText, 1008, BRAND.top, { size: 26, kind: 'body', color: C.soft, align: 'right', boxHeight: row })
+  const L = lockupLayout(BRAND.h)
+  ctx.drawImage(brand.icon, 72, BRAND.top, L.icon, L.icon)
+  ctx.fillStyle = DIVIDER_COLOR
+  ctx.fillRect(72 + L.divider.x, BRAND.top + (BRAND.h - L.divider.h) / 2, L.divider.w, L.divider.h)
+  ctx.drawImage(brand.word, 72 + L.wordX, BRAND.top + (BRAND.h - L.word) / 2, L.wordW, L.word)
+  drawText(ctx, dateText, 1008, BRAND.top, { size: 26, kind: 'body', color: C.soft, align: 'right', boxHeight: BRAND.h })
 }
 
 // ท้ายการ์ด: เส้นประ + "โดย {ชื่อ}" (ซ่อนถ้าไม่มีชื่อ) + "สมุดระบายความรู้สึก"

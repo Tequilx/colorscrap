@@ -941,8 +941,9 @@ git switch -c restore-before-animations backup/main-before-animations
 
 ## โลโก้ (`src/lib/brand.js`) — เปลี่ยนโลโก้แก้ไฟล์เดียว
 
-โลโก้ ColorScrap (กระดาษติดเทปกับหยดสีน้ำ) อยู่ที่ **`src/lib/brand.js` ไฟล์เดียว** (`brandMarkInner` = รูป SVG ขนาด 40×40, `BRAND_NAME` = ชื่อ) ทุกจุดอ่านจากที่นี่: `components/ui/BrandMark.vue` (ปกสมุด, การ์ดเข้าสู่ระบบ, หน้าแรกของสมุด), favicon (`installFavicon()` ใน `main.js` สร้างจาก SVG เดียวกัน), และการ์ดเก็บรูปทั้งสองแบบ (`lib/share/cards.js` แปลง SVG เป็นภาพแล้ววาดลง canvas) ถ้าอยากเปลี่ยนโลโก้ แก้ `brandMarkInner` แล้วทุกที่เปลี่ยนตาม (`public/favicon.ico` เป็นแค่ตัวสำรองของเบราว์เซอร์เก่า)
+โลโก้ ColorScrap อยู่ที่ **`src/lib/brand.js` ไฟล์เดียว** มี 3 รูปแบบ: **wordmark** ("ColorScrap" ฟอนต์ Mali 700 สีหมึก ตัว l ใน Color เป็นพู่กัน "Scrap" วางบนแถบเทปครีมเอียง −3°), **icon** (ตัว C กับพู่กันเอียง ~40° ปลายขนฟ้าแตะปลายล่างของ C) และ **lockup** (icon | เส้นคั่นบาง | wordmark + คำรอง "สมุดระบายความรู้สึก" เฉพาะขนาดใหญ่) ตัวอักษรเป็นเวกเตอร์ (`src/lib/brandGlyphs.js` สร้างจาก Mali 700 ด้วย `scripts/make-brand-glyphs.mjs`) สีพู่กันอยู่ที่ `LOGO` ใน `tokens.js`
 
+ใช้ผ่าน `components/ui/BrandMark.vue` (`variant="wordmark|icon|lockup"`, `size` = ความสูง px, `tagline`): ป้ายบนปกสมุด = wordmark, หน้าตั้งชื่อสมุด/เข้าสู่ระบบ = lockup ใหญ่ + คำรอง, การ์ดเก็บรูปทั้งสองแบบ = lockup (`lib/share/cards.js` แปลง SVG เป็นภาพ) ไอคอนเว็บ/แอปสร้างจาก icon ด้วย `scripts/make-favicons.mjs` (ต้องเปิด dev server) ได้ `public/favicon.svg`, `favicon-16.png`, `favicon-32.png`, `apple-touch-icon.png` (180), `icon-512.png`, `manifest.webmanifest` ซึ่งลิงก์อยู่ใน `index.html` ถ้าอยากเปลี่ยนโลโก้ แก้ `brand.js` แล้วรัน `make-favicons.mjs` ใหม่ (`public/favicon.ico` เป็นตัวสำรองของเบราว์เซอร์เก่า)
 
 ## ไฟล์ที่เพิ่มในรอบขัดเกลา (ข้อ 15–26)
 

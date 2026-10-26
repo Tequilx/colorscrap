@@ -4,7 +4,8 @@
     <Tape class="left-[270px] top-[-12px]" long :rotate="-3" />
 
     <div class="flex flex-col gap-3">
-      <span class="inline-flex items-center gap-2 text-14 text-ink-soft"><BrandMark :size="28" /> หน้าแรกของสมุด · แก้ทีหลังได้เสมอ</span>
+      <BrandMark variant="lockup" :size="68" tagline />
+      <span class="text-14 text-ink-soft">หน้าแรกของสมุด · แก้ทีหลังได้เสมอ</span>
       <h1 class="m-0 font-hand text-38 font-semibold leading-head">สมุดเล่มนี้เป็นของ...</h1>
     </div>
 

@@ -53,6 +53,9 @@ export const COVER_COLORS = [
   { hex: '#34323A', label: 'เทาถ่าน' },
 ]
 
+// สีของพู่กันในโลโก้ (lib/brand.js): ด้ามไม้ / ปลอกโลหะ / ขน / ปลายขนจุ่มฟ้า (= สี calm)
+export const LOGO = { handle: '#C9963A', ferrule: '#BDB6A8', bristle: '#3B2418', dip: '#5FA3C8' }
+
 // สีอารมณ์ 8 สี (SPEC §3.2)
 export const EMOTION_COLORS = {
   happy: '#F1BE48',
