@@ -144,7 +144,7 @@ const build = () => {
       window.__soundPeak = Math.max(window.__soundPeak, p)
     }, 30)
     window.__soundVoices = () => pool.size
-    window.__sfxLoaded = () => SFX_NAMES.filter(hasSfx) // dev: ไฟล์ใน public/audio/sfx ที่โหลดสำเร็จ
+    window.__sfxLoaded = () => SFX_NAMES.filter(hasSfx) // dev: ไฟล์ใน src/assets/sfx ที่โหลดสำเร็จ
   }
 }
 
@@ -226,15 +226,22 @@ export const onAudioReady = (cb) => {
 export const getMusicOutput = () => (ctx && musicBus ? { ctx, bus: musicBus } : null)
 
 // ---------- เสียงเอฟเฟกต์จากไฟล์ (ทางเลือก ข้อ 40) ----------
-// วางไฟล์ public/audio/sfx/<ชื่อ>.mp3 ตามตาราง SFX_NAMES (docs/FILE-GUIDE.md "เปลี่ยนเสียงเอฟเฟกต์") ถ้ามีไฟล์ใช้ไฟล์แทนเสียงสังเคราะห์ของเสียงนั้น ไม่มี/ถอดรหัสไม่ได้ = ใช้เสียงสังเคราะห์เดิม ไม่มี error
+// วางไฟล์ src/assets/sfx/<ชื่อ>.mp3 ตามตาราง SFX_NAMES (docs/FILE-GUIDE.md "เปลี่ยนเสียงเอฟเฟกต์") ถ้ามีไฟล์ใช้ไฟล์แทนเสียงสังเคราะห์ของเสียงนั้น ไม่มี/ถอดรหัสไม่ได้ = ใช้เสียงสังเคราะห์เดิม ไม่มี error
+// ข้อ 46: รายชื่อไฟล์ที่มีจริงรู้ตอน build (import.meta.glob) โหลดเฉพาะไฟล์ที่มี ไม่มีไฟล์เลย = ไม่มีคำขอเครือข่ายเลย (ไม่มี 404)
 // ไฟล์ผ่านทางเดียวกับเสียงสังเคราะห์ทุกอย่าง: pool จำกัด ≤ 6 เสียง (voice) → master (เปิด/ปิดเอฟเฟกต์ + ระดับ) → คอมเพรสเซอร์ → soft clip
 export const SFX_NAMES = ['drop', 'smear', 'splash', 'glow', 'dip', 'stroke', 'lift', 'tape', 'cover', 'page', 'note', 'tap']
-export const sfxPath = (name) => `/audio/sfx/${name}.mp3`
+const SFX_FILES = import.meta.glob('/src/assets/sfx/*.mp3', { eager: true, query: '?url', import: 'default' })
+// ชื่อ → URL ของไฟล์ที่มีจริง (ชื่อที่ไม่อยู่ใน SFX_NAMES ถูกข้าม)
+export const sfxUrls = Object.fromEntries(
+  Object.entries(SFX_FILES)
+    .map(([path, url]) => [path.split('/').pop().replace(/\.mp3$/, ''), url])
+    .filter(([name]) => SFX_NAMES.includes(name)),
+)
 const sfxBuffers = new Map() // ชื่อ → AudioBuffer | null (null = ไม่มีไฟล์)
 export const hasSfx = (name) => Boolean(sfxBuffers.get(name))
 const loadSfx = () => {
-  for (const name of SFX_NAMES) {
-    fetch(sfxPath(name))
+  for (const [name, url] of Object.entries(sfxUrls)) {
+    fetch(url)
       .then((res) => (res.ok ? res.arrayBuffer() : null))
       .then((ab) => (ab ? ctx.decodeAudioData(ab) : null)) // โฮสต์แบบ SPA ตอบ index.html แทน 404 → decode ล้ม → null
       .then((buf) => sfxBuffers.set(name, buf || null))

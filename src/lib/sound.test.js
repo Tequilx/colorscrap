@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { SFX_NAMES, hasSfx, sfxPath, MAX_VOICES, SOFT_CEILING, bloomEnvelope, createVoicePool, pitchOf, readEnabled, softClipCurve } from './sound'
+import { SFX_NAMES, hasSfx, sfxUrls, MAX_VOICES, SOFT_CEILING, bloomEnvelope, createVoicePool, pitchOf, readEnabled, softClipCurve } from './sound'
 
 describe('pitchOf', () => {
   it('อารมณ์ช้าทุ้มกว่าอารมณ์เร็ว', () => {
@@ -74,9 +74,9 @@ describe('readEnabled', () => {
 })
 
 describe('เสียงเอฟเฟกต์จากไฟล์', () => {
-  it('ชื่อไฟล์ครบ 12 ตัวและ path อยู่ใน public/audio/sfx', () => {
+  it('ชื่อไฟล์ครบ 12 ตัว และรายการไฟล์ที่มีจริงมาจากตอน build (ไม่มีไฟล์ = ว่าง ไม่มีคำขอ)', () => {
     expect(SFX_NAMES).toEqual(['drop', 'smear', 'splash', 'glow', 'dip', 'stroke', 'lift', 'tape', 'cover', 'page', 'note', 'tap'])
-    expect(sfxPath('drop')).toBe('/audio/sfx/drop.mp3')
+    Object.keys(sfxUrls).forEach((n) => expect(SFX_NAMES).toContain(n))
   })
   it('ยังไม่โหลดอะไร = ไม่มีไฟล์ (ใช้เสียงสังเคราะห์)', () => {
     SFX_NAMES.forEach((n) => expect(hasSfx(n)).toBe(false))
