@@ -125,6 +125,7 @@ const build = () => {
   master.connect(comp)
   comp.connect(clip)
   clip.connect(ctx.destination)
+  loadSfx()
   // ขาวนวล 1 วินาที วนซ้ำ ใช้เป็นพื้นของเสียงพู่กัน/กระดาษ/เทป
   noiseBuffer = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate)
   const data = noiseBuffer.getChannelData(0)
@@ -143,6 +144,7 @@ const build = () => {
       window.__soundPeak = Math.max(window.__soundPeak, p)
     }, 30)
     window.__soundVoices = () => pool.size
+    window.__sfxLoaded = () => SFX_NAMES.filter(hasSfx) // dev: ไฟล์ใน public/audio/sfx ที่โหลดสำเร็จ
   }
 }
 
@@ -223,6 +225,37 @@ export const onAudioReady = (cb) => {
 }
 export const getMusicOutput = () => (ctx && musicBus ? { ctx, bus: musicBus } : null)
 
+// ---------- เสียงเอฟเฟกต์จากไฟล์ (ทางเลือก ข้อ 40) ----------
+// วางไฟล์ public/audio/sfx/<ชื่อ>.mp3 ตามตาราง SFX_NAMES (docs/FILE-GUIDE.md "เปลี่ยนเสียงเอฟเฟกต์") ถ้ามีไฟล์ใช้ไฟล์แทนเสียงสังเคราะห์ของเสียงนั้น ไม่มี/ถอดรหัสไม่ได้ = ใช้เสียงสังเคราะห์เดิม ไม่มี error
+// ไฟล์ผ่านทางเดียวกับเสียงสังเคราะห์ทุกอย่าง: pool จำกัด ≤ 6 เสียง (voice) → master (เปิด/ปิดเอฟเฟกต์ + ระดับ) → คอมเพรสเซอร์ → soft clip
+export const SFX_NAMES = ['drop', 'smear', 'splash', 'glow', 'dip', 'stroke', 'lift', 'tape', 'cover', 'page', 'note', 'tap']
+export const sfxPath = (name) => `/audio/sfx/${name}.mp3`
+const sfxBuffers = new Map() // ชื่อ → AudioBuffer | null (null = ไม่มีไฟล์)
+export const hasSfx = (name) => Boolean(sfxBuffers.get(name))
+const loadSfx = () => {
+  for (const name of SFX_NAMES) {
+    fetch(sfxPath(name))
+      .then((res) => (res.ok ? res.arrayBuffer() : null))
+      .then((ab) => (ab ? ctx.decodeAudioData(ab) : null)) // โฮสต์แบบ SPA ตอบ index.html แทน 404 → decode ล้ม → null
+      .then((buf) => sfxBuffers.set(name, buf || null))
+      .catch(() => sfxBuffers.set(name, null))
+  }
+}
+// เล่นไฟล์ name หนึ่งครั้ง (gain คูณระดับไฟล์ rate = ปรับความเร็ว/ระดับเสียง) คืน true ถ้ามีไฟล์และเล่นแล้ว
+const playSfx = (name, { gain = 1, rate = 1 } = {}) => {
+  const buf = sfxBuffers.get(name)
+  if (!buf) return false
+  const src = ctx.createBufferSource()
+  src.buffer = buf
+  src.playbackRate.value = rate
+  const g = ctx.createGain()
+  g.gain.value = gain
+  src.connect(g).connect(master)
+  src.start()
+  voice([src], ctx.currentTime + buf.duration / rate + 0.05)
+  return true
+}
+
 // ---------- ตัวช่วยสร้างเสียง ----------
 const noiseSource = (loop = true) => {
   const s = ctx.createBufferSource()
@@ -272,6 +305,8 @@ export const sound = {
     const now = performance.now()
     if (now - lastDropAt < 45) return // หยดถี่กว่านี้ฟังเป็นก้อนเดียวอยู่แล้ว
     lastDropAt = now
+    const pitch = pitchOf(emotion) * rand(0.95, 1.05)
+    if (size > 1.3 && hasSfx('splash') ? playSfx('splash', { rate: pitch }) : playSfx('drop', { gain: 0.45 + 0.55 * clamp(strength, 0, 1), rate: pitch })) return
     const t = ctx.currentTime
     const f0 = 430 * pitchOf(emotion) * rand(0.92, 1.08)
     const vol = 0.07 + 0.15 * clamp(strength, 0, 1)
@@ -308,6 +343,18 @@ export const sound = {
   brush(speed) {
     if (!ready()) return
     const v = clamp(speed / 2200, 0, 1)
+    if (!brushVoice && hasSfx('smear')) {
+      // ไฟล์ smear วนได้ ระดับตามความเร็วเหมือนเสียงสังเคราะห์
+      const src = ctx.createBufferSource()
+      src.buffer = sfxBuffers.get('smear')
+      src.loop = true
+      const g = ctx.createGain()
+      g.gain.value = 0
+      src.connect(g).connect(master)
+      src.start()
+      brushVoice = { src, bp: null, g, smooth: 0, stopFn: null }
+      brushVoice.stopFn = pool.add({ stop: () => sound.brushStop(true) })
+    }
     if (!brushVoice) {
       const src = noiseSource(true)
       const bp = ctx.createBiquadFilter()
@@ -329,8 +376,8 @@ export const sound = {
     const b = brushVoice
     b.smooth += (v - b.smooth) * 0.35
     const t = ctx.currentTime
-    b.g.gain.setTargetAtTime(b.smooth * 0.12, t, 0.035)
-    b.bp.frequency.setTargetAtTime(800 + b.smooth * 2600, t, 0.05)
+    b.g.gain.setTargetAtTime(b.smooth * (b.bp ? 0.12 : 0.9), t, 0.035)
+    b.bp?.frequency.setTargetAtTime(800 + b.smooth * 2600, t, 0.05)
     clearTimeout(brushTimer)
     brushTimer = setTimeout(() => sound.brushStop(), 120)
   },
@@ -355,6 +402,7 @@ export const sound = {
   bloom({ ms = 3000, gentle = false } = {}) {
     if (!ready()) return
     duckMusic(ms)
+    if (playSfx('glow', { gain: gentle ? 0.6 : 1 })) return
     const t = ctx.currentTime
     const dur = ms / 1000
     const vol = gentle ? 0.035 : 0.06
@@ -399,6 +447,7 @@ export const sound = {
   // บันทึก: กระดาษลอยขึ้น (ลมเบา กวาดความถี่ขึ้น)
   paperRise(ms = 520) {
     if (!ready()) return
+    if (playSfx('lift')) return
     const t = ctx.currentTime
     const dur = ms / 1000
     const src = noiseSource(true)
@@ -418,6 +467,7 @@ export const sound = {
   // บันทึก: แปะเทป (ฉีกสั้น ๆ แล้วแปะเบา ๆ)
   tape() {
     if (!ready()) return
+    if (playSfx('tape')) return
     const t = ctx.currentTime
     const rip = noiseSource(false)
     const hp = ctx.createBiquadFilter()
@@ -448,6 +498,7 @@ export const sound = {
   // พลิกแผ่น/เปิดสมุด: เสียงกระดาษพลิก (long = เปิดสมุด ทุ้มและนานกว่า)
   flip({ long = false } = {}) {
     if (!ready()) return
+    if (playSfx(long ? 'cover' : 'page')) return
     const t = ctx.currentTime
     const dur = long ? 0.34 : 0.17
     const src = noiseSource(false)
@@ -466,6 +517,7 @@ export const sound = {
   // จุ่มพู่กันลงน้ำสี (หน้าเลือกความรู้สึก): ตูมนุ่ม ๆ + ซู่เบา ๆ ระดับเสียงตามอารมณ์
   dip(emotion) {
     if (!ready()) return
+    if (playSfx('dip', { rate: pitchOf(emotion) })) return
     const t = ctx.currentTime
     const f = 250 * pitchOf(emotion)
     const osc = ctx.createOscillator()
@@ -492,6 +544,7 @@ export const sound = {
   // ปาดพู่กันครั้งเดียว (แถบสีของวัน DayRibbon paintLast): เสียงเสียดสีไล่ขึ้นแล้วเบาลงตลอด ms
   stroke(ms = 1100) {
     if (!ready()) return
+    if (playSfx('stroke')) return
     const t = ctx.currentTime
     const dur = ms / 1000
     const src = noiseSource(true)
@@ -517,6 +570,7 @@ export const sound = {
   // โน้ตอารมณ์เก็บ/กางออก: กระดาษเสียดสีเบา ๆ (up = กางออก ความถี่ขึ้น / ไม่ใช่ = เก็บ ความถี่ลง)
   paperSlide(up = false) {
     if (!ready()) return
+    if (playSfx('note', { rate: up ? 1.08 : 0.94 })) return
     const t = ctx.currentTime
     const src = noiseSource(false)
     const bp = ctx.createBiquadFilter()
@@ -537,6 +591,7 @@ export const sound = {
     const now = performance.now()
     if (now - lastTapAt < 40) return
     lastTapAt = now
+    if (playSfx('tap', { rate: rand(0.95, 1.05) })) return
     const t = ctx.currentTime
     const src = noiseSource(false)
     const bp = ctx.createBiquadFilter()

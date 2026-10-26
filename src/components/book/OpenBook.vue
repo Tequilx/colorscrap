@@ -142,7 +142,7 @@ watch(
     turnEl.value.style.visibility = 'visible'
     landing.style.opacity = '0' // หน้าที่แผ่นจะไปลง ซ่อนไว้จนแผ่นลงถึง
     app.leafFlipping = true
-    sound.flip({ long: true })
+    sound.flip() // พลิกหน้า (ไฟล์ page)
     await nextTick()
     const T = MOTION.flip.turn * TIME_SCALE
     const opts = { duration: T, fill: 'both' }
