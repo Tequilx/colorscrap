@@ -5,7 +5,7 @@
 
     <div class="flex flex-col gap-3">
       <BrandMark variant="lockup" :size="68" tagline />
-      <span class="text-14 text-ink-soft">หน้าแรกของสมุด · แก้ทีหลังได้เสมอ</span>
+      <span class="text-14 text-ink-soft">หน้าแรกของสมุด</span>
       <h1 class="m-0 font-hand text-38 font-semibold leading-head">สมุดเล่มนี้เป็นของ...</h1>
     </div>
 
@@ -19,6 +19,7 @@
         placeholder="เช่น ฝน, มิ้นท์, เจ้าหญิงนอนดึก"
         class="border-0 border-b-2 border-dashed border-mute bg-transparent px-0.5 py-1.5 font-hand text-26 text-ink outline-offset-4"
       />
+      <span class="text-13 text-ink-soft">เปลี่ยนชื่อได้ภายหลังที่ปุ่มปรับแต่ง</span>
     </div>
 
     <div class="flex flex-col gap-2">

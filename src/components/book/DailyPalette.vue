@@ -29,7 +29,7 @@
 
       <template v-else>
         <!-- สีของวัน: ชิ้นภาพจริงของวัน ในกรอบโพลารอยด์ขาวเดียวกับภาพในสมุด (PolaroidFrame ขอบล่างหนากว่า) เอียง −3° ไม่มีเทป -->
-        <div class="absolute left-10 top-[80px] flex w-[412px] items-center gap-6">
+        <div class="absolute left-10 top-[104px] flex w-[412px] items-center gap-6">
           <PolaroidFrame class="pal-seep h-[138px] w-[138px] shrink-0 px-2.5 pb-[18px] pt-2.5" :rotate="-3" data-day-frame :style="reveal(0, 'seep')">
             <!-- ข้อ 49: ชิ้นที่มีสีมากที่สุดของภาพจริงในวันนั้น (ไม่มี blur/filter) ระหว่างโหลดเป็นพื้นกระดาษเปล่าแล้ว fade เข้า ครอปไม่ได้ = ก้อนสีเดิม -->
             <div class="relative h-full w-full overflow-hidden bg-paper">
@@ -48,7 +48,7 @@
 
         <!-- ส่วนล่างของหน้า (ข้อ 44) เรียงไหลลงเป็นคอลัมน์เดียว: หัวข้อ → แถบสี + ป้าย (สูงตามจำนวนแถวป้าย) → ย่อหน้าสรุป (เว้น 20px จากป้าย) → รายการอารมณ์ (เว้น 12px) เห็น 3 แถวเต็ม
              รายการเกินพื้นที่ → เลื่อนได้ในกล่อง กล่องรวมสูงคงที่ไม่ดันส่วนท้ายของหน้า -->
-        <div class="absolute left-10 top-[230px] flex h-[300px] w-[412px] flex-col">
+        <div class="absolute left-10 top-[254px] flex h-[276px] w-[412px] flex-col">
           <span class="pal-fade font-hand text-17 font-semibold leading-head" :style="reveal(3, 'fade')">สีของวันตามลำดับเวลา</span>
           <DayRibbon class="mt-2" :entries="entries" animate="reveal" :delay="ribbonDelay" :width="412" />
 

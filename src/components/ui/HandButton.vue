@@ -28,6 +28,10 @@ const props = defineProps({
   disabled: { type: Boolean, default: false },
   // พื้นกระดาษทึบ (ใช้เมื่อปุ่มวางทับกระดาน/ผ้าใบ)
   solid: { type: Boolean, default: false },
+  // พื้นทึบสี ink ตัวหนังสือ/ไอคอนสี paper (ปุ่มเด่น เช่น ปรับแต่งสมุด) โดยไม่ตั้ง aria-pressed
+  filled: { type: Boolean, default: false },
+  // ปุ่ม icon ขนาด 56px (ปกติ 48px)
+  large: { type: Boolean, default: false },
 })
 
 const sizes = computed(
@@ -36,11 +40,11 @@ const sizes = computed(
       primary: 'min-h-[58px] px-8 font-hand text-19 font-semibold',
       secondary: 'min-h-[48px] px-[18px] font-hand text-17 font-semibold',
       chip: 'min-h-[44px] px-4 font-body text-15 font-medium',
-      icon: 'h-12 w-12',
+      icon: props.large ? 'h-14 w-14' : 'h-12 w-12',
     })[props.variant],
 )
 
-const isOn = computed(() => !props.disabled && (props.variant === 'primary' || props.pressed === true))
+const isOn = computed(() => !props.disabled && (props.variant === 'primary' || props.pressed === true || props.filled))
 
 const textColor = computed(() => (isOn.value ? 'text-paper' : 'text-ink'))
 

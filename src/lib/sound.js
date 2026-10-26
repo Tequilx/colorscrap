@@ -30,6 +30,16 @@ export const soundOn = ref(readEnabled())
 // เพลงคลอ (lib/music.js) เปิด/ปิดแยกจากเอฟเฟกต์ จำค่าแยก ค่าเริ่มต้นเปิดทั้งคู่
 const MUSIC_KEY = 'colorscrap.music'
 export const MUSIC_BASE = 0.04 // วัดแล้วยอดเพลงอยู่ราว −22 dBFS เทียบยอดเอฟเฟกต์ −3.4 dBFS (ต่าง ~ −19 dB) ผ่านคอมเพรสเซอร์ที่ชดเชยระดับให้เอง
+// pentatonic (C D E G A) ช่วง ~600–1200 Hz ของเสียงเติมสีสดใส
+export const BELL_SCALE = [587, 659, 784, 880, 1047, 1175]
+// สุ่ม 2–4 โน้ตไม่ซ้ำจาก BELL_SCALE (rnd = ฟังก์ชัน 0..1) ทดสอบได้
+export const pickBellNotes = (rnd) => {
+  const n = 2 + Math.floor(rnd() * 3)
+  const pool = [...BELL_SCALE]
+  const out = []
+  while (out.length < n) out.push(pool.splice(Math.floor(rnd() * pool.length), 1)[0])
+  return out
+}
 const BELL_GAP_MS = 150 // เสียงเติมสีสดใสไม่ซ้อนถ้ากดถี่กว่านี้
 let lastBell = -Infinity
 export const MUSIC_DUCK = 0.5 // ลดเหลือครึ่งหนึ่งระหว่างลำดับบันทึก/แต้มแสงบาน
@@ -279,6 +289,30 @@ const env = (gain, t, peak, attack, decay) => {
   gain.gain.linearRampToValueAtTime(peak, t + attack)
   gain.gain.exponentialRampToValueAtTime(0.0001, t + attack + decay)
 }
+// ระฆังแก้วหนึ่งโน้ต: sine + overtone triangle ×2.4 เบามาก attack 30 ms decay ~600 ms lowpass 2 kHz คืน oscillator ที่ต้อง stop
+const bellNote = (t, freq, peak) => {
+  const g = ctx.createGain()
+  g.gain.setValueAtTime(0.0001, t)
+  g.gain.linearRampToValueAtTime(peak, t + 0.03)
+  g.gain.setTargetAtTime(0, t + 0.03, 0.2)
+  const lp = ctx.createBiquadFilter()
+  lp.type = 'lowpass'
+  lp.frequency.value = 2000
+  lp.connect(g).connect(master)
+  const nodes = []
+  for (const [type, ratio, level] of [['sine', 1, 1], ['triangle', 2.4, 0.12]]) {
+    const o = ctx.createOscillator()
+    o.type = type
+    o.frequency.value = freq * ratio
+    const og = ctx.createGain()
+    og.gain.value = level
+    o.connect(og).connect(lp)
+    o.start(t)
+    o.stop(t + 1.2)
+    nodes.push(o)
+  }
+  return nodes
+}
 // เสียงที่ปล่อยตัวเองเมื่อจบ: nodes = ต้นทางที่ต้อง stop, end = เวลาจบ (วินาทีของ ctx)
 const voice = (nodes, end, extra = []) => {
   const v = {
@@ -407,8 +441,8 @@ export const sound = {
     pool.remove(b.stopFn)
   },
 
-  // เติมสีสดใส (bloom): ระฆังแก้วเบา ๆ โทนเดียวกลาง (~740 Hz) + overtone เบามาก attack 30 ms decay ~600 ms lowpass 2 kHz
-  // กดถี่กว่า BELL_GAP_MS ไม่ซ้อนเสียงใหม่ ms = ความยาวเส้นโค้งการบาน ใช้แค่ลดเสียงเพลง gentle = กดค้าง เบากว่า
+  // เติมสีสดใส (bloom): ระฆังแก้ว 2–4 โน้ตสุ่มจาก pentatonic (BELL_SCALE ~600–1200 Hz) ไล่กันห่าง 60–100 ms แต่ละโน้ต attack 30 ms decay ~600 ms lowpass 2 kHz
+  // ความดังรวม 2/3 ของเสียงโน้ตเดียวเดิม (แบ่งตามจำนวนโน้ต) กดถี่กว่า BELL_GAP_MS ไม่ซ้อน ms = ความยาวเส้นโค้งการบาน ใช้แค่ลดเสียงเพลง gentle = กดค้าง เบากว่า
   bloom({ ms = 3000, gentle = false } = {}) {
     if (!ready()) return
     const now = performance.now()
@@ -416,29 +450,16 @@ export const sound = {
     lastBell = now
     duckMusic(ms)
     if (playSfx('glow', { gain: gentle ? 0.6 : 1 })) return
-    const t = ctx.currentTime
-    const peak = gentle ? 0.04 : 0.07 // ≈ 1/3 ของเสียงเดิม
-    const g = ctx.createGain()
-    g.gain.setValueAtTime(0.0001, t)
-    g.gain.linearRampToValueAtTime(peak, t + 0.03)
-    g.gain.setTargetAtTime(0, t + 0.03, 0.2) // decay ~600 ms (3 time constants)
-    const lp = ctx.createBiquadFilter()
-    lp.type = 'lowpass'
-    lp.frequency.value = 2000
-    lp.connect(g).connect(master)
-    const base = 740 * rand(0.97, 1.03)
+    const t0 = ctx.currentTime
+    const notes = pickBellNotes(Math.random)
+    const peak = ((gentle ? 0.04 : 0.07) * (2 / 3)) / notes.length
     const nodes = []
-    for (const [type, ratio, level] of [['sine', 1, 1], ['triangle', 2.4, 0.12]]) {
-      const o = ctx.createOscillator()
-      o.type = type
-      o.frequency.value = base * ratio
-      const og = ctx.createGain()
-      og.gain.value = level
-      o.connect(og).connect(lp)
-      o.start(t)
-      nodes.push(o)
+    let at = t0
+    for (const f of notes) {
+      nodes.push(...bellNote(at, f * rand(0.995, 1.005), peak))
+      at += rand(0.06, 0.1)
     }
-    voice(nodes, t + 0.9)
+    voice(nodes, at + 0.9)
   },
 
   // บันทึก: กระดาษลอยขึ้น (ลมเบา กวาดความถี่ขึ้น)
@@ -512,30 +533,36 @@ export const sound = {
   },
 
   // จุ่มพู่กันลงน้ำสี (หน้าเลือกความรู้สึก): ตูมนุ่ม ๆ + ซู่เบา ๆ ระดับเสียงตามอารมณ์
-  dip(emotion) {
+  // จุ่มพู่กัน: จิ้มแปรงลงของเหลว (ข้อ 52c) น้ำกระทบ = noise สั้นผ่าน bandpass 1400→700 Hz decay ~150 ms + "จุ๋ม" ทุ้ม sine 320→180 Hz ใน 70 ms เบา ๆ
+  // pitch ไม่ไต่ขึ้น ไม่เด้งซ้ำ สุ่ม pitch/filter ±5% ทุกครั้ง lowpass รวม 3 kHz (ไม่ผูกกับอารมณ์: ทุกอารมณ์เสียงเดียวกัน)
+  dip() {
     if (!ready()) return
-    if (playSfx('dip', { rate: pitchOf(emotion) })) return
+    if (playSfx('dip')) return
     const t = ctx.currentTime
-    const f = 250 * pitchOf(emotion)
+    const j = () => rand(0.95, 1.05)
+    const lp = ctx.createBiquadFilter()
+    lp.type = 'lowpass'
+    lp.frequency.value = 3000
+    lp.connect(master)
     const osc = ctx.createOscillator()
     const g = ctx.createGain()
     osc.type = 'sine'
-    osc.frequency.setValueAtTime(f * 0.6, t)
-    osc.frequency.exponentialRampToValueAtTime(f * 1.3, t + 0.09)
-    env(g, t, 0.17, 0.006, 0.24)
-    osc.connect(g).connect(master)
+    osc.frequency.setValueAtTime(320 * j(), t)
+    osc.frequency.exponentialRampToValueAtTime(180 * j(), t + 0.07)
+    env(g, t, 0.12, 0.006, 0.14)
+    osc.connect(g).connect(lp)
     osc.start(t)
     const sw = noiseSource(false)
     const bp = ctx.createBiquadFilter()
     bp.type = 'bandpass'
-    bp.Q.value = 0.8
-    bp.frequency.setValueAtTime(1500, t)
-    bp.frequency.exponentialRampToValueAtTime(550, t + 0.2)
+    bp.Q.value = 0.9
+    bp.frequency.setValueAtTime(1400 * j(), t)
+    bp.frequency.exponentialRampToValueAtTime(700 * j(), t + 0.16)
     const sg = ctx.createGain()
-    env(sg, t, 0.07, 0.01, 0.2)
-    sw.connect(bp).connect(sg).connect(master)
+    env(sg, t, 0.09, 0.004, 0.15)
+    sw.connect(bp).connect(sg).connect(lp)
     sw.start(t)
-    voice([osc, sw], t + 0.4)
+    voice([osc, sw], t + 0.3)
   },
 
   // ปาดพู่กันครั้งเดียว (แถบสีของวัน DayRibbon paintLast): เสียงเสียดสีไล่ขึ้นแล้วเบาลงตลอด ms

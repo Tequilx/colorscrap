@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { SFX_NAMES, hasSfx, sfxUrls, MAX_VOICES, SOFT_CEILING, bloomEnvelope, createVoicePool, pitchOf, readEnabled, softClipCurve } from './sound'
+import { SFX_NAMES, hasSfx, sfxUrls, MAX_VOICES, SOFT_CEILING, bloomEnvelope, BELL_SCALE, pickBellNotes, createVoicePool, pitchOf, readEnabled, softClipCurve } from './sound'
 
 describe('pitchOf', () => {
   it('อารมณ์ช้าทุ้มกว่าอารมณ์เร็ว', () => {
@@ -80,5 +80,21 @@ describe('เสียงเอฟเฟกต์จากไฟล์', () => {
   })
   it('ยังไม่โหลดอะไร = ไม่มีไฟล์ (ใช้เสียงสังเคราะห์)', () => {
     SFX_NAMES.forEach((n) => expect(hasSfx(n)).toBe(false))
+  })
+})
+
+describe('pickBellNotes (เติมสีสดใส)', () => {
+  it('2–4 โน้ตไม่ซ้ำ อยู่ในสเกล ~600–1200 Hz', () => {
+    for (let i = 0; i < 200; i++) {
+      const n = pickBellNotes(Math.random)
+      expect(n.length).toBeGreaterThanOrEqual(2)
+      expect(n.length).toBeLessThanOrEqual(4)
+      expect(new Set(n).size).toBe(n.length)
+      n.forEach((f) => expect(BELL_SCALE).toContain(f))
+    }
+    BELL_SCALE.forEach((f) => {
+      expect(f).toBeGreaterThanOrEqual(580)
+      expect(f).toBeLessThanOrEqual(1200)
+    })
   })
 })
