@@ -4,7 +4,7 @@
 // ระดับ/ปิดเปิด/ลดเสียงอัตโนมัติอยู่ที่ lib/sound.js (musicBus) ที่นี่ดูแลแค่การโหลด เล่น และสลับแทร็ก
 import { watch } from 'vue'
 import { period } from '@/lib/daylight'
-import { getMusicOutput, onAudioReady } from '@/lib/sound'
+import { getMusicOutput, musicOn, onAudioLost, onAudioReady, onAudioRebuilt } from '@/lib/sound'
 
 export const FADE_IN_MS = 3000 // fade in หลังแตะครั้งแรก
 export const CROSSFADE_MS = 4000 // สลับกลางวัน↔กลางคืน
@@ -91,6 +91,19 @@ const play = async (track, fadeMs) => {
   }
 }
 
+// สลับแอป (ข้อ 59b): เพลงเป็น AudioBufferSource บน context เดียวกับเอฟเฟกต์ (ไม่มี HTMLAudioElement) sound.js suspend context เองตอนซ่อนหน้า
+// ที่นี่จำว่าเพลงกำลังเล่นอยู่ไหมตอนหน้าถูกซ่อน/context ถูกระบบตัด แล้วเริ่มเล่นต่อบน context ใหม่ (ถ้า resume ไม่ขึ้นแล้ว sound.js สร้างใหม่) เฉพาะที่ผู้ใช้ไม่ได้ปิดเพลง
+let wasPlaying = false
+const rememberPlaying = () => {
+  if (current) wasPlaying = true
+}
+const resumeIfWasPlaying = () => {
+  if (!wasPlaying || !musicOn.value) return
+  wasPlaying = false
+  current = null // source เดิมตายไปพร้อม context
+  play(trackOf(period.value), FADE_IN_MS).catch(() => {})
+}
+
 // เรียกครั้งเดียวตอนเริ่มแอป: รอ AudioContext พร้อม (หลังแตะครั้งแรก) แล้วเริ่มเพลงตามช่วงเวลา และสลับแทร็กเมื่อช่วงเวลาเปลี่ยน
 export const attachMusic = () => {
   if (started) return
@@ -100,6 +113,17 @@ export const attachMusic = () => {
     window.__music = () => ({ track: current?.track ?? null, busGain: getMusicOutput()?.bus.gain.value ?? null, buffers: [...buffers.entries()].map(([k, v]) => [k, Boolean(v)]) })
   }
   onAudioReady(() => play(trackOf(period.value), FADE_IN_MS))
+  if (typeof document !== 'undefined') {
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) rememberPlaying()
+    })
+  }
+  if (typeof window !== 'undefined') window.addEventListener('pagehide', rememberPlaying)
+  onAudioLost(() => {
+    rememberPlaying()
+    current = null
+  })
+  onAudioRebuilt(resumeIfWasPlaying)
   watch(period, (p) => {
     if (getMusicOutput()) play(trackOf(p), CROSSFADE_MS)
   })

@@ -223,3 +223,8 @@
 # ข้อ 57 — เอา dip-a ออก + merge เข้า main
 
 - [x] 57. ลบ `src/assets/sfx/dip-2.mp3` (เหลือ `dip-1.mp3` จาก `dip-b`; ต้นฉบับ `docs/design/audio-src/` ครบ 3 ไฟล์) `make-dip-sfx.sh` สร้างเฉพาะ dip-1 · ตรวจ: เล่นได้เมื่อมีไฟล์เดียว playbackRate สุ่ม (วัด 0.976 / 1.03 / 1.05) · ตรวจความพร้อม deploy: ไม่มี router (ใช้ hash) จึงไม่ต้อง rewrite · ไม่มี service_role ในโค้ด · **แก้ `VITE_USE_MOCK` ให้ไม่ตั้ง = โหมดจริง** (`=== 'true'` เท่านั้นที่เป็นโหมดจำลอง) · devtools ไม่อยู่ใน build · `build + preview` ไม่มี 404 (ฟอนต์ เสียง เพลง favicon) ทั้งโหมดจริงและ mock · CHANGELOG/DEPLOY อัปเดต (tag `pre-merge-polish` ที่ main เดิม)
+
+# ข้อ 59–60 — การ์ดล้นขอบ Safari iPad + เสียงหลังสลับแอป + maskName สระหน้า
+
+- [x] 59. **a** การ์ดดาวน์โหลด (Canvas 2D 1080×1350 เดิม): `fitLines`/`drawFitted` ย่อข้อความ ≤ 70% แล้วตัดบรรทัด แล้วตัดท้ายด้วย "…" (วันที่ตามความกว้างหลังโลโก้, ท้ายการ์ด, คำบรรยาย, ชื่อสี) · `drawText` วัดแล้ววางเอง ไม่ใช้ `textAlign` · warm-up ฟอนต์ก่อนวาด · จุดเซ็นเซอร์ `•` วาดเป็นวงกลม (`drawMasked`) เพราะ glyph ของ Mali แปลก · `scripts/render-card-export.mjs` · **b** `sound.js`/`music.js`: visibilitychange, pagehide/pageshow, statechange → ติด listener ปลุกครั้งเดียวเมื่อ context ไม่ running, resume ไม่ขึ้นใน 800 ms/ถูก close = สร้าง context ใหม่ + เพลงเล่นต่อ, `audioState` · เทสต์ `audioResume.test.js`
+- [x] 60. `maskName`: สระหน้ารวมกับ grapheme ถัดไปเป็นก้อนแรก (ไข่หวาน → ไข่•••น, เมย์ → เม•ย์) จำนวนจุด/ก้อนท้ายเดิม · SPEC เพิ่มตัวอย่าง

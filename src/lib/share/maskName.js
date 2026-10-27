@@ -22,10 +22,15 @@ export const graphemesOf = (text) => {
   return fallbackGraphemes(text)
 }
 
+// สระหน้า (เ แ โ ใ ไ) เขียนก่อนพยัญชนะแต่เป็นส่วนของพยัญชนะตัวถัดไป Segmenter แยกเป็นก้อนเดี่ยว ("ไข่หวาน" → "ไ•••น" สระลอย)
+// จึงให้ก้อนแรกรวมสระหน้ากับ grapheme ถัดไป (พยัญชนะ + วรรณยุกต์/สระบนล่าง) · จำนวนจุดและก้อนท้ายนับจากรายการ grapheme เดิม (ไม่เปลี่ยน)
+const LEADING_VOWEL = /^[เแโใไ]$/
+
 // ว่าง → '' (ผู้เรียกซ่อนบรรทัด "โดย") · 1–2 ตัว → ตัวแรก + • · 3 ตัวขึ้นไป → ตัวแรก + • × min(n−2, 3) + ตัวสุดท้าย
 export const maskName = (name, graphemes = graphemesOf) => {
   const list = graphemes(String(name ?? '').trim())
   if (!list.length) return ''
-  if (list.length <= 2) return list[0] + '•'
-  return list[0] + '•'.repeat(Math.min(list.length - 2, MAX_DOTS)) + list[list.length - 1]
+  const first = LEADING_VOWEL.test(list[0]) && list.length > 1 ? list[0] + list[1] : list[0]
+  if (list.length <= 2) return first + '•'
+  return first + '•'.repeat(Math.min(list.length - 2, MAX_DOTS)) + list[list.length - 1]
 }
