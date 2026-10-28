@@ -1,8 +1,8 @@
 import { defineStore } from 'pinia'
-import { ref, computed, markRaw } from 'vue'
+import { ref, computed, markRaw, shallowReactive } from 'vue'
 import { saveRecord, loadRecords, deleteRecord } from '@/lib/imageStore'
 import { USE_MOCK } from '@/lib/supabase'
-import { fetchEntries, uploadEntry, deleteAllData } from '@/lib/remote'
+import { fetchDaySummaries, fetchEntriesOfDays, uploadEntry, deleteAllData } from '@/lib/remote'
 import { useAuthStore } from '@/stores/auth'
 import { useImageUrlsStore } from '@/stores/imageUrls'
 import { useUploadQueueStore } from '@/stores/uploadQueue'
@@ -11,6 +11,7 @@ import { emotionShades, WARM_TONES, warmShade } from '@/lib/emotions'
 import { uuid } from '@/lib/uuid'
 import { addDays, localDateStr, parseLocalDate, thaiWeekdayShort } from '@/lib/dates'
 import { dominantColorOfDay } from '@/lib/palette'
+import { bootDatesOf, summariesToDays } from '@/lib/dayTabs'
 import { clearDayCrops } from '@/lib/dayCrop'
 import { emotionShades as shadesOf } from '@/lib/emotions'
 
@@ -51,6 +52,15 @@ const MOCK = [
   [5, '16:45', 'warm', 1, false],
   [6, '14:20', 'angry', 2, true],
 ]
+
+// ข้อ 63: ข้อมูลจำลองย้อนหลัง 7–45 วัน มีวันว่างปน (ทดสอบแท็บ 4 วัน + ปฏิทิน) แน่นอนทุกครั้ง ไม่สุ่ม
+const EMOTIONS = ['happy', 'calm', 'excited', 'warm', 'sad', 'angry', 'anxious', 'tired']
+const WARMABLE = ['sad', 'angry', 'anxious', 'tired'] // เฉพาะอารมณ์ลบที่มีโทนอุ่น (SPEC §6.4)
+for (let back = 7; back <= 45; back++) {
+  if (back % 4 === 3 || back % 11 === 0) continue // วันว่าง
+  const n = 1 + (back % 3)
+  for (let k = 0; k < n; k++) MOCK.push([back, `${String(8 + k * 4 + (back % 3)).padStart(2, '0')}:${String((back * 7 + k * 13) % 60).padStart(2, '0')}`, EMOTIONS[(back + k * 3) % 8], (back + k) % 3, WARMABLE.includes(EMOTIONS[(back + k * 3) % 8]) && (back + k) % 5 === 0])
+}
 
 const pad2 = (n) => String(n).padStart(2, '0')
 
@@ -113,7 +123,12 @@ export const useEntriesStore = defineStore('entries', () => {
       return
     }
     const uid = auth.user.id
-    const rows = await fetchEntries()
+    // ข้อ 63: ดึงสรุปรายวันทั้งสมุด (เบา ครั้งเดียว) แล้วรายละเอียดเฉพาะวันที่ต้องใช้ตอนเปิด: 7 วันล่าสุด (แถบหน้าปก) + 3 วันล่าสุดที่มีภาพ (แท็บบนปก) + วันล่าสุด
+    const summaries = await fetchDaySummaries()
+    daySummaries.value = summariesToDays(summaries)
+    const bootDates = bootDatesOf(daySummaries.value.map((d) => d.date))
+    const rows = await fetchEntriesOfDays(bootDates)
+    bootDates.forEach((d) => loaded.add(d))
     const records = await loadRecords()
     const pending = records.filter((r) => r.user_id === uid)
     const done = new Set(rows.map((e) => e.id))
@@ -128,6 +143,30 @@ export const useEntriesStore = defineStore('entries', () => {
     legacyCount.value = asked ? 0 : records.filter(hasLegacy).length
     useUploadQueueStore().flush() // ส่งของที่ค้างอยู่ (ไม่รอ)
     await imageUrls.prefetch(rows.map((e) => e.thumb_path))
+  }
+
+  // ---- รายวัน (ข้อ 63) ----
+  // daySummaries: [{ date, hex }] ของทุกวันที่มีภาพบนเซิร์ฟเวอร์ (โหมดจำลองไม่ใช้ ใช้ entries ทั้งหมดแทน) · loaded = วันที่ดึงรายละเอียดแล้ว
+  const daySummaries = ref([])
+  const loaded = shallowReactive(new Set())
+  const inflight = new Map()
+  const isLoaded = (date) => USE_MOCK || loaded.has(date)
+  // รายละเอียดของวัน (ภาพ path ฯลฯ) ยังไม่มี = ดึงตอนนี้ แล้วอุ่นภาพย่อ (signed URL) ซ้ำเรียกได้ ไม่ยิงซ้อน ล้มเหลว = โยน error ให้ผู้เรียกจัดการ (ไม่จำว่าโหลดแล้ว)
+  const ensureDay = (date) => {
+    if (isLoaded(date)) return Promise.resolve()
+    if (!inflight.has(date)) {
+      inflight.set(
+        date,
+        (async () => {
+          const rows = await fetchEntriesOfDays([date])
+          const have = new Set(entries.value.map((e) => e.id))
+          entries.value.push(...rows.filter((r) => !have.has(r.id)))
+          await imageUrls.prefetch(rows.map((r) => r.thumb_path))
+          loaded.add(date)
+        })().finally(() => inflight.delete(date)),
+      )
+    }
+    return inflight.get(date)
   }
 
   // ตอบว่าไม่ย้าย: จำไว้ต่อบัญชี ไม่ถามซ้ำ (ภาพยังอยู่ในเครื่อง)
@@ -158,6 +197,9 @@ export const useEntriesStore = defineStore('entries', () => {
   // ออกจากระบบ: ลืมข้อมูลของคนก่อนทั้งหมด (ไฟล์ค้างใน IndexedDB ยังอยู่ แต่เป็นของเจ้าของและจะไม่ถูกแสดงให้คนอื่น)
   const reset = () => {
     legacyCount.value = 0
+    daySummaries.value = []
+    loaded.clear()
+    inflight.clear()
     useUploadQueueStore().stop()
     entries.value = USE_MOCK ? buildMock() : []
     imageUrls.clear()
@@ -186,12 +228,17 @@ export const useEntriesStore = defineStore('entries', () => {
 
   // 3 วันล่าสุดที่มีบันทึก (เก่า → ใหม่) สำหรับแท็บคั่นหน้าบนปก
   const recentTabs = computed(() => {
-    const dates = [...new Set(entries.value.map((e) => e.local_date))].sort().slice(-3)
-    return dates.map((date) => ({ date, hex: dominantColorOfDay(entriesOfDay(date)), day: parseLocalDate(date) }))
+    return dates.value.slice(-3).map((date) => ({ date, hex: dayHex(date), day: parseLocalDate(date) }))
   })
 
-  // วันที่ที่มีบันทึก เรียงเก่า → ใหม่
-  const dates = computed(() => [...new Set(entries.value.map((e) => e.local_date))].sort())
+  // วันที่ที่มีบันทึก เรียงเก่า → ใหม่ (ข้อ 63: สรุปรายวันจากเซิร์ฟเวอร์ + วันของ entry ที่โหลด/เพิ่งบันทึกในเครื่อง)
+  const dates = computed(() => [...new Set([...daySummaries.value.map((d) => d.date), ...entries.value.map((e) => e.local_date)])].sort())
+  // สีเด่นของวัน: วันที่โหลดรายละเอียดแล้วคำนวณจาก entries จริง (รวมภาพใหม่) ไม่งั้นใช้สรุปรายวัน
+  const dayHex = (date) => {
+    const list = entriesOfDay(date)
+    if (list.length) return dominantColorOfDay(list)
+    return daySummaries.value.find((d) => d.date === date)?.hex ?? null
+  }
 
   // อัปโหลด entry ที่ยังมี Blob (โหมดจริง) สำเร็จ → จด path, ขอ signed URL ไว้ก่อน แล้วค่อยปล่อย Blob (ภาพไม่กะพริบ) และลบ record ในเครื่อง
   // ล้มเหลว → โยน error ทิ้งไว้ใน IndexedDB ให้คิว (uploadQueue) ลองใหม่เอง
@@ -245,5 +292,5 @@ export const useEntriesStore = defineStore('entries', () => {
     for (const r of (await loadRecords()).filter((r) => r.user_id === uid)) await deleteRecord(r.id)
   }
 
-  return { entries, hydrated, deleteEverything, legacyCount, load, reset, upload, skipLegacy, adoptLegacy, entriesOfDay, todayCount, lastSevenDays, recentTabs, dates, addEntry }
+  return { entries, hydrated, deleteEverything, legacyCount, load, reset, upload, skipLegacy, adoptLegacy, entriesOfDay, todayCount, lastSevenDays, recentTabs, dates, dayHex, daySummaries, isLoaded, ensureDay, addEntry }
 })

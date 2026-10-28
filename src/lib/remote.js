@@ -39,6 +39,30 @@ const fromRow = (r) => ({
   thumb_path: r.thumb_path,
 })
 
+// สรุปรายวันแบบเบา (ข้อ 63): เฉพาะคอลัมน์ที่ใช้คำนวณสีเด่นของวัน (ไม่มี path/อารมณ์/รูป) แบ่งหน้าละ 1000 แถว (PostgREST ตัดที่ 1000) เรียง local_date, local_time
+// ใช้ index entries_user_date (user_id, local_date, local_time) + RLS user_id = auth.uid() ไม่ต้องมี index เพิ่ม
+const SUMMARY_COLUMNS = 'local_date, local_time, intensity, colors'
+const PAGE = 1000
+export const fetchDaySummaries = async () => {
+  const rows = []
+  for (let from = 0; ; from += PAGE) {
+    const { data, error } = await supabase.from('entries').select(SUMMARY_COLUMNS).order('local_date').order('local_time').range(from, from + PAGE - 1)
+    if (error) throw error
+    rows.push(...data.map((r) => ({ local_date: r.local_date, local_time: r.local_time.slice(0, 5), intensity: r.intensity, colors: r.colors })))
+    if (data.length < PAGE) break
+  }
+  return rows
+}
+
+// รายละเอียดเต็มของบางวัน (ภาพ path, อารมณ์ ฯลฯ) โหลดตอนเปิดวันนั้นหรือวันข้างเคียง
+export const fetchEntriesOfDays = async (dates) => {
+  if (!dates.length) return []
+  const { data, error } = await supabase.from('entries').select(ENTRY_COLUMNS).in('local_date', dates).order('local_date').order('local_time')
+  if (error) throw error
+  return data.map(fromRow)
+}
+
+// (เดิม) ดึงทุกแถวในครั้งเดียว — ไม่ใช้แล้วใน store เก็บไว้เผื่อสคริปต์
 export const fetchEntries = async () => {
   const { data, error } = await supabase.from('entries').select(ENTRY_COLUMNS).order('local_date').order('local_time')
   if (error) throw error

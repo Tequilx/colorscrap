@@ -141,8 +141,25 @@ export const useAppStore = defineStore('app', () => {
   // เปลี่ยนวันด้วยแท็บ/ปุ่มวัน: พลิกหน้ากระดาษ (PhotoPage อ่านแล้วเคลียร์) / เปิดวันตอนเปิดสมุดใช้ openDay ตรง ๆ ไม่พลิก
   // pageTurn = { dir: 'next' | 'prev', id } ให้ OpenBook เก็บภาพหน้าเดิมก่อนข้อมูลเปลี่ยนแล้วเล่นพลิกหน้าหนังสือ (next = วันใหม่กว่า: หน้าขวายกพลิกไปซ้าย / prev = วันเก่ากว่า: หน้าซ้ายยกพลิกไปขวา)
   const pageTurn = ref(null)
-  const turnToDay = (date) => {
+  // ข้อ 63: วันที่ยังไม่ได้โหลดรายละเอียด (กระโดดจากปฏิทิน/วันไกล) ดึงก่อนแล้วพลิกครั้งเดียว กดซ้ำระหว่างโหลดไม่ซ้อน โหลดไม่ได้ = แจ้งแล้วอยู่หน้าเดิม
+  let dayLoading = false
+  const turnToDay = async (date) => {
     if (date === openDate.value || busy.value) return
+    const entries = useEntriesStore()
+    if (!entries.isLoaded(date)) {
+      if (dayLoading) return
+      dayLoading = true
+      try {
+        await entries.ensureDay(date)
+      } catch (e) {
+        console.error('โหลดวันที่ไม่สำเร็จ:', e)
+        useToastStore().show('โหลดวันนั้นไม่สำเร็จ ลองอีกครั้งนะ')
+        return
+      } finally {
+        dayLoading = false
+      }
+      if (date === openDate.value || busy.value) return
+    }
     pageTurn.value = { dir: date > openDate.value ? 'next' : 'prev', id: Date.now() + Math.random() }
     openDay(date)
   }

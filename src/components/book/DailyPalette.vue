@@ -33,7 +33,7 @@
           <PolaroidFrame class="pal-seep h-[138px] w-[138px] shrink-0 px-2.5 pb-[18px] pt-2.5" :rotate="-3" data-day-frame :style="reveal(0, 'seep')">
             <!-- ข้อ 49: ชิ้นที่มีสีมากที่สุดของภาพจริงในวันนั้น (ไม่มี blur/filter) ระหว่างโหลดเป็นพื้นกระดาษเปล่าแล้ว fade เข้า ครอปไม่ได้ = ก้อนสีเดิม -->
             <div class="relative h-full w-full overflow-hidden bg-paper">
-              <img v-if="cropUrl" :key="cropUrl" :src="cropUrl" alt="" draggable="false" class="absolute inset-0 h-full w-full object-cover transition-opacity duration-600 ease-desk" :class="cropReady ? 'opacity-100' : 'opacity-0'" @load="cropReady = true" />
+              <RevealImg v-if="cropUrl" :key="cropUrl" :src="cropUrl" cls="absolute inset-0 h-full w-full object-cover" />
               <template v-else-if="cropFailed">
                 <WatercolorBlob class="absolute left-[-4px] top-[10px]" :color="mix" :width="124" :height="96" :opacity="0.85" />
                 <WatercolorBlob v-if="dominant" class="absolute left-[28px] top-[34px]" :color="dominant" :width="58" :height="42" :opacity="0.7" />
@@ -92,6 +92,7 @@
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import DayRibbon from '@/components/book/DayRibbon.vue'
 import PolaroidFrame from '@/components/ui/PolaroidFrame.vue'
+import RevealImg from '@/components/ui/RevealImg.vue'
 import WatercolorBlob from '@/components/ui/WatercolorBlob.vue'
 import Doodle from '@/components/ui/Doodle.vue'
 import { useDayCrop } from '@/lib/useDayCrop'
@@ -129,8 +130,6 @@ const reveal = (order, kind) => ({
 const ribbonDelay = ms(MOTION.settle + MOTION.reveal.lead + 3 * MOTION.reveal.step)
 const dominant = computed(() => dominantColorOfDay(props.entries))
 const { url: cropUrl, failed: cropFailed, crop } = useDayCrop(() => props.entries)
-const cropReady = ref(false)
-watch(cropUrl, () => (cropReady.value = false))
 
 const isToday = computed(() => props.date === localDateStr())
 const title = computed(() => (isToday.value ? 'จานสีของวันนี้' : `จานสีของ ${thaiDateShort(parseLocalDate(props.date))}`))

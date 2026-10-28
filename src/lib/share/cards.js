@@ -20,12 +20,16 @@ import {
   drawCover,
   drawGrain,
   drawTape,
+  drawFitted,
+  drawMasked,
   drawText,
   fillPoints,
+  fitLines,
   fitSize,
   flattenPath,
   loadCardFonts,
   makeCanvas,
+  measureText,
   placePoints,
   roundRectPath,
   wobble,
@@ -48,7 +52,9 @@ const drawHeader = (ctx, brand, dateText) => {
   ctx.fillStyle = DIVIDER_COLOR
   ctx.fillRect(72 + L.divider.x, BRAND.top + (BRAND.h - L.divider.h) / 2, L.divider.w, L.divider.h)
   ctx.drawImage(brand.word, 72 + L.wordX, BRAND.top + (BRAND.h - L.word) / 2, L.wordW, L.word)
-  drawText(ctx, dateText, 1008, BRAND.top, { size: 26, kind: 'body', color: C.soft, align: 'right', boxHeight: BRAND.h })
+  // วันที่ชิดขอบในขวา (1008) ห้ามล้นเข้าไปในโลโก้: กว้างได้เท่าที่เหลือหลัง lockup เว้น 28px ย่อได้ถึง 70% แล้วตัดเป็น 2 บรรทัด
+  const maxWidth = 1008 - (72 + L.width) - 28
+  drawFitted(ctx, dateText, 1008, BRAND.top, { maxWidth, size: 26, kind: 'body', color: C.soft, align: 'right', boxHeight: BRAND.h, maxLines: 2, lineHeight: 1.3 })
 }
 
 // ท้ายการ์ด: เส้นประ + "โดย {ชื่อ}" (ซ่อนถ้าไม่มีชื่อ) + "สมุดระบายความรู้สึก"
@@ -58,8 +64,16 @@ const drawFooter = (ctx, maskedName, bottom, padTop) => {
   const top = CARD_H - bottom - (2 + padTop + content)
   dashedLine(ctx, 72, 1008, top)
   const y = top + 2 + padTop
-  if (maskedName) drawText(ctx, `โดย ${maskedName}`, 72, y, { size: 28, kind: 'hand', boxHeight: content })
-  drawText(ctx, 'สมุดระบายความรู้สึก', 1008, y, { size: 22, kind: 'body', color: C.soft, align: 'right', boxHeight: content })
+  // สองฝั่งใช้ความกว้างในร่วมกัน 936px เว้นกลาง 32px: คำรองชิดขวาได้ไม่เกินครึ่งหนึ่ง ที่เหลือเป็นของชื่อ ทั้งคู่ย่อได้ถึง 70% แล้วตัดบรรทัด
+  const GAP = 32
+  const inner = 1008 - 72
+  const tagline = fitLines(ctx, 'สมุดระบายความรู้สึก', inner * 0.5, { size: 22, kind: 'body', maxLines: 2 })
+  const tagW = Math.max(...tagline.lines.map((t) => measureText(ctx, t, { size: tagline.size, kind: 'body' })))
+  if (maskedName) {
+    const byline = fitLines(ctx, `โดย ${maskedName}`, inner - tagW - GAP, { size: 28, kind: 'hand' })
+    drawMasked(ctx, byline.lines[0], 72, y, { size: byline.size, kind: 'hand', boxHeight: content })
+  }
+  drawFitted(ctx, 'สมุดระบายความรู้สึก', 1008, y, { maxWidth: inner * 0.5, size: 22, kind: 'body', color: C.soft, align: 'right', boxHeight: content, maxLines: 2, lineHeight: 1.3 })
 }
 
 // ภาพสีน้ำจำลอง (ใช้เมื่อ entry ไม่มีภาพจริง เช่นข้อมูลจำลอง): หยดซ้อน 4 ก้อนจากสีของภาพ ตามดีไซน์ 7a (viewBox 170×120 → w×h)
@@ -143,8 +157,10 @@ export const renderPhotoCard = async ({ entry, image = null, userName = '' }) =>
 
   // คำบรรยาย Mali 40px ชิดล่างซ้าย (left 30, bottom 22) ย่อให้พอดีถ้าอารมณ์เปลี่ยนหลายครั้งจนยาว
   const caption = photoCaption(entry)
-  const size = fitSize(ctx, caption, box.w - 60, { size: 40, min: 26, kind: 'hand' })
-  drawText(ctx, caption, 30, box.h - 22 - size * LINE.hand.box, { size, kind: 'hand', color: C.ink2 })
+  // ย่อได้ถึง 70% (28px) แล้วตัดเป็น 2 บรรทัด (แคบลงให้ไม่ชนแถบสี) ห้ามล้นกรอบโพลารอยด์
+  const cap = fitLines(ctx, caption, box.w - 60, { size: 40, kind: 'hand', maxLines: 2 })
+  const capLH = cap.lines.length > 1 ? cap.size * 1.2 : cap.size * LINE.hand.box
+  cap.lines.forEach((line, i) => drawText(ctx, line, 30, box.h - 22 - capLH * (cap.lines.length - i), { size: cap.size, kind: 'hand', color: C.ink2, boxHeight: capLH }))
 
   // เทปกลางด้านบน (ซ้อนหมุนต่อจากโพลารอยด์ −1.5° รวมเป็น −3°)
   drawTape(ctx, 320 + 90, -22 + 22, 180, 44, -1.5)
@@ -165,16 +181,8 @@ export const renderPhotoCard = async ({ entry, image = null, userName = '' }) =>
     fillPoints(ctx, wobblyCapsule(left, top + (rowBox - 28) / 2, bw, 28, { amp: 1.8, seed: 4 + i }), c.hex)
     // กลุ่มขวา: hex (mono 20) + % (Mali 700 28 กว้าง 70 ชิดขวา) จัดตาม baseline เดียวกับ %
     const baseline = top + 28 * LINE.hand.base
-    ctx.save()
-    ctx.textBaseline = 'alphabetic'
-    ctx.fillStyle = C.ink
-    ctx.textAlign = 'right'
-    ctx.font = '700 28px Mali, "Itim", system-ui, sans-serif'
-    ctx.fillText(`${pct[i]}%`, right, baseline)
-    ctx.fillStyle = C.ink2
-    ctx.font = '400 20px ui-monospace, Menlo, monospace'
-    ctx.fillText(c.hex.toUpperCase(), right - 70 - 16, baseline)
-    ctx.restore()
+    drawText(ctx, `${pct[i]}%`, right, top, { size: 28, weight: 700, kind: 'hand', color: C.ink, align: 'right' })
+    drawText(ctx, c.hex.toUpperCase(), right - 70 - 16, baseline - 20 * LINE.mono.base, { size: 20, kind: 'mono', color: C.ink2, align: 'right' })
   })
 
   drawFooter(ctx, maskName(userName), 48, 20)
@@ -258,8 +266,7 @@ const drawDayPolaroid = (ctx, e, thumb, slot, x, y) => {
   })
   ctx.restore()
   const caption = `${e.local_time} · ${emotionLabel(e)}${e.shifted ? ' → สดใสขึ้น' : ''}`
-  const size = fitSize(ctx, caption, w - 28, { size: 20, min: 14, kind: 'hand' })
-  drawText(ctx, caption, 14, sy + 8 + 10, { size, kind: 'hand', color: C.soft })
+  drawFitted(ctx, caption, 14, sy + 8 + 10, { maxWidth: w - 28, size: 20, kind: 'hand', color: C.soft })
   drawTape(ctx, w / 2, 0, 100, 26, slot.tape)
   ctx.restore()
   return h
@@ -281,7 +288,7 @@ export const renderDayCard = async ({ date, entries, thumbs = new Map(), crop = 
   const parsed = parseLocalDate(date)
   const isToday = date === localDateStr()
   drawHeader(ctx, await loadBrand(), formatThaiDate(parsed))
-  drawText(ctx, isToday ? 'จานสีของวันนี้' : `จานสีของ ${thaiDateShort(parsed)}`, 72, 128, { size: 80, weight: 700, kind: 'hand' })
+  drawFitted(ctx, isToday ? 'จานสีของวันนี้' : `จานสีของ ${thaiDateShort(parsed)}`, 72, 128, { maxWidth: CARD_W - 144, size: 80, weight: 700, kind: 'hand' })
 
   // กรอบสีของวัน (SVG 380×380 → ภาพ) ซ้าย + ข้อความขวา กึ่งกลางแนวตั้งเดียวกัน
   const frame = await svgToImage(dayFrameSvg({ mix: day.mix, dominant: dominantColorOfDay(list), p: 'dfc', crop: Boolean(crop) }).replace('width="380" height="380"', 'width="760" height="760"'))
@@ -299,14 +306,14 @@ export const renderDayCard = async ({ date, entries, thumbs = new Map(), crop = 
   }
   const moods = new Set(list.map((e) => e.emotion)).size
   const tx = 480
-  const nameSize = Math.min(72, fitSize(ctx, [day.name.colorPart, day.name.periodPart].sort((a, b) => b.length - a.length)[0], CARD_W - 72 - tx, { size: 72, min: 44, kind: 'hand', weight: 700 }))
+  const nameSize = Math.min(72, fitSize(ctx, [day.name.colorPart, day.name.periodPart].sort((a, b) => b.length - a.length)[0], CARD_W - 72 - tx, { size: 72, min: 51, kind: 'hand', weight: 700 }))
   const NL = nameSize * 1.25 // สูงบรรทัดชื่อ (เผื่อสระบน/วรรณยุกต์)
   const colH = 26 * LINE.body.box + 24 + 2 * NL + 8 + 26 * LINE.body.box
   let y = frameTop + (380 - colH) / 2
   drawText(ctx, isToday ? 'สีของวันนี้' : 'สีของวัน', tx, y, { size: 26, kind: 'body', color: C.soft })
   y += 26 * LINE.body.box + 24
   ;[day.name.colorPart, day.name.periodPart].forEach((line, i) => {
-    drawText(ctx, line, tx, y + i * NL, { size: nameSize, weight: 700, kind: 'hand', boxHeight: NL })
+    drawFitted(ctx, line, tx, y + i * NL, { maxWidth: CARD_W - 72 - tx, size: nameSize, minScale: 1, weight: 700, kind: 'hand', boxHeight: NL }) // ย่อถึง 70% แล้ว (บน) ที่เหลือตัดท้ายด้วย …
   })
   y += 2 * NL + 8
   drawText(ctx, `${list.length} ภาพ · ${moods} อารมณ์`, tx, y, { size: 26, kind: 'body', color: C.soft })

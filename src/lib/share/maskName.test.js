@@ -51,6 +51,15 @@ describe('maskName', () => {
     expect(maskName('สุขใจ')).toBe('สุ••จ') // สุ, ข, ใ, จ
   })
 
+  it('สระหน้าอยู่ก้อนเดียวกับพยัญชนะตัวถัดไป (ไม่ลอยเดี่ยว) จำนวนจุดคงเดิม', () => {
+    expect(maskName('ไข่หวาน')).toBe('ไข่•••น') // ไ,ข่,ห,ว,า,น = 6 → 3 จุด
+    expect(maskName('สมใจ')).toBe('ส••จ') // ตามสเปกเดิม (สระหน้าไม่ใช่ตัวแรก)
+    expect(maskName('เมย์')).toBe('เม•ย์') // เ,ม,ย์ = 3 → 1 จุด
+    expect(maskName('เก')).toBe('เก•')
+    expect(maskName('เ')).toBe('เ•')
+    expect(maskName('Alexander')).toBe('A•••r')
+  })
+
   it('ตัวอักษรที่ไม่ใช่ BMP (อีโมจิ) นับเป็นตัวเดียว', () => {
     expect(maskName('🐱ใจ')).toBe('🐱•จ')
   })

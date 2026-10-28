@@ -108,6 +108,7 @@ let noiseBuffer = null
 let attached = false
 let lastDropAt = 0
 let lastTapAt = 0
+let peakTimer = null
 const pool = createVoicePool(MAX_VOICES)
 
 const ready = () => soundOn.value && ctx && ctx.state === 'running'
@@ -121,6 +122,7 @@ const build = () => {
     ctx = null
     return
   }
+  ctx.addEventListener?.('statechange', onStateChange)
   master = ctx.createGain()
   master.gain.value = soundOn.value ? MASTER_GAIN : 0
   const comp = ctx.createDynamicsCompressor()
@@ -151,7 +153,8 @@ const build = () => {
     clip.connect(an)
     const buf = new Float32Array(an.fftSize)
     window.__soundPeak = 0
-    setInterval(() => {
+    clearInterval(peakTimer)
+    peakTimer = setInterval(() => {
       an.getFloatTimeDomainData(buf)
       let p = 0
       for (let i = 0; i < buf.length; i++) p = Math.max(p, Math.abs(buf[i]))
@@ -171,21 +174,137 @@ const ensureCtx = () => {
   readyCallbacks.splice(0).forEach((cb) => cb())
 }
 
+// ---- ปลุกเสียงหลังสลับแอป (iOS/iPadOS Safari) ----
+// iOS ตัด AudioContext ('interrupted' / 'suspended') เมื่อสลับแอป ล็อกจอ หรือมีสายเข้า และ resume() นอกเหตุการณ์ของผู้ใช้ไม่สำเร็จ (promise ค้าง/ไม่เปลี่ยน state)
+// จึง: ซ่อน → suspend เอง · กลับมาแล้ว state ไม่ใช่ running → ติด listener ครั้งเดียว (capture) รอแตะแล้ว resume() ถ้า 800 ms แล้วยังไม่ running (หรือ context ถูก close) สร้าง context ใหม่ต่อกราฟเสียงใหม่
+// เพลงแจ้งผ่าน onAudioLost / onAudioRebuilt เพื่อเล่นต่อบน context ใหม่ (เพลงสร้าง HTMLAudioElement ใหม่ต่อกราฟใหม่ เพราะ element ต่อ MediaElementSource ได้ครั้งเดียว)
+export const RESUME_TIMEOUT_MS = 800
+const GESTURES = ['pointerdown', 'touchend', 'keydown']
+const lostCallbacks = []
+const rebuiltCallbacks = []
+export const onAudioLost = (cb) => lostCallbacks.push(cb)
+export const onAudioRebuilt = (cb) => rebuiltCallbacks.push(cb)
+// สถานะจริงของเสียง (ปุ่มเปิด/ปิดแสดงค่าที่ผู้ใช้ตั้ง ส่วนนี้บอกว่าตอนนี้เล่นได้จริงไหม): idle = ยังไม่แตะครั้งแรก · running · blocked = รอแตะเพื่อปลุก
+export const audioState = ref('idle')
+
+const readable = (key) => {
+  try {
+    return globalThis.localStorage?.getItem(key) != null
+  } catch {
+    return false
+  }
+}
+const wantsAudio = () => soundOn.value || musicOn.value
+const settle = () => {
+  audioState.value = !ctx ? 'idle' : ctx.state === 'running' ? 'running' : 'blocked'
+}
+let unlockArmed = false
+let recovering = null
+const onStateChange = () => {
+  settle()
+  if (!ctx || typeof document === 'undefined') return
+  // ถูกระบบหยุด (interrupted/suspended/closed) ขณะหน้ายังเห็นอยู่ = รอแตะเพื่อปลุก
+  if (ctx.state !== 'running' && !document.hidden && wantsAudio()) armUnlock()
+  if (ctx.state === 'running') disarmUnlock()
+}
+const withTimeout = (p, ms) => Promise.race([p, new Promise((r) => setTimeout(() => r('timeout'), ms))])
+const recover = () => {
+  if (recovering) return recovering
+  recovering = (async () => {
+    ensureCtx()
+    if (!ctx) return
+    if (ctx.state !== 'closed') {
+      try {
+        await withTimeout(Promise.resolve(ctx.resume?.()), RESUME_TIMEOUT_MS)
+      } catch {
+        /* ปฏิเสธ = ถือว่าไม่สำเร็จ ไปสร้างใหม่ด้านล่าง */
+      }
+    }
+    if (ctx.state === 'running') return
+    // resume ไม่สำเร็จหรือถูก close: ทิ้ง context เก่า สร้างใหม่ใน gesture เดียวกัน
+    lostCallbacks.forEach((cb) => cb())
+    sound.brushStop?.(true)
+    pool.stopAll()
+    const old = ctx
+    old.removeEventListener?.('statechange', onStateChange)
+    try {
+      await old.close?.()
+    } catch {
+      /* ปิดไปแล้ว */
+    }
+    ctx = null
+    master = null
+    musicBus = null
+    build()
+    if (!ctx) return
+    ctx.resume?.()
+    applyMusicGain(true)
+    rebuiltCallbacks.forEach((cb) => cb())
+  })().finally(() => {
+    recovering = null
+    settle()
+  })
+  return recovering
+}
+// ทุกการแตะ: ยังไม่มี context = สร้างแล้ว resume (ทางเดิม) · มีแล้วแต่ไม่ได้ running (สลับแอป/ถูกระบบหยุด) = ปลุก หรือสร้างใหม่ถ้าปลุกไม่ขึ้น
+const unlock = () => {
+  if (!ctx) {
+    ensureCtx()
+    ctx?.resume?.()
+    return
+  }
+  if (ctx.state !== 'running') recover()
+}
+// อยู่ในเหตุการณ์ของผู้ใช้อยู่แล้ว (กดปุ่มเปิดเสียง/เพลง): สร้างครั้งแรก หรือปลุก/สร้างใหม่ถ้าถูกระบบหยุดไว้
+const wake = () => {
+  const had = Boolean(ctx)
+  ensureCtx()
+  if (!ctx) return
+  if (had && ctx.state !== 'running') recover()
+  else ctx.resume?.()
+}
+function armUnlock() {
+  if (unlockArmed || typeof window === 'undefined') return
+  unlockArmed = true
+  for (const type of GESTURES) window.addEventListener(type, onUnlockGesture, { capture: true, passive: true })
+}
+function disarmUnlock() {
+  if (!unlockArmed) return
+  unlockArmed = false
+  for (const type of GESTURES) window.removeEventListener(type, onUnlockGesture, { capture: true })
+}
+function onUnlockGesture() {
+  disarmUnlock()
+  unlock()
+}
+
+// กลับมาเห็นหน้า: ค่าเปิด/ปิดที่จำไว้อาจเปลี่ยนจากแท็บอื่น → ซิงก์ให้ปุ่มตรงกับความจริง แล้วถ้า context ไม่ได้ running ก็รอแตะ
+const onShown = () => {
+  // เฉพาะเมื่ออ่าน localStorage ได้ (private mode อ่านไม่ได้ = คงค่าในหน่วยความจำ ไม่เด้งกลับเป็นเปิด)
+  if (readable(KEY)) soundOn.value = readEnabled()
+  if (readable(MUSIC_KEY)) musicOn.value = readEnabled(globalThis.localStorage, MUSIC_KEY)
+  if (ctx) applyMusicGain(true)
+  if (master && ctx) master.gain.setValueAtTime(soundOn.value ? MASTER_GAIN : 0, ctx.currentTime)
+  if (!ctx) return
+  settle()
+  if (ctx.state !== 'running' && wantsAudio()) {
+    armUnlock()
+    ctx.resume?.()?.catch?.(() => {}) // บางกรณี (เช่นกลับจากแท็บอื่นบน desktop) สำเร็จเองโดยไม่ต้องแตะ
+  }
+}
+const onHidden = () => {
+  if (ctx && ctx.state === 'running') ctx.suspend?.()?.catch?.(() => {})
+}
+
 // เรียกครั้งเดียวตอนเริ่มแอป: รอแตะ/กดครั้งแรกแล้วค่อยสร้าง AudioContext (iOS ต้องสร้าง/resume ในเหตุการณ์ของผู้ใช้)
 export const attachSound = () => {
   if (attached || typeof window === 'undefined') return
   attached = true
-  const unlock = () => {
-    ensureCtx()
-    ctx?.resume?.()
-  }
-  for (const type of ['pointerdown', 'touchend', 'keydown']) window.addEventListener(type, unlock, { passive: true })
-  // แท็บถูกซ่อน/จอพับ: หยุดเสียงทั้งหมด (suspend) กลับมาแล้วเล่นต่อ
-  document.addEventListener('visibilitychange', () => {
-    if (!ctx) return
-    if (document.hidden) ctx.suspend?.()
-    else if (soundOn.value || musicOn.value) ctx.resume?.()
-  })
+  for (const type of GESTURES) window.addEventListener(type, unlock, { passive: true })
+  // แท็บถูกซ่อน/จอพับ/สลับแอป: หยุดเสียงทั้งหมด (suspend) กลับมาแล้วเล่นต่อ (ดู onShown)
+  document.addEventListener('visibilitychange', () => (document.hidden ? onHidden() : onShown()))
+  window.addEventListener('pagehide', onHidden)
+  window.addEventListener('pageshow', onShown) // กลับจาก bfcache: visibilitychange อาจไม่ยิง
 }
 
 export const setSound = (on) => {
@@ -201,8 +320,7 @@ export const setSound = (on) => {
   }
   if (on) {
     // เปิดเสียงด้วยการแตะปุ่ม = มี gesture อยู่แล้ว สร้าง/ปลุก context ตรงนี้ด้วย
-    ensureCtx()
-    ctx?.resume?.()
+    wake()
   }
 }
 
@@ -215,12 +333,17 @@ const applyMusicGain = (instant = false) => {
   const tc = instant ? 0.001 : target < musicBus.gain.value ? 0.15 : 0.6
   musicBus.gain.setTargetAtTime(target, ctx.currentTime, tc)
 }
+// เพลงเป็นสตรีม HTMLAudioElement (lib/music.js) ต้อง play() ในเหตุการณ์ของผู้ใช้ จึงแจ้งซิงก์ตอนกดปุ่มเปิดเพลง (ไม่รอ watcher)
+const musicEnabledCallbacks = []
+export const onMusicEnabled = (cb) => musicEnabledCallbacks.push(cb)
 export const setMusic = (on) => {
   musicOn.value = on
   writeEnabled(on, MUSIC_KEY)
-  if (on) ensureCtx()
+  if (on) {
+    wake()
+    musicEnabledCallbacks.forEach((cb) => cb())
+  }
   applyMusicGain()
-  if (on) ctx?.resume?.()
 }
 // ลดเสียงเพลงลงครึ่งหนึ่งนาน ms แล้วคืน (ซ้อนกันได้: นับเป็นชั้น)
 export const duckMusic = (ms) => {
@@ -255,7 +378,10 @@ export const sfxUrls = Object.fromEntries(
 const sfxBuffers = new Map() // ชื่อเสียง → AudioBuffer แรกที่โหลดได้ | null (null = ไม่มีไฟล์)
 const sfxVariants = new Map() // ชื่อเสียง → AudioBuffer[] ทุกไฟล์ของเสียงนั้น
 export const hasSfx = (name) => Boolean(sfxBuffers.get(name))
+let sfxStarted = false
 const loadSfx = () => {
+  if (sfxStarted) return
+  sfxStarted = true
   for (const [stem, url] of Object.entries(sfxUrls)) {
     const name = sfxBase(stem)
     fetch(url)

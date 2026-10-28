@@ -43,6 +43,23 @@ export const loadCardFonts = async () => {
   ]
   await Promise.all(wanted.map(([font, text]) => document.fonts.load(font, text).catch(() => [])))
   await document.fonts.ready
+  await warmUpFonts(wanted)
+}
+
+// Safari (iPad) วาดข้อความด้วยฟอนต์สำรองในเฟรมแรกที่ canvas เห็นฟอนต์ที่เพิ่งโหลด แม้ document.fonts.load จะ resolve แล้ว:
+// วาดข้อความตัวอย่างทิ้งบน canvas เล็กหนึ่งครั้งต่อฟอนต์ แล้วรอ 1-2 เฟรม ก่อนวัด/วาดจริง (ทั้งความกว้างที่วัดและที่วาดจึงใช้ฟอนต์เดียวกัน)
+const warmUpFonts = async (wanted) => {
+  const c = document.createElement('canvas')
+  c.width = c.height = 8
+  const g = c.getContext('2d')
+  for (const [font, text] of wanted) {
+    g.font = font
+    g.fillText(text, 0, 6)
+    g.measureText(text)
+  }
+  const frame = () => new Promise((r) => (typeof requestAnimationFrame === 'function' ? requestAnimationFrame(() => r()) : setTimeout(r, 16)))
+  await frame()
+  await frame()
 }
 
 // ---- noise (ค่าสุ่มแบบกำหนด seed ให้ภาพเดิมได้ขอบเดิมทุกครั้ง) ----
@@ -235,28 +252,55 @@ export const drawGrain = (ctx, w, h) => {
 
 // ---- ข้อความ ----
 
+const familyOf = (kind) => (kind === 'hand' ? FONT_HAND : kind === 'mono' ? FONT_MONO : FONT_BODY)
+
 // วางข้อความโดยกำหนดขอบบนของกล่องบรรทัด (เหมือนจัดวาง CSS) kind = hand | body | mono
-// คืนความกว้างข้อความ align: left | right | center
+// คืนความกว้างข้อความ align: left | right | center — วัดความกว้างด้วยฟอนต์เดียวกับที่วาดแล้ววางเอง (ไม่ใช้ textAlign ของ canvas ซึ่งบน Safari ผิดตำแหน่งได้เมื่อฟอนต์เพิ่งเปลี่ยน)
+// boxHeight ที่ระบุ = กล่องที่สูงกว่าตัวอักษร (ข้อความอยู่กึ่งกลางกล่อง)
 export const drawText = (ctx, text, x, top, { size, weight = 400, kind = 'hand', color = C.ink, align = 'left', boxHeight } = {}) => {
   const m = LINE[kind]
-  const family = kind === 'hand' ? FONT_HAND : kind === 'mono' ? FONT_MONO : FONT_BODY
   ctx.save()
-  ctx.font = `${weight} ${size}px ${family}`
+  ctx.font = `${weight} ${size}px ${familyOf(kind)}`
   ctx.fillStyle = color
-  ctx.textAlign = align
+  ctx.textAlign = 'left'
   ctx.textBaseline = 'alphabetic'
-  // boxHeight ที่ระบุ = กล่องบรรทัดที่สูงกว่าตัวอักษร (ข้อความอยู่กึ่งกลางกล่อง)
+  const width = ctx.measureText(text).width
   const own = size * m.box
   const offset = boxHeight ? (boxHeight - own) / 2 : 0
-  ctx.fillText(text, x, top + offset + size * m.base)
-  const width = ctx.measureText(text).width
+  const left = align === 'right' ? x - width : align === 'center' ? x - width / 2 : x
+  ctx.fillText(text, left, top + offset + size * m.base)
   ctx.restore()
   return width
 }
 
+// ชื่อที่ถูกเซ็นเซอร์ (maskName): ส่วนที่เป็นตัวอักษรวาดด้วยฟอนต์ ส่วน "•" วาดเป็นวงกลมเอง — glyph • ของ Mali เป็นลายมือแปลก ๆ (อ่านเป็น "ะะะ") และต่างกันตามเครื่อง
+// ระยะห่างของจุดเท่าความกว้าง "•" ของฟอนต์ที่ใช้ (fitLines/measureText วัดด้วยตัวอักษร • เหมือนกัน เลย์เอาต์ตรงกัน) คืนความกว้างรวม
+export const drawMasked = (ctx, text, x, top, { size, weight = 400, kind = 'hand', color = C.ink, boxHeight } = {}) => {
+  const m = LINE[kind]
+  const offset = boxHeight ? (boxHeight - size * m.box) / 2 : 0
+  const baseline = top + offset + size * m.base
+  let cx = x
+  const dot = measureText(ctx, '•', { size, weight, kind })
+  for (const part of text.split(/(•)/)) {
+    if (!part) continue
+    if (part === '•') {
+      ctx.save()
+      ctx.fillStyle = color
+      ctx.beginPath()
+      ctx.arc(cx + dot / 2, baseline - size * 0.3, size * 0.1, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.restore()
+      cx += dot
+    } else {
+      cx += drawText(ctx, part, cx, top, { size, weight, kind, color, boxHeight })
+    }
+  }
+  return cx - x
+}
+
 export const measureText = (ctx, text, { size, weight = 400, kind = 'hand' }) => {
   ctx.save()
-  ctx.font = `${weight} ${size}px ${kind === 'hand' ? FONT_HAND : kind === 'mono' ? FONT_MONO : FONT_BODY}`
+  ctx.font = `${weight} ${size}px ${familyOf(kind)}`
   const w = ctx.measureText(text).width
   ctx.restore()
   return w
@@ -267,6 +311,60 @@ export const fitSize = (ctx, text, maxWidth, { size, min = 26, weight = 400, kin
   let s = size
   while (s > min && measureText(ctx, text, { size: s, weight, kind }) > maxWidth) s -= 1
   return s
+}
+
+const segmentsOf = (text) =>
+  typeof Intl !== 'undefined' && typeof Intl.Segmenter === 'function'
+    ? Array.from(new Intl.Segmenter('th', { granularity: 'word' }).segment(text), (s) => s.segment)
+    : Array.from(text)
+
+// ข้อความที่ต้องไม่ล้นความกว้าง: ย่อก่อนจนถึง minScale (ค่าตั้งต้น 70% ของขนาดเดิม) ถ้ายังกว้างเกินค่อยตัดบรรทัดตามคำ (ไม่เกิน maxLines)
+// ถ้ายังไม่พอ ตัดท้ายบรรทัดสุดท้ายด้วย "…" คืน { size, lines } — ไม่มีกรณีที่ผลลัพธ์กว้างเกิน maxWidth
+export const fitLines = (ctx, text, maxWidth, { size, minScale = 0.7, weight = 400, kind = 'hand', maxLines = 1 } = {}) => {
+  const w = (t, sz) => measureText(ctx, t, { size: sz, weight, kind })
+  const min = Math.floor(size * minScale)
+  let s = size
+  while (s > min && w(text, s) > maxWidth) s -= 1
+  if (w(text, s) <= maxWidth) return { size: s, lines: [text] }
+  const lines = []
+  let line = ''
+  const segs = segmentsOf(text)
+  for (let i = 0; i < segs.length; i++) {
+    const next = line + segs[i]
+    if (w(next, s) <= maxWidth || !line) {
+      line = next
+      continue
+    }
+    if (lines.length === maxLines - 1) {
+      // ไม่มีบรรทัดเหลือ: รวมที่เหลือทั้งหมดไว้บรรทัดนี้แล้วตัดด้วย …
+      line += segs.slice(i).join('')
+      break
+    }
+    lines.push(line.trimEnd())
+    line = segs[i].trimStart()
+  }
+  const ellipsize = (t) => {
+    if (w(t, s) <= maxWidth) return t
+    const g = Array.from(t)
+    while (g.length > 1 && w(g.join('').trimEnd() + '…', s) > maxWidth) g.pop()
+    return g.join('').trimEnd() + '…'
+  }
+  lines.push(ellipsize(line))
+  return { size: s, lines }
+}
+
+// วาดผลของ fitLines ในกล่องสูง boxHeight (จัดกึ่งกลางแนวตั้ง) lineHeight = ตัวคูณขนาดตัวอักษรเมื่อมีหลายบรรทัด
+export const drawFitted = (ctx, text, x, top, { maxWidth, size, minScale = 0.7, weight = 400, kind = 'hand', color = C.ink, align = 'left', boxHeight, maxLines = 1, lineHeight = 1.25 } = {}) => {
+  const fit = fitLines(ctx, text, maxWidth, { size, minScale, weight, kind, maxLines })
+  if (fit.lines.length === 1) {
+    drawText(ctx, fit.lines[0], x, top, { size: fit.size, weight, kind, color, align, boxHeight })
+    return fit
+  }
+  const lh = fit.size * lineHeight
+  const total = lh * fit.lines.length
+  const start = boxHeight ? top + (boxHeight - total) / 2 : top
+  fit.lines.forEach((line, i) => drawText(ctx, line, x, start + i * lh, { size: fit.size, weight, kind, color, align, boxHeight: lh }))
+  return fit
 }
 
 // วาดภาพแบบ cover ลงกรอบ (ไม่ยืด ตัดส่วนเกินตรงกลาง)
