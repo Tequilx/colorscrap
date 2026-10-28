@@ -127,9 +127,11 @@ const turnShadow = ref(null)
 const turnUnder = ref(null)
 const turnSide = ref('right') // ด้านที่แผ่นเริ่มอยู่
 let turnAnims = []
+let refreshTimer = 0
 let currentTurn = 0 // รหัสการพลิกล่าสุด: พลิกใหม่ซ้อนระหว่างรอ → อันเก่าเลิก
 const FLIP_WAIT_MS = 150 // รอหน้าปลายทางพร้อมได้ไม่เกินเท่านี้ก่อนเริ่มพลิก
 const stopTurn = () => {
+  clearTimeout(refreshTimer)
   turnAnims.forEach((a) => a.cancel())
   turnAnims = []
   if (turnEl.value) turnEl.value.style.visibility = ''
@@ -186,25 +188,36 @@ watch(
     await within(Promise.all(shown.map((i) => i.decode?.().catch(() => {}))), left())
     if (turnId !== currentTurn) return
     // หลังแผ่น: สำเนาหน้าใหม่ (หน้าจริงยังซ่อนอยู่ ตัด opacity ที่ซ่อนออกจากสำเนา) ไม่ตัดเงาสัน เพื่อให้ตอนลงเหมือนหน้าจริง
-    const back = snapshot(landing)
-    back.style.opacity = ''
-    back.style.left = '0px'
-    back.style.top = '0px'
-    turnBack.value.replaceChildren(back)
+    const fillBack = () => {
+      const back = snapshot(landing)
+      back.style.opacity = ''
+      back.style.left = '0px'
+      back.style.top = '0px'
+      turnBack.value?.replaceChildren(back)
+    }
+    fillBack()
     sound.flip() // พลิกหน้า (ไฟล์ page)
     const T = MOTION.flip.turn * TIME_SCALE
+    // ของที่มาถึงหน้าจริงระหว่างพลิก (เช่น ชิ้นสีของวัน) ต้องอยู่ในสำเนาด้วย ไม่งั้นตอนเอาแผ่นออกจะโผล่ทีเดียว: ถ่ายสำเนาใหม่ก่อนสลับที่ 88% เล็กน้อย
+    refreshTimer = setTimeout(() => turnId === currentTurn && fillBack(), T * 0.84)
     const opts = { duration: T, fill: 'both' }
     const end = next ? -180 : 180
+    // ข้อ 65: ตอนแผ่นลงถึงห้ามมีเลเยอร์ไหนโปร่งใสบางส่วนพร้อมกัน (เดิมแผ่น/สำเนาหน้าเก่า/หน้าจริงเฟดซ้อนกันช่วง 88–100% ความทึบรวมตก เห็นปกแดงทะลุเป็นสีชมพูจาง ๆ แล้วกระโดดกลับในเฟรมเดียว)
+    // จึงสลับแบบทันที (step) ที่ 88% ขณะแผ่นเกือบแบนและยังทึบเต็มที่: หน้าจริงขึ้นเป็น 1 ใต้แผ่น + สำเนาหน้าเก่าใต้แผ่นหายไป แผ่น (หลัง = สำเนาหน้าใหม่ เหมือนหน้าจริงทุกพิกเซล) อยู่ทึบจนจบ
+    const step = (from, to) => [{ opacity: from, offset: 0 }, { opacity: from, offset: 0.88 }, { opacity: to, offset: 0.8801 }, { opacity: to, offset: 1 }]
     turnAnims = [
       turnBoard.value.animate([{ transform: rot(0), easing: 'cubic-bezier(0.45, 0, 0.25, 1)' }, { transform: rot(end) }], opts),
-      turnFade.value.animate([{ opacity: 1, offset: 0 }, { opacity: 1, offset: 0.9 }, { opacity: 0, offset: 1 }], opts),
       turnShadow.value.animate([{ opacity: 0, offset: 0 }, { opacity: 0.45, offset: 0.5 }, { opacity: 0, offset: 1 }], opts),
-      turnUnder.value.animate([{ opacity: 1, offset: 0 }, { opacity: 1, offset: 0.88 }, { opacity: 0, offset: 1 }], opts),
-      landing.animate([{ opacity: 0, offset: 0 }, { opacity: 0, offset: 0.88 }, { opacity: 1, offset: 1 }], { ...opts, fill: 'none' }),
+      turnUnder.value.animate(step(1, 0), opts),
+      landing.animate(step(0, 1), opts),
     ]
     await Promise.all(turnAnims.map((a) => a.finished.catch(() => {})))
+    // หน้าจริงพร้อมอยู่ใต้แผ่นมาตั้งแต่ 88% รอให้วาดจริงอีก 2 เฟรมแล้วค่อยเอาแผ่นออก (ไม่ถอด layer 3D ในเฟรมเดียวกับที่สลับ)
+    if (turnAnims.every((a) => a.playState === 'finished')) {
+      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))
+      if (turnId === currentTurn) stopTurn()
+    }
     landing.style.opacity = ''
-    if (turnAnims.length && turnAnims.every((a) => a.playState === 'finished')) stopTurn()
   },
   { flush: 'pre' },
 )
