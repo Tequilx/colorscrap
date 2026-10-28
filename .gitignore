@@ -40,3 +40,7 @@ __screenshots__/
 
 # ภาพการ์ดตัวอย่างจาก scripts/render-cards.mjs
 scripts/out/
+
+# สำเนาไฟล์จาก Finder/iCloud เช่น "sound 2.js" (ข้อ 67) ห้ามเข้า git
+* [0-9].*
+* [0-9]

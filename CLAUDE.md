@@ -14,7 +14,8 @@ No linter is configured.
 ## กติกาทำงาน (งานคิวบน feature/polish)
 
 - ก่อนเริ่มแต่ละข้อ ติด tag `pre-<งาน>` (เช่น `pre-sound`) แล้วค่อยทำ; `npm test` + `npm run build` ต้องผ่านก่อน commit
-- ห้ามแตะ `main`, ห้าม force push, ห้ามอ่าน `.env.local`, ห้าม merge เอง
+- **ห้ามใช้ `git add -A` / `git add .` / `git add <โฟลเดอร์>` (ข้อ 67):** add ทีละไฟล์ตามที่แก้เท่านั้น แล้วตรวจ `git status --short` และ `git diff --cached --stat` ก่อน commit — เคยพลาดเก็บไฟล์สำเนา Finder/iCloud ชื่อ "sound 2.js" (ไม่ได้ track) เข้า commit เพราะ `git add -A src` · `.gitignore` กันรูปแบบ `* [0-9].*` แล้ว
+- ห้ามแตะ `main`, ห้าม force push, ห้ามอ่าน `.env.local`, ห้าม merge เอง (ยกเว้นข้อที่ผู้ใช้อนุญาตให้ merge เข้า main ไว้ชัดเจน)
 - ใช้ token สไตล์เดิมเท่านั้น (`lib/tokens.js` / tailwind utilities) ห้ามฮาร์ดโค้ดสีใหม่ในคอมโพเนนต์
 - ทุกแอนิเมชันต้องมีทางเลือก reduced-motion (`lib/motion.js` `reducedMotion`/`ms()`, `app.css`)
 - ห้ามเปลี่ยนสีบนผ้าใบ ภาพในสมุด และสีที่ดึงจากภาพ (`extractColors`) — เอฟเฟกต์ใหม่ต้องอยู่ใต้กระดาษ/นอกผ้าใบ และต้องวัดซ้ำว่าสีที่ดึงเหมือนเดิม
