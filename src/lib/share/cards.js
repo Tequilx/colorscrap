@@ -31,7 +31,6 @@ import {
   makeCanvas,
   measureText,
   placePoints,
-  roundRectPath,
   wobble,
   wobblyCapsule,
 } from '@/lib/share/cardDraw'
@@ -206,15 +205,26 @@ const PHOTO_SLOTS = [
 const PHOTO_W = 300
 const PHOTO_PITCH = 318
 
-// ป้าย "+N ภาพ" (วันที่มีภาพเกิน 3): อยู่ในแถวเดียวกับโพลารอยด์ทางขวา กรอบกว้าง = ข้อความ + padding ซ้ายขวาเท่ากัน
-// โพลารอยด์ย่อทั้งชุดลงพอให้เหลือที่ว่างทางขวา ห่างจากใบที่สาม ≥ gap จึงไม่ทับโพลารอยด์ และอยู่เหนือเส้นประท้ายการ์ดมากกว่า 16px เสมอ
-export const BADGE = { size: 24, h: 40, pad: 20, gap: 16 }
-const GROUP_W = PHOTO_W + 2 * PHOTO_PITCH // ความกว้างชุดโพลารอยด์ 3 ใบ (px ก่อนย่อ)
-const GROUP_OVERHANG = 4 // ใบที่เอียงล้ำออกด้านข้างได้ราวนี้
-export const badgeLayout = (textW, { left = 72, right = 1008 } = {}) => {
-  const bw = textW + 2 * BADGE.pad
-  const scale = Math.min(1, (right - left - bw - BADGE.gap - GROUP_OVERHANG) / GROUP_W)
-  return { bw, scale, bx: right - bw, groupRight: left + GROUP_W * scale + GROUP_OVERHANG }
+// วันที่มีภาพเกิน 3: กระดาษโพลารอยด์เปล่า 2 แผ่นซ้อนใต้ใบที่สาม เยื้องลงล่างเล็กน้อย (ขอบโผล่ ~6–10px) เอียงต่างกัน
+// เลื่อนไปทางซ้ายพอให้มุมที่เอียงไม่เลยขอบในขวา (1008) ส่วนขอบล่างอยู่เหนือเส้นประท้ายการ์ดเสมอ
+const STACK_SHEETS = [
+  { dx: -6, dy: 4, r: 3 },
+  { dx: -6, dy: 8, r: -2 },
+]
+const DAY_POLAROID_H = 11 + 190 + 12 + 8 + 10 + 30 + 10
+
+const drawBlankSheet = (ctx, x, y, { dx, dy, r }) => {
+  const w = PHOTO_W
+  const h = DAY_POLAROID_H
+  ctx.save()
+  ctx.translate(x + dx + w / 2, y + dy + h / 2)
+  ctx.rotate(r * RAD)
+  ctx.shadowColor = 'rgba(45, 43, 51, 0.14)'
+  ctx.shadowBlur = 6
+  ctx.shadowOffsetY = 2
+  ctx.fillStyle = '#FFFFFF'
+  ctx.fillRect(-w / 2, -h / 2, w, h)
+  ctx.restore()
 }
 
 // ป้ายเวลา + อารมณ์ของแต่ละช่วงใต้แถบ (ขีดบอกกลางช่วง เยื้องเป็นแถวตาม layoutRibbon)
@@ -241,7 +251,7 @@ const drawRibbonLabels = (ctx, segs, top) => {
 const drawDayPolaroid = (ctx, e, thumb, slot, x, y) => {
   const w = PHOTO_W
   const imgH = 190
-  const h = 11 + imgH + 12 + 8 + 10 + 30 + 10
+  const h = DAY_POLAROID_H
   ctx.save()
   ctx.translate(x + w / 2, y + h / 2)
   ctx.rotate(slot.r * RAD)
@@ -340,42 +350,19 @@ export const renderDayCard = async ({ date, entries, thumbs = new Map(), crop = 
   drawRibbonLabels(ctx, segs, labelsTop)
   const labelsH = Math.max(0, ...segs.filter((s) => s.box).map((s) => s.box.y1)) * RIB_K
 
-  // ภาพย่อโพลารอยด์ 3 ใบล่าสุด (ถ้ามีมากกว่า 3 ใส่ป้าย "+N ภาพ") วางใต้ป้ายของแถบ
+  // ภาพย่อโพลารอยด์ 3 ใบล่าสุด (ถ้ามีมากกว่า 3 ใต้ใบที่สามมีกระดาษเปล่าซ้อน 2 แผ่น) วางใต้ป้ายของแถบ
   const shown = list.slice(-3)
-  const more = list.length - shown.length
   const groupW = PHOTO_W + (shown.length - 1) * PHOTO_PITCH
-  const label = `+${more} ภาพ`
-  const textW = more > 0 ? measureText(ctx, label, { size: BADGE.size, weight: 600, kind: 'hand' }) : 0
-  const lay = more > 0 ? badgeLayout(textW) : null
-  const k = lay ? lay.scale : 1 // มีป้าย: ย่อชุดโพลารอยด์ชิดซ้าย เหลือที่ว่างทางขวาให้ป้าย
-  const originX = lay ? 72 : 72 + (936 - groupW) / 2
+  const originX = 72 + (936 - groupW) / 2
   const photoTop = Math.max(912, labelsTop + labelsH + 14)
-  let photoH = 0
-  ctx.save()
-  ctx.translate(originX, photoTop)
-  ctx.scale(k, k)
+  if (list.length > shown.length) {
+    const last = shown.length - 1
+    STACK_SHEETS.forEach((sh) => drawBlankSheet(ctx, originX + last * PHOTO_PITCH, photoTop + PHOTO_SLOTS[last].dy, sh))
+  }
   shown.forEach((e, i) => {
     const slot = PHOTO_SLOTS[i]
-    photoH = drawDayPolaroid(ctx, e, thumbs.get(e.id), slot, i * PHOTO_PITCH, slot.dy)
+    drawDayPolaroid(ctx, e, thumbs.get(e.id), slot, originX + i * PHOTO_PITCH, photoTop + slot.dy)
   })
-  ctx.restore()
-  if (lay) {
-    // กรอบเอียงเล็กน้อยแบบลายมือ อยู่กึ่งกลางความสูงของชุดโพลารอยด์ ข้อความอยู่กึ่งกลางกรอบทั้งแนวนอนและแนวตั้ง (drawText จัดตามกล่องบรรทัด)
-    const cx = lay.bx + lay.bw / 2
-    const cy = photoTop + (photoH / 2 + 10) * k
-    ctx.save()
-    ctx.translate(cx, cy)
-    ctx.rotate(3 * RAD)
-    ctx.fillStyle = C.paper
-    ctx.strokeStyle = C.ink
-    ctx.lineWidth = 2
-    ctx.beginPath()
-    roundRectPath(ctx, -lay.bw / 2, -BADGE.h / 2, lay.bw, BADGE.h, 13)
-    ctx.fill()
-    ctx.stroke()
-    drawText(ctx, label, 0, -BADGE.h / 2, { size: BADGE.size, weight: 600, kind: 'hand', align: 'center', boxHeight: BADGE.h })
-    ctx.restore()
-  }
 
   drawFooter(ctx, maskName(userName), 52, 22)
   drawGrain(ctx, CARD_W, CARD_H)

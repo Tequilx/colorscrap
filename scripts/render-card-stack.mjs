@@ -1,6 +1,6 @@
-// สคริปต์ dev: ตรวจป้าย "+N ภาพ" บนการ์ดจานสีของวัน (เก็บรูปของวัน) ที่ +1 / +8 / +12 / +99 ภาพ แล้ววัดว่าป้ายไม่ทับโพลารอยด์/เส้นประท้ายการ์ด และอยู่ในกรอบการ์ด
+// สคริปต์ dev: ตรวจกระดาษซ้อนใต้โพลารอยด์ใบที่สามของการ์ดจานสีของวัน ที่ 3 / 4 / 11 ภาพ (ขอบโผล่ ไม่ทับเส้นประท้ายการ์ด ไม่เกินขอบใน)
 //   1) VITE_USE_MOCK=true npm run dev -- --port 5199
-//   2) PLAYWRIGHT=… node scripts/render-card-badge.mjs <ชื่อรอบ before|after> [--webkit]
+//   2) PLAYWRIGHT=… node scripts/render-card-stack.mjs <ชื่อรอบ before|after> [--webkit]
 // ภาพลง scripts/out/screens/card-badge/<รอบ>-<N>.png (ครอปส่วนล่างของการ์ด) + <รอบ>-sheet.png
 import { mkdirSync, writeFileSync, readFileSync } from 'node:fs'
 const args = process.argv.slice(2)
@@ -29,18 +29,16 @@ const res = await page.evaluate(async () => {
   const mk = (i) => { const e = em[i % 8]; const sh = emotionShades(e); return { id: 'x' + i, local_date: '2026-10-13', local_time: `${String(1 + Math.floor(i / 6)).padStart(2, '0')}:${String((i * 7) % 60).padStart(2, '0')}`, emotion: e, emotions: [e], intensity: 1, shifted: i % 5 === 0 && ['sad', 'tired', 'angry', 'anxious'].includes(e), colors: [sh.base, sh.light, sh.deep].map((hex, k) => ({ hex, ratio: [0.5, 0.3, 0.2][k] })) } }
   const toB64 = async (blob) => { const buf = new Uint8Array(await blob.arrayBuffer()); let bin = ''; for (let i = 0; i < buf.length; i += 0x8000) bin += String.fromCharCode(...buf.subarray(i, i + 0x8000)); return btoa(bin) }
   const out = {}
-  for (const n of [4, 11, 15, 102]) {
+  for (const n of [3, 4, 11]) {
     const list = Array.from({ length: n }, (_, i) => mk(i))
     const thumbs = new Map()
     for (const e of list.slice(-3)) thumbs.set(e.id, await painting(e.colors.map((c) => c.hex), e.id.length * 7 + n))
-    out[n - 3] = await toB64(await cards.renderDayCard({ date: '2026-10-13', entries: list, thumbs, userName: 'สมใจ' }))
+    out[n] = await toB64(await cards.renderDayCard({ date: '2026-10-13', entries: list, thumbs, userName: 'สมใจ' }))
   }
-  out.layout = cards.badgeLayout ? [20, 60, 110, 140].map((w) => cards.badgeLayout(w)) : null
   return out
 })
 const files = []
-for (const n of [1, 8, 12, 99]) { const f = `${OUT}/${tag}-${n}.png`; writeFileSync(f, Buffer.from(res[n], 'base64')); files.push([`${tag} +${n}`, f]) }
-if (res.layout) console.log('badgeLayout', JSON.stringify(res.layout.map((l) => ({ bw: Math.round(l.bw), scale: +l.scale.toFixed(3), groupRight: Math.round(l.groupRight), bx: Math.round(l.bx) }))))
+for (const n of [3, 4, 11]) { const f = `${OUT}/${tag}-${n}.png`; writeFileSync(f, Buffer.from(res[n], 'base64')); files.push([`${tag} ${n} ภาพ`, f]) }
 await browser.close()
 // contact sheet: ครอปส่วนล่างของการ์ด (y 880–1350) ของทั้ง 4 แบบ
 const b = await chromium.launch({ channel: 'chrome' })
