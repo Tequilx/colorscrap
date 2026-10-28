@@ -1,11 +1,11 @@
 // เพลงคลอ (ข้อ 61a): สตรีมจาก src/assets/audio/music-day.mp3 และ music-night.mp3 ด้วย HTMLAudioElement (preload="auto", loop) ต่อเข้า Web Audio ผ่าน MediaElementAudioSourceNode
 // เพื่อใช้บัส/คอมเพรสเซอร์/ปุ่มปิดเสียง/duck เดิมใน lib/sound.js · ไฟล์ผ่าน scripts/make-music.sh แล้ว (ตัดเงียบหัวท้าย เริ่มมีเสียงทันที ท้ายไฟล์ crossfade เข้าหัวให้วนเนียน) จึงไม่ต้องรอดาวน์โหลดทั้งไฟล์ก่อนเล่น
 // เริ่มโหลดตั้งแต่เปิดหน้า (ยังไม่เล่น) · แตะครั้งแรก = play() ในเหตุการณ์นั้นทันที แล้ว fade in 1.5 วินาที
-// ช่วงเวลาเดียวกับแสงบนโต๊ะ (lib/daylight.js): กลางวัน+เย็น = day, กลางคืน = night เปลี่ยนช่วงแล้ว crossfade 4 วินาที · ห้ามเปลี่ยนเพลงตามอารมณ์ที่เลือก · ไม่มีไฟล์ = เงียบ ไม่ error
+// ช่วงเวลาตาม lib/daylight.js: กลางวัน+เย็น = day, กลางคืน = night เปลี่ยนช่วงแล้ว crossfade 4 วินาที · ห้ามเปลี่ยนเพลงตามอารมณ์ที่เลือก · ไม่มีไฟล์ = เงียบ ไม่ error
 // เปลี่ยนเพลง: วางไฟล์ต้นฉบับใน docs/design/audio-src/ แล้วรัน scripts/make-music.sh (ดู docs/FILE-GUIDE.md)
 // ระดับ/ปิดเปิด/ลดเสียงอัตโนมัติอยู่ที่ lib/sound.js (musicBus) ที่นี่ดูแลแค่การโหลด เล่น หยุด และสลับแทร็ก
 import { watch } from 'vue'
-import { period } from '@/lib/daylight'
+import { period, startPeriodTimer } from '@/lib/daylight'
 import { getMusicOutput, musicOn, onAudioLost, onAudioReady, onAudioRebuilt, onMusicEnabled } from '@/lib/sound'
 
 export const FADE_IN_MS = 1500 // fade in หลังแตะครั้งแรก
@@ -160,6 +160,7 @@ export const attachMusic = () => {
       loaded: [...els.entries()].map(([k, e]) => [k, e.readyState]),
     })
   }
+  startPeriodTimer()
   preload(trackOf(period.value))
   onAudioReady(() => start(trackOf(period.value), FADE_IN_MS))
   onMusicEnabled(resumeNow)
