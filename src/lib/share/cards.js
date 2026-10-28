@@ -309,11 +309,11 @@ export const renderDayCard = async ({ date, entries, thumbs = new Map(), crop = 
   const parsed = parseLocalDate(date)
   const isToday = date === localDateStr()
   drawHeader(ctx, await loadBrand(), formatThaiDate(parsed))
-  drawFitted(ctx, isToday ? 'จานสีของวันนี้' : `จานสีของ ${thaiDateShort(parsed)}`, 72, 128, { maxWidth: CARD_W - 144, size: 80, weight: 700, kind: 'hand' })
+  drawFitted(ctx, isToday ? 'จานสีของวันนี้' : `จานสีของ ${thaiDateShort(parsed)}`, 72, 128, { maxWidth: CARD_W - 144, size: 52, weight: 600, kind: 'hand' })
 
   // กรอบสีของวัน (SVG 380×380 → ภาพ) ซ้าย + ข้อความขวา กึ่งกลางแนวตั้งเดียวกัน
   const frame = await svgToImage(dayFrameSvg({ mix: day.mix, dominant: dominantColorOfDay(list), p: 'dfc', crop: Boolean(crop) }).replace('width="380" height="380"', 'width="760" height="760"'))
-  const frameTop = 240
+  const frameTop = 216 // หัวการ์ด 52px: 128 + 52×1.3 = ~196 เว้น 20px
   ctx.drawImage(frame, 52, frameTop, 380, 380)
   if (crop) {
     // ชิ้นสีของวัน (ผลครอปเดียวกับหน้าจานสี) วางในกรอบ เอียง −3° ตามกรอบ ไม่มี filter
@@ -327,7 +327,7 @@ export const renderDayCard = async ({ date, entries, thumbs = new Map(), crop = 
   }
   const moods = new Set(list.map((e) => e.emotion)).size
   const tx = 480
-  const nameSize = Math.min(72, fitSize(ctx, [day.name.colorPart, day.name.periodPart].sort((a, b) => b.length - a.length)[0], CARD_W - 72 - tx, { size: 72, min: 51, kind: 'hand', weight: 700 }))
+  const nameSize = Math.min(76, fitSize(ctx, [day.name.colorPart, day.name.periodPart].sort((a, b) => b.length - a.length)[0], CARD_W - 72 - tx, { size: 76, min: 54, kind: 'hand', weight: 700 }))
   const NL = nameSize * 1.25 // สูงบรรทัดชื่อ (เผื่อสระบน/วรรณยุกต์)
   const colH = 26 * LINE.body.box + 24 + 2 * NL + 8 + 26 * LINE.body.box
   let y = frameTop + (380 - colH) / 2
@@ -340,10 +340,12 @@ export const renderDayCard = async ({ date, entries, thumbs = new Map(), crop = 
   drawText(ctx, `${list.length} ภาพ · ${moods} อารมณ์`, tx, y, { size: 26, kind: 'body', color: C.soft })
 
   // สีของวันตามลำดับเวลา: แถบ (SVG → ภาพ) เต็มความกว้าง + ป้าย
-  const headTop = 640
-  drawText(ctx, 'สีของวันตามลำดับเวลา', 72, headTop, { size: 36, weight: 700, kind: 'hand' })
+  const headTop = 616
+  ctx.globalAlpha = 0.8 // หัวข้อรอง: หมึกจางลงเล็กน้อย
+  drawText(ctx, 'สีของวันตามลำดับเวลา', 72, headTop, { size: 30, weight: 600, kind: 'hand' })
+  ctx.globalAlpha = 1
   const segs = layoutRibbon(list, RIB_W / RIB_K)
-  const ribTop = headTop + 36 * LINE.hand.box + 10
+  const ribTop = headTop + 30 * LINE.hand.box + 10
   const ribbon = await svgToImage(ribbonSvg(segs, RIB_W / RIB_K, 'rbc', RIB_K * 2))
   ctx.drawImage(ribbon, RIB_X, ribTop, RIB_W, RIBBON_H * RIB_K)
   const labelsTop = ribTop + RIBBON_H * RIB_K
@@ -354,7 +356,7 @@ export const renderDayCard = async ({ date, entries, thumbs = new Map(), crop = 
   const shown = list.slice(-3)
   const groupW = PHOTO_W + (shown.length - 1) * PHOTO_PITCH
   const originX = 72 + (936 - groupW) / 2
-  const photoTop = Math.max(912, labelsTop + labelsH + 14)
+  const photoTop = Math.max(896, labelsTop + labelsH + 14)
   if (list.length > shown.length) {
     const last = shown.length - 1
     STACK_SHEETS.forEach((sh) => drawBlankSheet(ctx, originX + last * PHOTO_PITCH, photoTop + PHOTO_SLOTS[last].dy, sh))
