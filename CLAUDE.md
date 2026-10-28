@@ -11,6 +11,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 No linter is configured.
 
+## โหมดเก็บงาน (ตั้งแต่ v1.0)
+
+- tag `v1.0` = เวอร์ชันเสถียรที่ `main` ณ ข้อ 77 (`85d3f4c`) · **ห้ามเพิ่มฟีเจอร์ใหม่**: แก้ได้เฉพาะบั๊กที่ผู้ใช้สั่งโดยตรง
+- ทุกข้อแก้ให้เล็กที่สุด แตะไฟล์น้อยที่สุด ไม่รีแฟกเตอร์ ไม่ปรับปรุงเกินที่สั่ง ถ้าเห็นของอื่นควรแก้ ให้จดลง "ไว้พัฒนาต่อ" ใน `docs/ROADMAP.md` แทนการแก้เอง
+- กติกา merge/tag/`git add` ด้านล่างยังใช้เหมือนเดิม · สคริปต์ iPad audit ที่เก็บไว้อ้างอิงอยู่ที่ `docs/reference/audit-ipad.mjs` (ยังไม่เคยรันสำเร็จ)
+
 ## กติกาทำงาน (งานคิวบน feature/polish)
 
 - ก่อนเริ่มแต่ละข้อ ติด tag `pre-<งาน>` (เช่น `pre-sound`) แล้วค่อยทำ; `npm test` + `npm run build` ต้องผ่านก่อน commit
