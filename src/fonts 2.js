@@ -1,0 +1,16 @@
+// ฟอนต์ในแอปเอง (ข้อ 43): Mali 400–700 และ IBM Plex Sans Thai Looped 400–600 เฉพาะ subset thai + latin ผ่าน @fontsource ไม่โหลดจาก Google Fonts ใช้ได้ออฟไลน์
+// ชื่อ family เหมือนเดิม ('Mali', 'IBM Plex Sans Thai Looped') การ์ดเก็บรูป (lib/share/cardDraw.js loadCardFonts) ใช้ชุดเดียวกันนี้
+import '@fontsource/mali/latin-400.css'
+import '@fontsource/mali/thai-400.css'
+import '@fontsource/mali/latin-500.css'
+import '@fontsource/mali/thai-500.css'
+import '@fontsource/mali/latin-600.css'
+import '@fontsource/mali/thai-600.css'
+import '@fontsource/mali/latin-700.css'
+import '@fontsource/mali/thai-700.css'
+import '@fontsource/ibm-plex-sans-thai-looped/latin-400.css'
+import '@fontsource/ibm-plex-sans-thai-looped/thai-400.css'
+import '@fontsource/ibm-plex-sans-thai-looped/latin-500.css'
+import '@fontsource/ibm-plex-sans-thai-looped/thai-500.css'
+import '@fontsource/ibm-plex-sans-thai-looped/latin-600.css'
+import '@fontsource/ibm-plex-sans-thai-looped/thai-600.css'

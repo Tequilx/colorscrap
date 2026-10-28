@@ -30,6 +30,7 @@ import WeekStrip from '@/components/cover/WeekStrip.vue'
 import { useAppStore } from '@/stores/app'
 import { useEntriesStore } from '@/stores/entries'
 import { greetingFor, thaiDayFull } from '@/lib/dates'
+import { greetingHour } from '@/lib/daylight'
 
 const app = useAppStore()
 const entries = useEntriesStore()
@@ -37,5 +38,5 @@ const entries = useEntriesStore()
 // คำนวณครั้งเดียวตอนเปิดหน้า (ไม่ต้องอัปเดตทุกนาที)
 const now = new Date()
 const dateText = thaiDayFull(now)
-const greeting = computed(() => greetingFor(now.getHours()))
+const greeting = computed(() => greetingFor(greetingHour(now.getHours())))
 </script>

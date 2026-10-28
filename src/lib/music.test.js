@@ -3,7 +3,7 @@ import { CROSSFADE_MS, FADE_IN_MS, trackOf, urlOf } from './music'
 import { MASTER_GAIN, MUSIC_BASE, MUSIC_DUCK, readEnabled } from './sound'
 
 describe('music tracks', () => {
-  it('กลางวันและเย็นใช้ day กลางคืนใช้ night (ช่วงเวลาเดียวกับ DeskLight)', () => {
+  it('กลางวันและเย็นใช้ day กลางคืนใช้ night (lib/daylight.js)', () => {
     expect(trackOf('day')).toBe('day')
     expect(trackOf('dusk')).toBe('day')
     expect(trackOf('night')).toBe('night')
