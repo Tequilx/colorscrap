@@ -45,7 +45,7 @@ export const lightnessOf = (hex) => {
 export const PALE_L = 0.9
 export const isPale = (hex) => lightnessOf(hex) > PALE_L
 
-// ---- OKLab (ข้อ 50i) ใช้วัดความใกล้กันของสีแบบที่ตาเห็น ----
+// ---- OKLab ใช้วัดความใกล้กันของสีแบบที่ตาเห็น ----
 const toLinear = (v) => {
   const c = v / 255
   return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4

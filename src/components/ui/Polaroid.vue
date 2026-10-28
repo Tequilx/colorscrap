@@ -19,12 +19,12 @@
     <!-- คำบรรยายกับป้ายอยู่แถว flex เดียวกันคนละฝั่ง คำบรรยายยาวเกินให้ตัดด้วย ellipsis -->
     <!-- แถบสีที่ดูดได้จากภาพ ใต้ตัวภาพ เหนือคำบรรยาย -->
     <ColorStrip v-if="palette.length" :colors="palette" class="mt-1.5" />
-    <!-- คำบรรยาย 16px (ข้อ 52e แทนข้อ 51a; การ์ดดาวน์โหลดใช้ขนาดของตัวเอง) ยาวมี "→" ตัดสองบรรทัดที่ลูกศร ขอบล่างขยายตามให้ไม่แน่น -->
+    <!-- คำบรรยาย 16px (การ์ดดาวน์โหลดใช้ขนาดของตัวเอง) ยาวมี "→" ตัดสองบรรทัดที่ลูกศร ขอบล่างขยายตามให้ไม่แน่น -->
     <figcaption class="absolute inset-x-3 bottom-2 flex items-end justify-between gap-2 font-hand text-14 leading-thai text-ink-soft">
       <span ref="box" class="relative min-w-0 flex-1" :title="caption">
         <span class="block truncate">{{ lines[0] }}</span>
         <span v-if="lines[1]" class="block truncate">{{ lines[1] }}</span>
-        <!-- วัดความกว้างคำบรรยายบรรทัดเดียว (ข้อ 64) ไม่แสดง -->
+        <!-- วัดความกว้างคำบรรยายบรรทัดเดียว ไม่แสดง -->
         <span ref="probe" class="pointer-events-none invisible absolute left-0 top-0 whitespace-nowrap" aria-hidden="true">{{ caption }}</span>
       </span>
       <span v-if="badge" class="shrink-0 rounded-[10px] bg-cover px-2 text-13 font-semibold text-white">{{ badge }}</span>
@@ -57,8 +57,8 @@ const props = defineProps({
   tape: { type: Boolean, default: true },
 })
 
-// ข้อ 64: คำบรรยาย 14 px พอดีบรรทัดเดียวก็อยู่บรรทัดเดียว ไม่พอค่อยตัดสองบรรทัดที่ " → " (บรรทัดสองขึ้นต้นด้วยลูกศร) ไม่ตัดกลางคำ
-// วัดจริงด้วยป้ายวัดที่ซ่อนไว้ (ฟอนต์โหลดเสร็จแล้ววัดซ้ำ) ก่อนวัดเสร็จเดาจากการมี " → " เหมือนเดิม
+// คำบรรยาย 14 px พอดีบรรทัดเดียวก็อยู่บรรทัดเดียว ไม่พอค่อยตัดสองบรรทัดที่ " → " (บรรทัดสองขึ้นต้นด้วยลูกศร) ไม่ตัดกลางคำ
+// วัดจริงด้วยป้ายวัดที่ซ่อนไว้ (ฟอนต์โหลดเสร็จแล้ววัดซ้ำ) ก่อนวัดเสร็จเดาจากการมี " → "
 const box = ref(null)
 const probe = ref(null)
 const fits = ref(null) // null = ยังไม่ได้วัด

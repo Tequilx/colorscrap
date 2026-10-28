@@ -1,3 +1,4 @@
+// ทดสอบกติกา "สิ่งที่ทำให้ใจฟู" สูงสุด 3 อย่าง (lib/likes.js)
 import { describe, it, expect } from 'vitest'
 import { MAX_LIKES, isLikeLocked, likesOverLimit, toggleLikeList } from './likes'
 

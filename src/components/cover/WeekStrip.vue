@@ -1,3 +1,4 @@
+<!-- แถบ 7 วันล่าสุดบนหน้าปก: ก้อนสีเด่นของวันที่มีบันทึก -->
 <template>
   <div class="flex flex-col gap-2.5 border-t-[1.5px] border-dashed border-faint pt-[22px]">
     <span class="text-14 text-ink-soft">7 วันล่าสุด</span>

@@ -39,7 +39,7 @@ const fromRow = (r) => ({
   thumb_path: r.thumb_path,
 })
 
-// สรุปรายวันแบบเบา (ข้อ 63): เฉพาะคอลัมน์ที่ใช้คำนวณสีเด่นของวัน (ไม่มี path/อารมณ์/รูป) แบ่งหน้าละ 1000 แถว (PostgREST ตัดที่ 1000) เรียง local_date, local_time
+// สรุปรายวันแบบเบา: เฉพาะคอลัมน์ที่ใช้คำนวณสีเด่นของวัน (ไม่มี path/อารมณ์/รูป) แบ่งหน้าละ 1000 แถว (PostgREST ตัดที่ 1000) เรียง local_date, local_time
 // ใช้ index entries_user_date (user_id, local_date, local_time) + RLS user_id = auth.uid() ไม่ต้องมี index เพิ่ม
 const SUMMARY_COLUMNS = 'local_date, local_time, intensity, colors'
 const PAGE = 1000
@@ -62,7 +62,7 @@ export const fetchEntriesOfDays = async (dates) => {
   return data.map(fromRow)
 }
 
-// (เดิม) ดึงทุกแถวในครั้งเดียว — ไม่ใช้แล้วใน store เก็บไว้เผื่อสคริปต์
+// ดึงทุกแถวในครั้งเดียว (store ใช้ fetchDaySummaries + fetchEntriesOfDays แทน)
 export const fetchEntries = async () => {
   const { data, error } = await supabase.from('entries').select(ENTRY_COLUMNS).order('local_date').order('local_time')
   if (error) throw error

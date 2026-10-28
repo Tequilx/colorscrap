@@ -1,3 +1,4 @@
+// ทดสอบการอุ่นภาพของวันก่อนพลิกหน้า (lib/warmImages.js)
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { clearWarm, thumbUrlsOf, warmEntries, warmUrl, within } from './warmImages'
 

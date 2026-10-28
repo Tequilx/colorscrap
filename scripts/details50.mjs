@@ -1,4 +1,4 @@
-// สคริปต์ dev ถ่ายภาพก่อน/หลังของข้อ 50 (a กรอบสีของวัน, b แถบกลับไประบาย, c คำบรรยายโพลารอยด์, e ป้ายปุ่ม, h รอยสีตกแต่ง) + วัดป้ายปุ่มที่หน้าจอ 375px
+// สคริปต์ dev ถ่ายภาพก่อน/หลังของรายละเอียด UI (กรอบสีของวัน, แถบกลับไประบาย, คำบรรยายโพลารอยด์, ป้ายปุ่ม, รอยสีตกแต่ง) + วัดป้ายปุ่มที่หน้าจอ 375px
 //   VITE_USE_MOCK=true npm run dev -- --port 5199
 //   PLAYWRIGHT=/path/to/playwright-core/index.mjs node scripts/details50.mjs <before|after> [--url http://localhost:5199]
 import { mkdirSync } from 'node:fs'

@@ -15,7 +15,7 @@
     <div class="absolute inset-0 overflow-hidden rounded-[6px_14px_14px_6px] bg-cover shadow-book">
       <span class="absolute inset-y-0 left-0 w-[30px] border-r-2 border-dashed border-white/[.14] bg-cover-spine"></span>
       <svg width="420" height="540" viewBox="0 0 420 540" class="absolute left-0 top-0" aria-hidden="true">
-        <!-- รอยสีเลอะอยู่รอบขอบ ไม่ทับป้ายชื่อและสติกเกอร์ มีขอบกระดาษบาง ๆ ให้เห็นชัดทุกสีปก (ข้อ 35) -->
+        <!-- รอยสีเลอะอยู่รอบขอบ ไม่ทับป้ายชื่อและสติกเกอร์ มีขอบกระดาษบาง ๆ ให้เห็นชัดทุกสีปก -->
         <g class="filter-wc" opacity="0.7" :stroke="PALETTE.paper" stroke-opacity="0.7" stroke-width="2.5">
           <path :d="BLOB_PATHS.large" transform="translate(292 6) scale(0.42)" vector-effect="non-scaling-stroke" :fill="EMOTION_COLORS.calm" />
           <path :d="BLOB_PATHS.large" transform="translate(262 408) scale(0.38)" vector-effect="non-scaling-stroke" :fill="EMOTION_COLORS.excited" />
@@ -63,7 +63,7 @@ const props = defineProps({
   tabs: { type: Array, default: () => [] },
 })
 
-// ชื่อเจ้าของใหญ่ที่สุดรองจากโลโก้ (Mali ตัวหนา ~1.6 เท่าของเดิม) ชื่อยาวย่อลงให้ยังพอดีป้าย (ป้ายกว้างใน 232px)
+// ชื่อเจ้าของใหญ่ที่สุดรองจากโลโก้ (Mali ตัวหนา) ชื่อยาวย่อลงให้ยังพอดีป้าย (ป้ายกว้างใน 232px)
 const ownerSize = computed(() => {
   const n = [...(props.name || 'ชื่อของคุณ')].length
   return n <= 8 ? 26 : n <= 12 ? 22 : 18

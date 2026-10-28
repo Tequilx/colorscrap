@@ -1,13 +1,13 @@
-// หาชิ้นของภาพระบายที่มีสีมากที่สุด (ข้อ 49) ฟังก์ชันบริสุทธิ์ ทดสอบได้โดยไม่ต้องมี canvas
+// หาชิ้นของภาพระบายที่มีสีมากที่สุด ฟังก์ชันบริสุทธิ์ ทดสอบได้โดยไม่ต้องมี canvas
 import { PALETTE } from '@/lib/tokens'
 import { hexToRgb, rgbToOklab } from '@/lib/color'
 
 export const SAMPLE_LONG = 128 // ด้านยาวของภาพย่อที่ใช้หา
-// คะแนนเฉลี่ยของหน้าต่าง (0..1 = สัดส่วนพื้นที่ที่เป็นสีเป้าหมายโดยประมาณ) ต่ำกว่านี้ = ไม่มีภาพที่มีสีนี้จริง ใช้วิธีข้อ 49 แทน (ค่าจากการทดสอบ ดู docs/ROADMAP ข้อ 50i)
+// คะแนนเฉลี่ยของหน้าต่าง (0..1 = สัดส่วนพื้นที่ที่เป็นสีเป้าหมายโดยประมาณ) ต่ำกว่านี้ = ไม่มีภาพที่มีสีนี้จริง ใช้ bestWindow แทน (ค่าจากการทดสอบกับภาพจริง)
 export const MIN_MATCH = 0.065
 export const WINDOW_FRAC = 0.5 // ด้านของหน้าต่างสี่เหลี่ยมจัตุรัส = 50% ของด้านสั้น (ช่วง 45–55%)
 
-// ภาพของวันที่ใช้ทำชิ้นสี: ภาพที่ถูกใจก่อน (entry.liked ถ้ามีหลายภาพเอาอันแรกตามลำดับเดิม) ไม่มีก็ภาพล่าสุดของวัน
+// ภาพของวันที่ใช้ทำชิ้นสี: ภาพที่ถูกใจก่อน (entry.liked ถ้ามีหลายภาพเอาอันแรกตามลำดับในวัน) ไม่มีก็ภาพล่าสุดของวัน
 export const pickSourceEntry = (entries) => {
   if (!entries.length) return null
   return entries.find((e) => e.liked) ?? [...entries].sort((a, b) => a.local_time.localeCompare(b.local_time)).at(-1)
@@ -17,7 +17,7 @@ const paperRgb = hexToRgb(PALETTE.paper)
 
 const PAPER_DISTANCE = 28 // เท่ากับ extractColors: ใกล้กระดาษกว่านี้ไม่นับเป็นสี
 
-// คะแนนต่อพิกเซลแบบ "ห่างจากกระดาษ" (ข้อ 49)
+// คะแนนต่อพิกเซลแบบ "ห่างจากกระดาษ"
 export const paperScores = (pixels, w, h) => {
   const out = new Float32Array(w * h)
   for (let i = 0; i < w * h; i++) {
@@ -28,7 +28,7 @@ export const paperScores = (pixels, w, h) => {
   return out
 }
 
-// คะแนนต่อพิกเซลแบบ "ใกล้สีเป้าหมาย" (ข้อ 50i): exp(−ΔE²/σ²) ใน OKLab ไม่นับพิกเซลที่ใกล้สีกระดาษ
+// คะแนนต่อพิกเซลแบบ "ใกล้สีเป้าหมาย": exp(−ΔE²/σ²) ใน OKLab ไม่นับพิกเซลที่ใกล้สีกระดาษ
 export const SIGMA = 0.09
 export const targetScores = (pixels, w, h, targetLab, sigma = SIGMA) => {
   const out = new Float32Array(w * h)
@@ -65,7 +65,7 @@ export const bestWindowOf = (scores, w, h, frac = WINDOW_FRAC) => {
   return { ...best, mean: best.sum / (size * size) }
 }
 
-// pixels = RGBA ของภาพย่อ w×h ตำแหน่งที่ห่างจากสีกระดาษรวมสูงสุด (วิธีข้อ 49)
+// pixels = RGBA ของภาพย่อ w×h ตำแหน่งที่ห่างจากสีกระดาษรวมสูงสุด
 export const bestWindow = (pixels, w, h, frac = WINDOW_FRAC) => bestWindowOf(paperScores(pixels, w, h), w, h, frac)
 
 // แปลงหน้าต่างบนภาพย่อ (sw×sh) เป็นสี่เหลี่ยมบนภาพเต็ม (W×H)
@@ -77,7 +77,7 @@ export const scaleWindow = (win, sw, sh, W, H) => {
   return { x, y, size: side }
 }
 
-// ชื่อสีจากชิ้นที่ครอป (ข้อ 50i ทาง fallback): เฉลี่ย OKLab ของพิกเซลที่ไม่ใช่กระดาษโดยถ่วงน้ำหนักตาม chroma (สีจัดมีเสียงมากกว่าคราบจาง)
+// ชื่อสีจากชิ้นที่ครอป (ทาง fallback): เฉลี่ย OKLab ของพิกเซลที่ไม่ใช่กระดาษโดยถ่วงน้ำหนักตาม chroma (สีจัดมีเสียงมากกว่าคราบจาง)
 // คืน { hex, L, C } ของสีตัวแทน หรือ null ถ้าไม่มีพิกเซลสีเลย
 export const dominantOfPixels = (pixels, w, h) => {
   let sw = 0

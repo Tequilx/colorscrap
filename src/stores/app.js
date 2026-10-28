@@ -1,3 +1,4 @@
+// state หลักของโต๊ะ: หน้าปัจจุบัน (view) และกติกาการเปลี่ยนหน้า, ลำดับบันทึกลงสมุด, การพลิกหน้า/แผ่น, โน้ตและเครื่องมือบนผ้าใบ
 import { defineStore } from 'pinia'
 import { ref, computed, watch, markRaw } from 'vue'
 import { useEntriesStore } from '@/stores/entries'
@@ -108,7 +109,7 @@ export const useAppStore = defineStore('app', () => {
   const warmNoteOpen = computed(() => warmNote.value === 'open' && warmAvailable.value)
   const resetWarmNote = () => {
     warmNote.value = 'idle'
-    moodFolded.value = false // แผ่นใหม่ โน้ตอารมณ์เปิดเต็มเหมือนเดิม
+    moodFolded.value = false // แผ่นใหม่ โน้ตอารมณ์เปิดเต็ม
   }
   // โน้ตอารมณ์บนหน้าระบาย (MoodCard): แตะผ้าใบครั้งแรกของแผ่น → เก็บเป็นแถบที่ขอบขวา กดแถบเพื่อกางกลับ จำสถานะไว้จนจบแผ่น
   const moodFolded = ref(false)
@@ -139,9 +140,9 @@ export const useAppStore = defineStore('app', () => {
 
   // เปิดวันที่ในสมุดแล้วไปที่แผ่นล่าสุดของวันนั้นเสมอ (SPEC §5.6)
   // เปลี่ยนวันด้วยแท็บ/ปุ่มวัน: พลิกหน้ากระดาษ (PhotoPage อ่านแล้วเคลียร์) / เปิดวันตอนเปิดสมุดใช้ openDay ตรง ๆ ไม่พลิก
-  // pageTurn = { dir: 'next' | 'prev', id } ให้ OpenBook เก็บภาพหน้าเดิมก่อนข้อมูลเปลี่ยนแล้วเล่นพลิกหน้าหนังสือ (next = วันใหม่กว่า: หน้าขวายกพลิกไปซ้าย / prev = วันเก่ากว่า: หน้าซ้ายยกพลิกไปขวา)
+  // pageTurn = { dir: 'next' | 'prev', id } ให้ OpenBook เก็บภาพหน้าเก่าก่อนข้อมูลเปลี่ยนแล้วเล่นพลิกหน้าหนังสือ (next = วันใหม่กว่า: หน้าขวายกพลิกไปซ้าย / prev = วันเก่ากว่า: หน้าซ้ายยกพลิกไปขวา)
   const pageTurn = ref(null)
-  // ข้อ 63: วันที่ยังไม่ได้โหลดรายละเอียด (กระโดดจากปฏิทิน/วันไกล) ดึงก่อนแล้วพลิกครั้งเดียว กดซ้ำระหว่างโหลดไม่ซ้อน โหลดไม่ได้ = แจ้งแล้วอยู่หน้าเดิม
+  // วันที่ยังไม่ได้โหลดรายละเอียด (กระโดดจากปฏิทิน/วันไกล) ดึงก่อนแล้วพลิกครั้งเดียว กดซ้ำระหว่างโหลดไม่ซ้อน โหลดไม่ได้ = แจ้งแล้วอยู่หน้าเดิม
   let dayLoading = false
   const turnToDay = async (date) => {
     if (date === openDate.value || busy.value) return
@@ -180,7 +181,7 @@ export const useAppStore = defineStore('app', () => {
   // ผลข้างเคียงตอนเข้า view ใหม่ (ใช้ร่วมกันระหว่าง go() กับปุ่ม back ของเบราว์เซอร์)
   const enter = (next) => {
     const from = view.value
-    // กลับจาก saved/photo คงวันและแผ่นเดิมไว้ ไม่รีเซ็ตไปแผ่นล่าสุด
+    // กลับจาก saved/photo คงวันและแผ่นที่เปิดอยู่ไว้ ไม่รีเซ็ตไปแผ่นล่าสุด
     if (next === VIEWS.book && from !== VIEWS.saved && from !== VIEWS.photo) openBook()
     if (next === VIEWS.book && from !== VIEWS.photo) bookTick.value += 1
     if (next === VIEWS.book && from !== VIEWS.saved && from !== VIEWS.photo) sound.flip({ long: true }) // เปิดสมุด
@@ -199,7 +200,7 @@ export const useAppStore = defineStore('app', () => {
     dropTick.value += 1
   }
 
-  // ระบายต่อแผ่นเดิม: เปลี่ยน palette เป็นอารมณ์ใหม่ แล้วหยดทับ (ถ้าอารมณ์ไม่เปลี่ยนก็ไม่ต้องหยดซ้ำ)
+  // ระบายต่อแผ่นที่มีอยู่: เปลี่ยน palette เป็นอารมณ์ใหม่ แล้วหยดทับ (ถ้าอารมณ์ไม่เปลี่ยนก็ไม่ต้องหยดซ้ำ)
   const continueSheet = () => {
     if (selection.value.emotion !== sheetEmotions.value.at(-1)) dropOnSheet()
     go(VIEWS.paint)
@@ -376,7 +377,7 @@ export const useAppStore = defineStore('app', () => {
       })
       return
     }
-    // แผ่นแทรกใหม่: ค้างที่แผ่นเดิมที่เต็มอยู่ก่อน แล้วค่อยพลิกไปแผ่นใหม่ตอนเฟส leaf
+    // แผ่นแทรกใหม่: ค้างที่แผ่นที่เต็มอยู่ก่อน แล้วค่อยพลิกไปแผ่นใหม่ตอนเฟส leaf
     leafIndex.value = newLeaf ? index - 1 : index
     freshLeaf.value = null
     photoHiddenId.value = entry.id // ช่องจริงซ่อนจนภาพบินลงถึง (PhotoPage แสดงช่องเส้นประแทน)

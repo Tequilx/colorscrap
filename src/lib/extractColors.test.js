@@ -1,3 +1,4 @@
+// ทดสอบการเลือกสีเด่นจากภาพที่ระบาย (lib/extractColors.js)
 import { describe, expect, it } from 'vitest'
 import { pickColors } from '@/lib/extractColors'
 import { PALETTE } from '@/lib/tokens'

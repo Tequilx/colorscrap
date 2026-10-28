@@ -112,7 +112,7 @@ export const mixColors = (entries) => {
   return fromHsl(hue, sumS / total, sumL / total)
 }
 
-// กลุ่มสีจาก hue (SPEC §8.2 ข้อ 1)
+// กลุ่มสีจาก hue (SPEC §8.2)
 export const hueGroup = (hex) => {
   const { h, s } = toHsl(hex)
   if (s < HUE_MIN_SAT) return 'เทา'
@@ -126,7 +126,7 @@ export const hueGroup = (hex) => {
   return 'ชมพู'
 }
 
-// ช่วงเวลาตามเวลาของภาพล่าสุด (SPEC §8.2 ข้อ 3) ครอบคลุม 00:00–24:00
+// ช่วงเวลาตามเวลาของภาพล่าสุด (SPEC §8.2) ครอบคลุม 00:00–24:00
 export const periodOf = (time) => {
   const h = Number(time.slice(0, 2))
   if (h >= 5 && h < 11) return 'ยามเช้า'
@@ -137,7 +137,7 @@ export const periodOf = (time) => {
   return 'กลางดึก'
 }
 
-// กลุ่มสีรอง (SPEC §8.2 ข้อ 2): รวมน้ำหนักต่อกลุ่ม ไม่นับกลุ่มของสีหลักและ "เทา" เสมอกันใช้กลุ่มของภาพล่าสุด
+// กลุ่มสีรอง (SPEC §8.2): รวมน้ำหนักต่อกลุ่ม ไม่นับกลุ่มของสีหลักและ "เทา" เสมอกันใช้กลุ่มของภาพล่าสุด
 const secondaryGroup = (mainGroup, entries) => {
   const groups = new Map() // กลุ่ม → { weight, time }
   for (const c of flatColors(entries)) {
@@ -155,7 +155,7 @@ const secondaryGroup = (mainGroup, entries) => {
   return best?.g ?? null
 }
 
-// ตัวขยาย: ใช้ข้อแรกที่ตรง (SPEC §8.2 ข้อ 2)
+// ตัวขยาย: ใช้ข้อแรกที่ตรง (SPEC §8.2)
 const modifierOf = (hex, entries) => {
   const { s, l } = toHsl(hex)
   const second = secondaryGroup(hueGroup(hex), entries)
@@ -167,7 +167,7 @@ const modifierOf = (hex, entries) => {
   return ''
 }
 
-// กลุ่มสีที่ใช้เรียกจริง (ข้อ 50i) แยกช่วงแดง/ชมพู/ม่วงให้ตรงกับที่ตาเห็น โดย hueGroup (ตาม SPEC §8.2 และเทสต์) ไม่เปลี่ยน:
+// กลุ่มสีที่ใช้เรียกจริง แยกช่วงแดง/ชมพู/ม่วงให้ตรงกับที่ตาเห็น โดย hueGroup (ตาม SPEC §8.2 และเทสต์) ไม่ถูกแก้:
 //   แดงที่สว่างมาก (L ≥ 0.72: สีที่คนเรียกว่าชมพู ไม่ใช่แดง) → ชมพู · ชมพู hue < 310° ที่ไม่สว่าง (L < 0.6: กล้วยไม้/ม่วงบานเย็น) → ม่วง
 export const displayGroup = (hex) => {
   const g = hueGroup(hex)
@@ -185,7 +185,7 @@ export const nameOfDay = (mixHex, lastLocalTime, entries = []) => {
   return { colorPart, periodPart, full: colorPart + periodPart }
 }
 
-// ชื่อสีจากชิ้นที่ครอป (ข้อ 50i ทาง fallback): กลุ่มสีตาม hue ของสีตัวแทน + ตัวขยายตาม L/C ใน OKLab: เข้ม (L < 0.45) · อ่อน (L > 0.80) · จาง (chroma < 0.06) · ไม่เข้าข้อไหนไม่มีตัวขยาย
+// ชื่อสีจากชิ้นที่ครอป (ทาง fallback): กลุ่มสีตาม hue ของสีตัวแทน + ตัวขยายตาม L/C ใน OKLab: เข้ม (L < 0.45) · อ่อน (L > 0.80) · จาง (chroma < 0.06) · ไม่เข้าข้อไหนไม่มีตัวขยาย
 export const TONE_DARK_L = 0.45
 export const TONE_LIGHT_L = 0.8
 export const TONE_PALE_C = 0.06
@@ -194,7 +194,7 @@ export const colorPartFromTone = (hex, L, C) => {
   return displayGroup(hex) + mod
 }
 
-// ชื่อสีของวันที่ตรงกับชิ้นที่แสดง: ทางหลักใช้ชื่อเดิม ทาง fallback เปลี่ยนส่วนสี (ส่วนช่วงเวลาเหมือนเดิม)
+// ชื่อสีของวันที่ตรงกับชิ้นที่แสดง: ทางหลักใช้ชื่อของวัน ทาง fallback เปลี่ยนส่วนสีตามชิ้นที่ครอป (ส่วนช่วงเวลาคงเดิม)
 export const nameForCrop = (name, crop) => (crop?.via === 'fallback' && crop.colorPart ? { ...name, colorPart: crop.colorPart, full: crop.colorPart + name.periodPart } : name)
 
 // สีผสมและชื่อของวัน จากค่าผสมตัวเดียวกัน (ชื่อต้องตรงกับสีที่แสดงเสมอ) ไม่มีภาพ = null

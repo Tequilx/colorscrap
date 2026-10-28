@@ -1,4 +1,4 @@
-// สคริปต์ dev (ข้อ 64): ภาพก่อน/หลังของ (a) ปฏิทินไม่มีคำอธิบายใต้ปฏิทิน (b) คำบรรยายโพลารอยด์ 14 px (สั้น / ยาวสุด / ยาวแล้วมีป้าย "ใหม่")
+// สคริปต์ dev : ภาพปฏิทิน และคำบรรยายใต้โพลารอยด์ (สั้น / ยาวสุด / ยาวแล้วมีป้าย "ใหม่")
 //   1) VITE_USE_MOCK=true npm run dev -- --port 5199
 //   2) PLAYWRIGHT=… node scripts/record-small-fixes.mjs <before|after> [--url http://localhost:5199]
 // ภาพลง scripts/out/screens/small-fixes/<ชื่อรอบ>-*.png

@@ -1,3 +1,4 @@
+<!-- ปุ่มสไตล์ลายมือ 4 แบบ (primary/secondary/chip/icon) ใช้เป็นปุ่มหรือลิงก์ตาม href -->
 <template>
   <component
     :is="href ? 'a' : 'button'"

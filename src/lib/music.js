@@ -1,5 +1,5 @@
-// เพลงคลอ (ข้อ 61a): สตรีมจาก src/assets/audio/music-day.mp3 และ music-night.mp3 ด้วย HTMLAudioElement (preload="auto", loop) ต่อเข้า Web Audio ผ่าน MediaElementAudioSourceNode
-// เพื่อใช้บัส/คอมเพรสเซอร์/ปุ่มปิดเสียง/duck เดิมใน lib/sound.js · ไฟล์ผ่าน scripts/make-music.sh แล้ว (ตัดเงียบหัวท้าย เริ่มมีเสียงทันที ท้ายไฟล์ crossfade เข้าหัวให้วนเนียน) จึงไม่ต้องรอดาวน์โหลดทั้งไฟล์ก่อนเล่น
+// เพลงคลอ (streaming): สตรีมจาก src/assets/audio/music-day.mp3 และ music-night.mp3 ด้วย HTMLAudioElement (preload="auto", loop) ต่อเข้า Web Audio ผ่าน MediaElementAudioSourceNode
+// เพื่อใช้บัส/คอมเพรสเซอร์/ปุ่มปิดเสียง/duck ใน lib/sound.js · ไฟล์ผ่าน scripts/make-music.sh แล้ว (ตัดเงียบหัวท้าย เริ่มมีเสียงทันที ท้ายไฟล์ crossfade เข้าหัวให้วนเนียน) จึงไม่ต้องรอดาวน์โหลดทั้งไฟล์ก่อนเล่น
 // เริ่มโหลดตั้งแต่เปิดหน้า (ยังไม่เล่น) · แตะครั้งแรก = play() ในเหตุการณ์นั้นทันที แล้ว fade in 1.5 วินาที
 // ช่วงเวลาตาม lib/daylight.js: กลางวัน+เย็น = day, กลางคืน = night เปลี่ยนช่วงแล้ว crossfade 4 วินาที · ห้ามเปลี่ยนเพลงตามอารมณ์ที่เลือก · ไม่มีไฟล์ = เงียบ ไม่ error
 // เปลี่ยนเพลง: วางไฟล์ต้นฉบับใน docs/design/audio-src/ แล้วรัน scripts/make-music.sh (ดู docs/FILE-GUIDE.md)
@@ -134,8 +134,8 @@ const resumeNow = () => {
   } else start(trackOf(period.value), FADE_IN_MS)
 }
 
-// สลับแอป (ข้อ 59b → 61a): ซ่อนหน้า = หยุดสตรีม (sound.js suspend context เอง) · กลับมา = play() ต่อ ถ้าถูกปฏิเสธรอแตะแล้วเล่นในเหตุการณ์นั้น
-// context ถูกตัดแล้วสร้างใหม่ (resume ไม่ขึ้น): element เดิมต่อ MediaElementSource กับ context เก่าไปแล้ว ใช้ไม่ได้ → สร้าง element ใหม่ของแทร็กเดิมต่อกราฟใหม่
+// สลับแอป : ซ่อนหน้า = หยุดสตรีม (sound.js suspend context เอง) · กลับมา = play() ต่อ ถ้าถูกปฏิเสธรอแตะแล้วเล่นในเหตุการณ์นั้น
+// context ถูกตัดแล้วสร้างใหม่ (resume ไม่ขึ้น): element ที่เคยต่อ MediaElementSource กับ context เก่าไปแล้ว ใช้ไม่ได้ → สร้าง element ใหม่ของแทร็กเดียวกันต่อกราฟใหม่
 const rememberPlaying = () => {
   if (!current || current.el.paused) return
   wasPlaying = true

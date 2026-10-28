@@ -1,3 +1,4 @@
+// ทดสอบการคำนวณท่าบินของโพลารอยด์ตอนเปิดดูภาพ (lib/flip.js)
 import { describe, expect, it } from 'vitest'
 import { flightTransforms, PHOTO_POSE } from '@/lib/flip'
 

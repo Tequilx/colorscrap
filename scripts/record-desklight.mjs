@@ -1,4 +1,4 @@
-// สคริปต์ dev (ข้อ 66): ภาพหน้าปก/สมุดช่วง day/dusk/night (?time=) ที่ iPad 1180×820 และ Mac 1280×800 ก่อน/หลังเอา DeskLight ออก + ตรวจพิกเซล
+// สคริปต์ dev : ภาพหน้าปก/สมุดช่วง day/dusk/night (?time=) ที่ iPad 1180×820 และ Mac 1280×800 เพื่อเทียบว่าฉากไม่เปลี่ยนตามช่วงเวลา
 //   1) VITE_USE_MOCK=true npm run dev -- --port 5199
 //   2) PLAYWRIGHT=… node scripts/record-desklight.mjs <before|after>   → scripts/out/screens/desklight/<รอบ>-<อุปกรณ์>-<ช่วง>-<หน้า>.png
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'

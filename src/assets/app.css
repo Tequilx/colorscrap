@@ -58,7 +58,7 @@
   }
 }
 
-/* รูปที่โหลดไม่ทัน (RevealImg): เฟดเข้า 200 ms ease-out หลัง decode เสร็จ (ข้อ 62) */
+/* รูปที่โหลดไม่ทัน (RevealImg): เฟดเข้า 200 ms ease-out หลัง decode เสร็จ */
 .reveal-fade {
   transition: opacity calc(200ms * var(--motion-scale, 1)) cubic-bezier(0, 0, 0.2, 1);
 }

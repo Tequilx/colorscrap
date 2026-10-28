@@ -2,7 +2,7 @@ import { computed, ref, watch } from 'vue'
 import { dayCropDone, dayCropKey, getDayCrop } from '@/lib/dayCrop'
 import { useBlobUrl } from '@/lib/useBlobUrl'
 
-// ชิ้นสีของวัน (ข้อ 49/50i) สำหรับหน้าจานสี: url = object URL ของชิ้นที่ครอปแล้ว (null = ยังโหลดอยู่) failed = ครอปไม่ได้ (ใช้ก้อนสีเดิมแทน) crop = ผลเต็ม (ใช้ชื่อสีจาก nameForCrop)
+// ชิ้นสีของวัน สำหรับหน้าจานสี: url = object URL ของชิ้นที่ครอปแล้ว (null = ยังโหลดอยู่) failed = ครอปไม่ได้ (ใช้ก้อนสีแทน) crop = ผลเต็ม (ใช้ชื่อสีจาก nameForCrop)
 export const useDayCrop = (getEntries) => {
   const crop = ref(null)
   const failed = ref(false)

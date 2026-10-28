@@ -1,3 +1,4 @@
+// ทดสอบการหาหน้าต่างครอปชิ้นสีของวัน (lib/cropWindow.js)
 import { describe, expect, it } from 'vitest'
 import { hexToOklab, hexToRgb, oklabToHex } from '@/lib/color'
 import { displayGroup, colorPartFromTone, hueGroup } from '@/lib/palette'

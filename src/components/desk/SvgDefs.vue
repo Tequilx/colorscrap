@@ -7,7 +7,7 @@
         <feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="2" />
         <feDisplacementMap in="SourceGraphic" scale="3" />
       </filter>
-      <!-- รอยสีน้ำตกแต่ง wc (ใหญ่/ภาพนิ่ง) wcm (ภาพย่อ หลุมผสมสี) wct (หยดบนเส้นเวลา รอยพู่กัน) wcs (ชิปเล็ก): ขอบคมแบบสีน้ำแห้ง ไม่มี blur (ข้อ 50h)
+      <!-- รอยสีน้ำตกแต่ง wc (ใหญ่/ภาพนิ่ง) wcm (ภาพย่อ หลุมผสมสี) wct (หยดบนเส้นเวลา รอยพู่กัน) wcs (ชิปเล็ก): ขอบคมแบบสีน้ำแห้ง ไม่มี blur
            ขอบหยักเล็กน้อย (turbulence + displacement scale เล็ก) · ขอบเข้มกว่าข้างในเล็กน้อย (rim = ส่วนที่ erode หายไป ทำให้เข้มขึ้นแล้วซ้อนทับ) · เนื้อสีข้างในไม่เรียบ (alpha จาก noise ความถี่ต่ำคูณ ±~20%)
            wct region สูงพิเศษ: รอยพู่กันเส้นหนาเป็น stroke ซึ่งไม่นับใน bbox ถ้า region เล็กจะถูกตัดเหลือเส้นบาง -->
       <filter v-for="f in BLOB_FILTERS" :id="f.id" :key="f.id" :x="f.x ?? '-30%'" :y="f.y ?? '-30%'" :width="f.w ?? '160%'" :height="f.h ?? '160%'" color-interpolation-filters="sRGB">

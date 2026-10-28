@@ -25,7 +25,7 @@
     <div ref="bodyRef" class="absolute inset-0">
       <OpenBook :mode="view === 'saved' ? 'saved' : 'book'" />
     </div>
-    <!-- ปกที่พลิกรอบสัน (ข้อ 22) ซ่อนอยู่เสมอ ยกเว้นช่วงพลิก -->
+    <!-- ปกที่พลิกรอบสัน ซ่อนอยู่เสมอ ยกเว้นช่วงพลิก -->
     <CoverFlip ref="flipRef" :name="profile.shownName" :avatar="profile.avatar" :likes="profile.likes" :tabs="entries.recentTabs" />
   </div>
 </template>
@@ -51,13 +51,13 @@ const view = computed(() => app.view)
 // translate คือมุมซ้ายบนของกล่องก่อนย่อ (ย่อรอบจุดกลาง) ค่าอิงพิกัด stage 1280×800
 const CLOSED = {
   // ปกตัวอย่างฝั่งขวา: 302×389 กึ่งกลางที่ (1000, 300)
-  hello: { transform: 'translate(790px, 30px) scale(0.72) rotate(2deg)', opacity: 1 }, // ชั้นปก 420×540 หมุนรอบกึ่งกลาง: กึ่งกลางที่ (1000, 300) = ช่องว่าง 302×389 ใน CoverPreview (ข้อ 68)
+  hello: { transform: 'translate(790px, 30px) scale(0.72) rotate(2deg)', opacity: 1 }, // ชั้นปก 420×540 หมุนรอบกึ่งกลาง: กึ่งกลางที่ (1000, 300) = ช่องว่าง 302×389 ใน CoverPreview
   // ปกปิดซ้าย-กลาง 420×540
   cover: { transform: 'translate(162px, 130px) rotate(-2.5deg)', opacity: 1 },
 }
 const CLOSED_HIDDEN = { transform: 'translate(-520px, 130px) rotate(-8deg)', opacity: 0 }
 // ตอนสมุดเปิด ชั้นปกปิดเลื่อนไปทับตำแหน่งหน้าขวาของสมุดเปิด (บ่อนบน CoverFlip) แล้วจางหายให้ปกที่พลิกได้รับช่วงต่อ
-// กล่อง 420×540 → หน้าขวา 506×640 ที่ (682,112): จุดกลาง (935,432) ศูนย์กลางเดิม (210,270) จึงเลื่อน (725,162)
+// กล่อง 420×540 → หน้าขวา 506×640 ที่ (682,112): จุดกลาง (935,432) ศูนย์กลางของกล่องเดิม (210,270) จึงเลื่อน (725,162)
 const CLOSED_OPEN = { transform: `translate(725px, 162px) scale(${506 / 420}, ${640 / 540})`, opacity: 0 }
 
 const OPEN = {
@@ -80,10 +80,10 @@ const openVisible = computed(() => view.value in OPEN)
 // กดได้เฉพาะตอน book/saved (ตอน photo จางลงและโฟกัสอยู่ที่ภาพ)
 const openInteractive = computed(() => view.value === 'book' || view.value === 'saved')
 
-// ---- พลิกปกสมุด 3D (ข้อ 22) ----
-// หน้าแรก → สมุด: ปกปิดเลื่อนไปทับหน้าขวาแล้วพลิก (ระบาย → สมุด และลำดับบันทึก ไม่พลิก ข้อ 42) /
+// ---- พลิกปกสมุด 3D ----
+// หน้าแรก → สมุด: ปกปิดเลื่อนไปทับหน้าขวาแล้วพลิก (ระบาย → สมุด และลำดับบันทึก ไม่พลิก) /
 // สมุด → หน้าแรก: พลิกกลับก่อน แล้วชั้นสมุดเปิดจางหาย ชั้นปกปิดเลื่อนกลับ (transition-delay ตาม closeDelay)
-// reduced-motion: ไม่พลิก ใช้ fade 150ms ตามเดิม
+// reduced-motion: ไม่พลิก ใช้ fade 150ms
 const flipRef = ref(null)
 const bodyRef = ref(null)
 const closing = ref(false)

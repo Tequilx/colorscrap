@@ -1,5 +1,5 @@
-// สลับแอปบน iPad/iPhone (ข้อ 59b): hidden → visible → แตะ → ctx.resume() ถูกเรียกและเพลงเล่นต่อ · resume ไม่ขึ้น/ถูก close → สร้าง context ใหม่ต่อกราฟใหม่แล้วเพลงเล่นต่อ
-// ข้อ 61a: เพลงเป็นสตรีม HTMLAudioElement ต่อผ่าน MediaElementSource: preload ตอนโหลด · play() ในเหตุการณ์แตะแรกแบบซิงก์ · fade in 1.5 วินาที · ซ่อน → pause, กลับมา → play() (ถูกปฏิเสธ = เล่นตอนแตะครั้งถัดไป)
+// สลับแอปบน iPad/iPhone: hidden → visible → แตะ → ctx.resume() ถูกเรียกและเพลงเล่นต่อ · resume ไม่ขึ้น/ถูก close → สร้าง context ใหม่ต่อกราฟใหม่แล้วเพลงเล่นต่อ
+// เพลงเป็นสตรีม HTMLAudioElement ต่อผ่าน MediaElementSource: preload ตอนโหลด · play() ในเหตุการณ์แตะแรกแบบซิงก์ · fade in 1.5 วินาที · ซ่อน → pause, กลับมา → play() (ถูกปฏิเสธ = เล่นตอนแตะครั้งถัดไป)
 import { describe, it, expect, vi, beforeAll } from 'vitest'
 
 const made = []
@@ -142,7 +142,7 @@ describe('สลับแอปแล้วเสียงกลับมา', (
     expect(ctx.state).toBe('running')
     expect(soundMod.audioState.value).toBe('running')
     expect(made).toHaveLength(1) // ไม่สร้าง context ใหม่เมื่อ resume ได้
-    expect(musicSources(ctx)).toHaveLength(1) // เพลงเดิมเล่นต่อ ไม่ซ้อน
+    expect(musicSources(ctx)).toHaveLength(1) // เพลงเล่นต่อ ไม่ซ้อน
     expect(ctx.media).toHaveLength(1)
   })
 
@@ -172,7 +172,7 @@ describe('สลับแอปแล้วเสียงกลับมา', (
     const fresh = made[1]
     expect(fresh.state).toBe('running')
     expect(musicSources(fresh)).toHaveLength(1)
-    expect(fresh.media[0]).not.toBe(old.media[0]) // element ใหม่ (element เดิมต่อ context เก่าไปแล้ว)
+    expect(fresh.media[0]).not.toBe(old.media[0]) // element ใหม่ (element เก่าต่อ context เก่าไปแล้ว)
     expect(old.media[0].paused).toBe(true)
     expect(soundMod.audioState.value).toBe('running')
   })

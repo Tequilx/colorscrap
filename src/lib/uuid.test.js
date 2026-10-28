@@ -1,3 +1,4 @@
+// ทดสอบการสร้าง uuid (lib/uuid.js) ทั้งแบบ crypto.randomUUID และสำรอง
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { uuid } from '@/lib/uuid'
 

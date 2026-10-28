@@ -1,3 +1,4 @@
+// ทดสอบอัลกอริทึมจานสีตาม SPEC §8: สีผสม ชื่อสี ตำแหน่งเส้นเวลา (lib/palette.js)
 import { describe, expect, it } from 'vitest'
 import {
   chunk,

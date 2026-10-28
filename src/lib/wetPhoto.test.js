@@ -1,3 +1,4 @@
+// ทดสอบเส้นโค้งความแรงของภาพเปียก (lib/wetCurve.js)
 import { describe, it, expect } from 'vitest'
 import { WET_MS, WET_PEAK, wetStrength } from './wetCurve'
 
