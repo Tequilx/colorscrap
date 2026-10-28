@@ -76,6 +76,9 @@ push ขึ้น branch ที่ผูกไว้ → Vercel/Netlify build �
 - [ ] เปิด Console/Network: ไม่มีสีแดง ไม่มี 404 ของฟอนต์ เสียง เพลง favicon และไม่มีปุ่มลอยของ Vue DevTools
 - [ ] เสียง: กดการ์ดอารมณ์ได้ยินเสียงน้ำ (ไฟล์ `dip-1.mp3`) · เติมสีสดใสเป็นเสียงระฆังแก้ว
 
+**รอบ merge ที่สอง (ข้อ 58–65):** ไม่มีการแก้ `supabase/schema.sql` / ไม่มี migration — **ไม่ต้องรัน SQL เพิ่ม** (ข้อ 63 อาศัย index `entries_user_date` และ RLS เดิม) · `vercel.json` มี rewrite ไป `index.html` (กันเหนียว แอปใช้ hash ไม่ใช่ history mode) + cache ยาวของ `/assets/*` · ก่อน merge ติด tag `pre-merge-polish-2` ไว้ที่ `main` เดิม (tag `pre-merge-polish` เป็นของ merge รอบแรก)
+- [ ] หลัง deploy: เปิดสมุดที่มีภาพหลายวัน ตรวจแท็บ 4 วัน + แท็บปฏิทิน (จุดสีขึ้นครบ กระโดดวันเก่าได้) และเพลงดังภายในไม่กี่วินาทีหลังแตะ
+
 **ย้อนกลับถ้าเว็บพัง**
 1. เร็วที่สุด (ไม่แตะ git): Vercel → **Deployments** → เลือก deployment ก่อน merge (ที่ Ready ตัวก่อนหน้า) → ⋯ → **Promote to Production** (ใช้ Instant Rollback ได้เช่นกัน)
 2. แก้ที่ git: `git revert -m 1 <merge commit>` บน `main` แล้ว push (สร้าง commit ย้อนใหม่ ไม่ rewrite ประวัติ) · จุดก่อน merge ติด tag `pre-merge-polish` ไว้ที่ `main` เดิม
