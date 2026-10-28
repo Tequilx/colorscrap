@@ -50,8 +50,8 @@ const view = computed(() => app.view)
 
 // translate คือมุมซ้ายบนของกล่องก่อนย่อ (ย่อรอบจุดกลาง) ค่าอิงพิกัด stage 1280×800
 const CLOSED = {
-  // ปกตัวอย่างฝั่งขวา: 340×440 กึ่งกลางที่ (1000, 349)
-  hello: { transform: 'translate(790px, 79px) scale(0.8095) rotate(2deg)', opacity: 1 },
+  // ปกตัวอย่างฝั่งขวา: 302×389 กึ่งกลางที่ (1000, 300)
+  hello: { transform: 'translate(790px, 30px) scale(0.72) rotate(2deg)', opacity: 1 }, // ชั้นปก 420×540 หมุนรอบกึ่งกลาง: กึ่งกลางที่ (1000, 300) = ช่องว่าง 302×389 ใน CoverPreview (ข้อ 68)
   // ปกปิดซ้าย-กลาง 420×540
   cover: { transform: 'translate(162px, 130px) rotate(-2.5deg)', opacity: 1 },
 }
