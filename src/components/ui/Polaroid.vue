@@ -5,7 +5,7 @@
     <!-- ช่องภาพสัดส่วนเท่ากระดาษวาด 1112:612 ภาพจริงจึงไม่ถูกตัดขอบ (178×~98) -->
     <div data-wet-target class="aspect-[1112/612] w-[178px] overflow-hidden bg-paper">
       <!-- ภาพจริงของผู้ใช้: สัดส่วนเดียวกับช่อง -->
-      <img v-if="src" :src="src" :alt="alt" draggable="false" class="block h-full w-full object-cover" />
+      <RevealImg v-if="src" :src="src" :alt="alt" cls="block h-full w-full object-cover" />
       <slot v-else>
         <!-- ค่าเริ่มต้น: หยดสีน้ำสองก้อนจากสีที่ส่งมา -->
         <svg class="block h-full w-full" viewBox="0 0 170 94" role="img" :aria-label="alt">
@@ -34,6 +34,7 @@
 import { computed } from 'vue'
 import PolaroidFrame from '@/components/ui/PolaroidFrame.vue'
 import Tape from '@/components/ui/Tape.vue'
+import RevealImg from '@/components/ui/RevealImg.vue'
 import ColorStrip from '@/components/ui/ColorStrip.vue'
 import { BLOB_PATHS } from '@/lib/doodles'
 

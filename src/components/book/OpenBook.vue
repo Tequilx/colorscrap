@@ -47,7 +47,8 @@
       <div ref="turnFade" class="absolute inset-0">
         <div ref="turnBoard" class="absolute inset-0" :style="{ transformOrigin: turnSide === 'right' ? '0 50%' : '100% 50%', transformStyle: 'preserve-3d' }">
           <div ref="turnFront" class="turn-snap absolute inset-0 overflow-hidden bg-paper [backface-visibility:hidden]"></div>
-          <div class="absolute inset-0 bg-paper [backface-visibility:hidden]" style="transform: rotateY(180deg)"></div>
+          <!-- หลังแผ่น = สำเนาหน้าใหม่ที่แผ่นจะไปลง (ข้อ 62) พลิกไปพร้อมแผ่น ตอนลงถึงหน้าจริงเหมือนกันทุกพิกเซล ไม่มีของโผล่ -->
+          <div ref="turnBack" class="turn-snap absolute inset-0 overflow-hidden bg-paper [backface-visibility:hidden]" style="transform: rotateY(180deg)"></div>
         </div>
       </div>
     </div>
@@ -66,11 +67,15 @@ import { parseLocalDate, thaiDateShort } from '@/lib/dates'
 import { MOTION } from '@/lib/tokens'
 import { TIME_SCALE, reducedMotion } from '@/lib/motion'
 import { sound } from '@/lib/sound'
+import { getDayCrop } from '@/lib/dayCrop'
+import { useImageUrlsStore } from '@/stores/imageUrls'
+import { warmEntries, within } from '@/lib/warmImages'
 
 defineProps({ mode: { type: String, default: 'book' } })
 
 const app = useAppStore()
 const entries = useEntriesStore()
+const imageUrls = useImageUrlsStore()
 
 const date = computed(() => app.openDate)
 const entriesOfDay = computed(() => (date.value ? entries.entriesOfDay(date.value) : []))
@@ -96,15 +101,19 @@ const turnEl = ref(null)
 const turnBoard = ref(null)
 const turnFade = ref(null)
 const turnFront = ref(null)
+const turnBack = ref(null)
 const turnShadow = ref(null)
 const turnUnder = ref(null)
 const turnSide = ref('right') // ด้านที่แผ่นเริ่มอยู่
 let turnAnims = []
+let currentTurn = 0 // รหัสการพลิกล่าสุด: พลิกใหม่ซ้อนระหว่างรอ → อันเก่าเลิก
+const FLIP_WAIT_MS = 150 // รอหน้าปลายทางพร้อมได้ไม่เกินเท่านี้ก่อนเริ่มพลิก
 const stopTurn = () => {
   turnAnims.forEach((a) => a.cancel())
   turnAnims = []
   if (turnEl.value) turnEl.value.style.visibility = ''
   if (turnUnder.value) turnUnder.value.style.visibility = ''
+  turnBack.value?.replaceChildren()
   turnFront.value?.replaceChildren() // ทิ้งสำเนา (มี data-entry-id ซ้ำกับของจริง ต้องไม่ค้างใน DOM)
   turnUnder.value?.replaceChildren()
   ;[leftWrap.value, rightWrap.value].forEach((w) => w && (w.style.removeProperty('--hide'), w.firstElementChild && (w.firstElementChild.style.opacity = '')))
@@ -143,8 +152,25 @@ watch(
     turnEl.value.style.visibility = 'visible'
     landing.style.opacity = '0' // หน้าที่แผ่นจะไปลง ซ่อนไว้จนแผ่นลงถึง
     app.leafFlipping = true
-    sound.flip() // พลิกหน้า (ไฟล์ page)
+    // ข้อ 62: แผ่นหยุดอยู่ที่เดิมคลุมหน้าเก่า (ภาพเหมือนก่อนกด) รอให้หน้าปลายทางพร้อมก่อน: ภาพย่อ + ชิ้นสีของวัน (ถ้ายังไม่เคยอุ่น) + decode รูปที่ render แล้ว รวมกันไม่เกิน FLIP_WAIT_MS ไม่ทันก็เริ่มพลิกเลย
+    const turnId = ++currentTurn
+    const t0 = performance.now()
+    const left = () => FLIP_WAIT_MS - (performance.now() - t0)
+    const leafNow = leaves.value[app.leafIndex] ?? []
+    await within(Promise.all([warmEntries(leafNow, imageUrls), getDayCrop(entriesOfDay.value)]), left())
     await nextTick()
+    await nextTick() // ชิ้นสีของวันที่เพิ่งเสร็จ render ลงหน้า
+    if (turnId !== currentTurn) return
+    const shown = [...landing.querySelectorAll('img'), ...from.querySelectorAll('img')]
+    await within(Promise.all(shown.map((i) => i.decode?.().catch(() => {}))), left())
+    if (turnId !== currentTurn) return
+    // หลังแผ่น: สำเนาหน้าใหม่ (หน้าจริงยังซ่อนอยู่ ตัด opacity ที่ซ่อนออกจากสำเนา) ไม่ตัดเงาสัน เพื่อให้ตอนลงเหมือนหน้าจริง
+    const back = snapshot(landing)
+    back.style.opacity = ''
+    back.style.left = '0px'
+    back.style.top = '0px'
+    turnBack.value.replaceChildren(back)
+    sound.flip() // พลิกหน้า (ไฟล์ page)
     const T = MOTION.flip.turn * TIME_SCALE
     const opts = { duration: T, fill: 'both' }
     const end = next ? -180 : 180
@@ -160,6 +186,25 @@ watch(
     if (turnAnims.length && turnAnims.every((a) => a.playState === 'finished')) stopTurn()
   },
   { flush: 'pre' },
+)
+
+// อุ่นภาพของวันก่อนหน้า/ถัดไปไว้ล่วงหน้า 1 วัน (แผ่นที่จะเห็นตอนเปิดวันนั้น = แผ่นล่าสุด) หลังหน้านิ่งแล้ว 300 ms ใช้ URL เดียวกับ <img> จริง ไม่เพิ่มคำขอ
+let warmTimer = 0
+watch(
+  [date, prevDate, nextDate, () => entries.entries.length],
+  () => {
+    clearTimeout(warmTimer)
+    warmTimer = setTimeout(() => {
+      for (const d of [prevDate.value, nextDate.value]) {
+        if (!d) continue
+        const day = entries.entriesOfDay(d)
+        const leaf = chunk(day, PHOTOS_PER_LEAF).at(-1) ?? []
+        // ภาพย่อก่อน แล้วชิ้นสีของวัน (ใช้ภาพย่อที่อุ่นแล้ว + ภาพเต็มของภาพที่ชนะ 1 ภาพ ซึ่งต้องโหลดอยู่ดีเมื่อเปิดวันนั้น)
+        warmEntries(leaf, imageUrls).then(() => getDayCrop(day))
+      }
+    }, 300)
+  },
+  { immediate: true },
 )
 </script>
 
