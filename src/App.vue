@@ -19,7 +19,6 @@
         <div v-if="app.view === 'hello'" class="absolute inset-0">
           <HelloSheet />
           <CoverPreview />
-          <AccountActions v-if="app.helloEditing && !USE_MOCK" />
         </div>
       </Transition>
       <Transition name="fade">
@@ -59,8 +58,6 @@ import { installCursors } from '@/lib/cursors'
 import { attachMusic } from '@/lib/music'
 import LoginCard from '@/components/auth/LoginCard.vue'
 import HelloSheet from '@/components/hello/HelloSheet.vue'
-import AccountActions from '@/components/hello/AccountActions.vue'
-import { USE_MOCK } from '@/lib/supabase'
 import CoverPreview from '@/components/hello/CoverPreview.vue'
 import CoverIntro from '@/components/cover/CoverIntro.vue'
 import DrawingBoard from '@/components/paint/DrawingBoard.vue'

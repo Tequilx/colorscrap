@@ -1,12 +1,13 @@
 <template>
-  <!-- บัญชีของฉัน: ออกจากระบบ และลบข้อมูลทั้งหมด (เฉพาะโหมดแก้ไขในหน้า hello ที่ต่อ Supabase จริง) ห่างขอบล่างของโต๊ะ ≥ 48px + safe-area (ข้อ 53b) -->
-  <div class="absolute bottom-[calc(48px+env(safe-area-inset-bottom))] left-[790px] flex w-[420px] flex-col items-center gap-2">
-    <span class="text-13 text-ink-soft">{{ auth.user?.email }}</span>
+  <!-- บัญชีของฉัน: ออกจากระบบ และลบข้อมูลทั้งหมด (เฉพาะโหมดแก้ไขในหน้า hello ที่ต่อ Supabase จริง) ข้อ 68: อยู่ใน flow ท้ายคอลัมน์ขวาของ CoverPreview (ไม่ตรึง absolute) เป็นส่วนรอง: เส้นคั่นจางด้านบน อีเมลห่างปุ่ม 10px -->
+  <div class="flex w-full flex-col items-center gap-2.5 border-t border-dashed border-faint pt-3">
+    <span class="max-w-full truncate text-13 text-ink-soft">{{ auth.user?.email }}</span>
     <div class="flex items-center gap-3">
       <HandButton variant="secondary" :disabled="busy" @click="onSignOut">{{ confirming === 'out' ? 'กดอีกครั้งเพื่อออก' : 'ออกจากระบบ' }}</HandButton>
       <HandButton variant="chip" :disabled="busy" class="!text-e-angry" @click="onDelete">{{ confirming === 'delete' ? 'กดอีกครั้งเพื่อลบ' : 'ลบข้อมูลทั้งหมด' }}</HandButton>
     </div>
-    <span v-if="confirming" role="status" class="text-13 text-ink-soft">{{ confirming === 'out' ? 'มีภาพบนผ้าใบที่ยังไม่ได้บันทึก' : 'ภาพและข้อมูลทั้งหมดจะหายไป กู้คืนไม่ได้' }}</span>
+    <!-- ข้อความยืนยันกินที่ไว้เสมอ (min-h) ไม่ให้กลุ่มบัญชีกระโดดตอนกดครั้งแรก -->
+    <span role="status" class="min-h-[20px] text-13 text-ink-soft">{{ confirming ? (confirming === 'out' ? 'มีภาพบนผ้าใบที่ยังไม่ได้บันทึก' : 'ภาพและข้อมูลทั้งหมดจะหายไป กู้คืนไม่ได้') : '' }}</span>
   </div>
 </template>
 
