@@ -129,6 +129,7 @@ const subtitle = computed(() => {
 .leaf-fwd-enter-active .leaf-sheet,
 .leaf-back-leave-active .leaf-sheet {
   transform-origin: top;
+  -webkit-backface-visibility: hidden;
   backface-visibility: hidden;
   will-change: transform, opacity;
   transition:

@@ -46,10 +46,11 @@
     <div ref="turnEl" class="pointer-events-none invisible absolute top-[14px] z-[31] h-[612px] w-[492px]" inert :class="turnSide === 'right' ? 'left-[506px]' : 'left-[14px]'" aria-hidden="true">
       <div ref="turnShadow" class="absolute inset-0 opacity-0" :style="{ background: turnSide === 'right' ? 'linear-gradient(to left, rgba(45,43,51,.5), rgba(45,43,51,0) 70%)' : 'linear-gradient(to right, rgba(45,43,51,.5), rgba(45,43,51,0) 70%)' }"></div>
       <div ref="turnFade" class="absolute inset-0">
-        <div ref="turnBoard" class="absolute inset-0" :style="{ transformOrigin: turnSide === 'right' ? '0 50%' : '100% 50%', transformStyle: 'preserve-3d' }">
-          <div ref="turnFront" class="turn-snap absolute inset-0 overflow-hidden bg-paper [backface-visibility:hidden]"></div>
-          <!-- หลังแผ่น = สำเนาหน้าใหม่ที่แผ่นจะไปลง พลิกไปพร้อมแผ่น ตอนลงถึงหน้าจริงเหมือนกันทุกพิกเซล ไม่มีของโผล่ -->
-          <div ref="turnBack" class="turn-snap absolute inset-0 overflow-hidden bg-paper [backface-visibility:hidden]" style="transform: rotateY(180deg)"></div>
+        <!-- WebKit (Safari, Chrome บน iPad): ต้องมี -webkit- ทั้ง transform-style และ backface-visibility และสลับ visibility ของสองด้านตอนแผ่นหมุนถึง 90° ด้วย (ดู watcher) เพราะ backface-visibility อย่างเดียวไม่พอเมื่อลูกมี layer ของตัวเอง -->
+        <div ref="turnBoard" class="absolute inset-0" style="-webkit-transform-style: preserve-3d" :style="{ transformOrigin: turnSide === 'right' ? '0 50%' : '100% 50%', transformStyle: 'preserve-3d' }">
+          <div ref="turnFront" class="turn-snap absolute inset-0 overflow-hidden bg-paper [backface-visibility:hidden] [-webkit-backface-visibility:hidden]"></div>
+          <!-- หลังแผ่น: FLIP_BACK_CONTENT = true ใส่สำเนาหน้าใหม่ที่แผ่นจะไปลง (พลิกไปพร้อมแผ่น) · false = กระดาษเปล่า -->
+          <div ref="turnBack" class="turn-snap absolute inset-0 overflow-hidden bg-paper [backface-visibility:hidden] [-webkit-backface-visibility:hidden]" style="transform: rotateY(180deg)"></div>
         </div>
       </div>
     </div>
@@ -70,6 +71,7 @@ import { TAB_COUNT, slideStart } from '@/lib/dayTabs'
 import { MOTION } from '@/lib/tokens'
 import { TIME_SCALE, reducedMotion } from '@/lib/motion'
 import { sound } from '@/lib/sound'
+import { easingCss, timeAtProgress } from '@/lib/flipTiming'
 import { getDayCrop } from '@/lib/dayCrop'
 import { useImageUrlsStore } from '@/stores/imageUrls'
 import { warmEntries, within } from '@/lib/warmImages'
@@ -130,6 +132,9 @@ let turnAnims = []
 let refreshTimer = 0
 let currentTurn = 0 // รหัสการพลิกล่าสุด: พลิกใหม่ซ้อนระหว่างรอ → อันเก่าเลิก
 const FLIP_WAIT_MS = 150 // รอหน้าปลายทางพร้อมได้ไม่เกินเท่านี้ก่อนเริ่มพลิก
+// หลังแผ่นแสดงสำเนาหน้าใหม่ไหม: true = เห็นหน้าใหม่พลิกมาพร้อมแผ่น · false = กระดาษเปล่า แล้วหน้าใหม่ขึ้นทันทีตอนแผ่นลงถึง (ไม่เฟด)
+// WebKit (iPad Safari/Chrome) เคยเห็นตัวหนังสือกลับด้านทะลุตั้งแต่เริ่มพลิก ตอนนี้ซ่อนแต่ละด้านด้วย visibility ตามมุมแล้ว แต่ยังไม่ได้ยืนยันบนไอแพดจริง จึงตั้ง false ไว้ก่อน เมื่อทดสอบบนไอแพดผ่านแล้วค่อยเปลี่ยนเป็น true
+const FLIP_BACK_CONTENT = false
 const stopTurn = () => {
   clearTimeout(refreshTimer)
   turnAnims.forEach((a) => a.cancel())
@@ -195,18 +200,23 @@ watch(
       back.style.top = '0px'
       turnBack.value?.replaceChildren(back)
     }
-    fillBack()
+    if (FLIP_BACK_CONTENT) fillBack()
     sound.flip() // พลิกหน้า (ไฟล์ page)
     const T = MOTION.flip.turn * TIME_SCALE
     // ของที่มาถึงหน้าจริงระหว่างพลิก (เช่น ชิ้นสีของวัน) ต้องอยู่ในสำเนาด้วย ไม่งั้นตอนเอาแผ่นออกจะโผล่ทีเดียว: ถ่ายสำเนาใหม่ก่อนสลับที่ 88% เล็กน้อย
-    refreshTimer = setTimeout(() => turnId === currentTurn && fillBack(), T * 0.84)
+    if (FLIP_BACK_CONTENT) refreshTimer = setTimeout(() => turnId === currentTurn && fillBack(), T * 0.84)
     const opts = { duration: T, fill: 'both' }
     const end = next ? -180 : 180
     // ตอนแผ่นลงถึงห้ามมีเลเยอร์ไหนโปร่งใสบางส่วนพร้อมกัน (เฟดซ้อนกันทำให้ความทึบรวมตกจนเห็นปกแดงทะลุเป็นสีชมพูจาง ๆ แล้วกระโดดกลับ)
     // จึงสลับแบบทันที (step) ที่ 88% ขณะแผ่นเกือบแบนและยังทึบเต็มที่: หน้าจริงขึ้นเป็น 1 ใต้แผ่น + สำเนาหน้าเก่าใต้แผ่นหายไป แผ่น (หลัง = สำเนาหน้าใหม่ เหมือนหน้าจริงทุกพิกเซล) อยู่ทึบจนจบ
     const step = (from, to) => [{ opacity: from, offset: 0 }, { opacity: from, offset: 0.88 }, { opacity: to, offset: 0.8801 }, { opacity: to, offset: 1 }]
+    // ซ่อนด้านที่หันหลังให้เราเองตามมุม (แทนการพึ่ง backface-visibility อย่างเดียว): ช่วง 0–90° เห็นด้านหน้า ช่วง 90–180° เห็นด้านหลัง สลับตรงที่แผ่นตั้งฉาก (มุม 90° จากเวลาตาม easing)
+    const half = timeAtProgress(0.5)
+    const side = (first) => [{ visibility: first, offset: 0 }, { visibility: first, offset: half }, { visibility: first === 'visible' ? 'hidden' : 'visible', offset: half + 0.0001 }, { visibility: first === 'visible' ? 'hidden' : 'visible', offset: 1 }]
     turnAnims = [
-      turnBoard.value.animate([{ transform: rot(0), easing: 'cubic-bezier(0.45, 0, 0.25, 1)' }, { transform: rot(end) }], opts),
+      turnBoard.value.animate([{ transform: rot(0), easing: easingCss() }, { transform: rot(end) }], opts),
+      turnFront.value.animate(side('visible'), opts),
+      turnBack.value.animate(side('hidden'), opts),
       turnShadow.value.animate([{ opacity: 0, offset: 0 }, { opacity: 0.45, offset: 0.5 }, { opacity: 0, offset: 1 }], opts),
       turnUnder.value.animate(step(1, 0), opts),
       landing.animate(step(0, 1), opts),
@@ -252,5 +262,8 @@ watch(
 .turn-snap * {
   animation: none !important;
   transition: none !important;
+  /* ลูกที่มี layer ของตัวเอง (โพลารอยด์ที่เอียง ฟิลเตอร์) ใน WebKit ไม่ตามค่า backface-visibility ของแม่ จึงตั้งซ้ำที่ลูก */
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
 }
 </style>

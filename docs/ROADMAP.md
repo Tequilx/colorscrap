@@ -260,3 +260,7 @@
 # ข้อ 71 — เอกสารอธิบายทั้งโปรเจกต์
 
 - [x] 71. เขียน `docs/PROJECT-GUIDE.md` (10 หัวข้อ: ภาพรวม, เส้นทางผู้ใช้ทีละหน้า, แผนผัง Mermaid 3 ภาพ, ระบบหลักเชิงลึก, แผนที่ไฟล์ทุกไฟล์ใน `src/`, ตารางจุดปรับแต่ง, เทคโนโลยี/ไลเซนส์, ความปลอดภัย, การรัน/deploy, ข้อจำกัด) ตรวจข้อมูลกับโค้ดและ `package.json`/`node_modules` จริง จุดที่ยืนยันไม่ได้ติด "(ต้องยืนยัน)" (เพลงประกอบ, เสียงจากไฟล์ Pixabay, ไลเซนส์ Playwright/ffmpeg) · รวม `PROJECT-OVERVIEW.md` และ `FILE-GUIDE.md` เข้ามา แล้วให้สองไฟล์เดิมเหลือแต่ลิงก์ชี้ · ตรวจลิงก์ 274 รายการและ render Mermaid ผ่าน (mermaid 11 ใน Chromium)
+
+# ข้อ 73 — ตัวหนังสือกลับด้านบนแผ่นพลิก (WebKit)
+
+- [x] 73. ตรวจ: แผ่นหน้า/หลังมีเฉพาะ `backface-visibility` ไม่มี `-webkit-`, board ไม่มี `-webkit-transform-style`, ลูกในแผ่น (โพลารอยด์เอียง ฟิลเตอร์) มี layer ของตัวเอง ซึ่ง WebKit ไม่ตามค่าของแม่ → ด้านหลังแผ่น (สำเนาหน้าใหม่) ทะลุ · แก้: ใส่ `-webkit-` ครบ (OpenBook, CoverFlip, PhotoPage), `.turn-snap *` ตั้ง backface-visibility ซ้ำที่ลูก, สลับ `visibility` ของสองด้านด้วย WAAPI ที่ 90° พอดี (`lib/flipTiming.js`) · `FLIP_BACK_CONTENT = false` (หลังแผ่นกระดาษเปล่า) เป็นค่าตั้งต้นจนกว่าจะยืนยันบนไอแพด · ทิศทาง/เวลาการพลิกไม่เปลี่ยน · ทดสอบ Chromium ทุก 30° ทั้งสองทิศและทั้งสองโหมด (`scripts/record-flip-angles.mjs`) · WebKit ของ Playwright เปิดหน้าไม่ได้ (ล้มที่ `newPage`) จึงยังไม่ได้ตรวจบน WebKit
