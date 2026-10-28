@@ -1,7 +1,8 @@
 <template>
   <!-- สมุดเปิดเต็มเล่ม 1012×640 (SPEC §5.5) ใช้ทั้งหน้า book และหน้า saved (saved แค่ซูมที่หน้าซ้าย) -->
   <div class="relative h-[640px] w-[1012px]">
-    <DateTabs v-if="mode === 'book'" :tabs="tabs" :current="date" @pick="app.turnToDay($event)" />
+    <DateTabs v-if="mode === 'book'" :tabs="tabs" :current="date" :calendar-open="calOpen" @pick="app.turnToDay($event)" @calendar="calOpen = !calOpen" />
+    <CalendarPanel v-if="mode === 'book'" :open="calOpen" :current="date" :dates="entries.dates" :hex-of="entries.dayHex" :today="todayStr" @pick="pickFromCalendar" @close="closeCalendar" />
 
     <!-- ปกสมุดเป็นขอบรอบหน้ากว้าง 14px -->
     <div class="absolute inset-0 rounded-xl bg-cover shadow-[0_24px_48px_rgba(45,43,51,0.28)]"></div>
@@ -58,12 +59,14 @@
 <script setup>
 import { computed, nextTick, ref, watch } from 'vue'
 import DateTabs from '@/components/book/DateTabs.vue'
+import CalendarPanel from '@/components/book/CalendarPanel.vue'
 import PhotoPage from '@/components/book/PhotoPage.vue'
 import DailyPalette from '@/components/book/DailyPalette.vue'
 import { useAppStore, PHOTOS_PER_LEAF } from '@/stores/app'
 import { useEntriesStore } from '@/stores/entries'
-import { chunk, dominantColorOfDay } from '@/lib/palette'
-import { parseLocalDate, thaiDateShort } from '@/lib/dates'
+import { chunk } from '@/lib/palette'
+import { localDateStr, parseLocalDate, thaiDateShort } from '@/lib/dates'
+import { TAB_COUNT, slideStart } from '@/lib/dayTabs'
 import { MOTION } from '@/lib/tokens'
 import { TIME_SCALE, reducedMotion } from '@/lib/motion'
 import { sound } from '@/lib/sound'
@@ -85,12 +88,30 @@ const idx = computed(() => entries.dates.indexOf(date.value))
 const prevDate = computed(() => (idx.value > 0 ? entries.dates[idx.value - 1] : null))
 const nextDate = computed(() => (idx.value >= 0 && idx.value < entries.dates.length - 1 ? entries.dates[idx.value + 1] : null))
 
-// แท็บ 4 วัน (เก่า → ใหม่) ที่ครอบคลุมวันที่เปิดอยู่
-const tabs = computed(() => {
-  const all = entries.dates
-  const window = idx.value >= all.length - 4 || idx.value < 0 ? all.slice(-4) : all.slice(idx.value, idx.value + 4)
-  return window.map((d) => ({ date: d, hex: dominantColorOfDay(entries.entriesOfDay(d)), label: thaiDateShort(parseLocalDate(d)) }))
-})
+// แท็บ 4 วัน (เก่า → ใหม่) เป็นหน้าต่างเลื่อนรอบวันที่เปิดอยู่ นับเฉพาะวันที่มีภาพ (lib/dayTabs.js) หน้าต่างไม่ขยับถ้าวันที่เปิดยังอยู่ในนั้น
+const tabStart = ref(null)
+watch(
+  [date, () => entries.dates.length],
+  () => (tabStart.value = slideStart(entries.dates, date.value, tabStart.value)),
+  { immediate: true },
+)
+const tabs = computed(() => entries.dates.slice(tabStart.value ?? 0, (tabStart.value ?? 0) + TAB_COUNT).map((d) => ({ date: d, hex: entries.dayHex(d), label: thaiDateShort(parseLocalDate(d)) })))
+
+// ปฏิทิน (แท็บท้ายสุด): กดวัน = ปิดแล้วพลิกไปวันนั้นครั้งเดียว ปิดแล้วคืนโฟกัสให้แท็บปฏิทิน (ยกเว้นเลือกวัน)
+const calOpen = ref(false)
+const todayStr = localDateStr()
+const closeCalendar = () => {
+  calOpen.value = false
+  nextTick(() => document.querySelector('[data-cal-tab]')?.focus())
+}
+const pickFromCalendar = (d) => {
+  calOpen.value = false
+  app.turnToDay(d)
+}
+watch(
+  () => app.view,
+  () => (calOpen.value = false),
+)
 
 // ---- พลิกหน้าหนังสือตอนเปลี่ยนวัน (ข้อ 38) ----
 // next (วันใหม่กว่า): หน้าขวายกขึ้นแล้วพลิกไปทางซ้ายรอบสันกลาง ไปลงบนหน้าซ้าย · prev (วันเก่ากว่า): หน้าซ้ายยกขึ้นแล้วพลิกกลับไปทางขวา ไปลงบนหน้าขวา
@@ -197,10 +218,15 @@ watch(
     warmTimer = setTimeout(() => {
       for (const d of [prevDate.value, nextDate.value]) {
         if (!d) continue
-        const day = entries.entriesOfDay(d)
-        const leaf = chunk(day, PHOTOS_PER_LEAF).at(-1) ?? []
-        // ภาพย่อก่อน แล้วชิ้นสีของวัน (ใช้ภาพย่อที่อุ่นแล้ว + ภาพเต็มของภาพที่ชนะ 1 ภาพ ซึ่งต้องโหลดอยู่ดีเมื่อเปิดวันนั้น)
-        warmEntries(leaf, imageUrls).then(() => getDayCrop(day))
+        // ข้อ 63: ดึงรายละเอียดของวันข้างเคียง (ถ้ายังไม่มี) → ภาพย่อ → แล้วชิ้นสีของวัน (ใช้ภาพย่อที่อุ่นแล้ว + ภาพเต็มของภาพที่ชนะ 1 ภาพ ซึ่งต้องโหลดอยู่ดีเมื่อเปิดวันนั้น)
+        entries
+          .ensureDay(d)
+          .then(() => {
+            const day = entries.entriesOfDay(d)
+            const leaf = chunk(day, PHOTOS_PER_LEAF).at(-1) ?? []
+            return warmEntries(leaf, imageUrls).then(() => getDayCrop(day))
+          })
+          .catch(() => {}) // วันข้างเคียงโหลดไม่ได้ตอนนี้ไม่เป็นไร จะโหลดใหม่ตอนเปิดวันนั้น
       }
     }, 300)
   },
