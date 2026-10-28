@@ -49,7 +49,7 @@
         <!-- WebKit (Safari, Chrome บน iPad): ต้องมี -webkit- ทั้ง transform-style และ backface-visibility และสลับ visibility ของสองด้านตอนแผ่นหมุนถึง 90° ด้วย (ดู watcher) เพราะ backface-visibility อย่างเดียวไม่พอเมื่อลูกมี layer ของตัวเอง -->
         <div ref="turnBoard" class="absolute inset-0" style="-webkit-transform-style: preserve-3d" :style="{ transformOrigin: turnSide === 'right' ? '0 50%' : '100% 50%', transformStyle: 'preserve-3d' }">
           <div ref="turnFront" class="turn-snap absolute inset-0 overflow-hidden bg-paper [backface-visibility:hidden] [-webkit-backface-visibility:hidden]"></div>
-          <!-- หลังแผ่น: FLIP_BACK_CONTENT = true ใส่สำเนาหน้าใหม่ที่แผ่นจะไปลง (พลิกไปพร้อมแผ่น) · false = กระดาษเปล่า -->
+          <!-- หลังแผ่น: กระดาษทึบเสมอ + (โหมด copy/fade) สำเนาหน้าใหม่ที่แผ่นจะไปลง ดู FLIP_BACK_MODE -->
           <div ref="turnBack" class="turn-snap absolute inset-0 overflow-hidden bg-paper [backface-visibility:hidden] [-webkit-backface-visibility:hidden]" style="transform: rotateY(180deg)"></div>
         </div>
       </div>
@@ -132,9 +132,14 @@ let turnAnims = []
 let refreshTimer = 0
 let currentTurn = 0 // รหัสการพลิกล่าสุด: พลิกใหม่ซ้อนระหว่างรอ → อันเก่าเลิก
 const FLIP_WAIT_MS = 150 // รอหน้าปลายทางพร้อมได้ไม่เกินเท่านี้ก่อนเริ่มพลิก
-// หลังแผ่นแสดงสำเนาหน้าใหม่ไหม: true = เห็นหน้าใหม่พลิกมาพร้อมแผ่น · false = กระดาษเปล่า แล้วหน้าใหม่ขึ้นทันทีตอนแผ่นลงถึง (ไม่เฟด)
-// WebKit (iPad Safari/Chrome) เคยเห็นตัวหนังสือกลับด้านทะลุตั้งแต่เริ่มพลิก ตอนนี้ซ่อนแต่ละด้านด้วย visibility ตามมุมแล้ว แต่ยังไม่ได้ยืนยันบนไอแพดจริง จึงตั้ง false ไว้ก่อน เมื่อทดสอบบนไอแพดผ่านแล้วค่อยเปลี่ยนเป็น true
-const FLIP_BACK_CONTENT = false
+// หลังแผ่นที่พลิกแสดงอะไร (กระดาษหลังแผ่นทึบ 100% ทุกโหมด ไม่โปร่งใสเด็ดขาด ไม่งั้นเห็นปกแดงทะลุ):
+//  'blank' = กระดาษเปล่า แล้วหน้าใหม่ขึ้นทันทีตอนแผ่นลงถึง (ไม่เฟด) · ปลอดภัยที่สุดแต่รู้สึกแข็ง
+//  'copy'  = สำเนาหน้าใหม่ทึบเต็มที่ตั้งแต่แผ่นหมุนพ้น 90°
+//  'fade'  = สำเนาหน้าใหม่ค่อย ๆ ชัด (opacity 0→1) ตอนแผ่นหมุน FADE_FROM_DEG→FADE_TO_DEG องศา เฉพาะชั้นเนื้อหา กระดาษข้างใต้ทึบตลอด
+// ทุกโหมดซ่อนแต่ละด้านของแผ่นด้วย visibility ตามมุมอยู่แล้ว (กันตัวหนังสือกลับด้านบน WebKit) · ลดการเคลื่อนไหวไม่พลิกจึงไม่เกี่ยว
+const FLIP_BACK_MODE = 'fade'
+const FADE_FROM_DEG = 110 // มุมที่เริ่มชัด (องศาจาก 180)
+const FADE_TO_DEG = 170 // มุมที่ชัดเต็มที่
 const stopTurn = () => {
   clearTimeout(refreshTimer)
   turnAnims.forEach((a) => a.cancel())
@@ -200,11 +205,13 @@ watch(
       back.style.top = '0px'
       turnBack.value?.replaceChildren(back)
     }
-    if (FLIP_BACK_CONTENT) fillBack()
+    if (FLIP_BACK_MODE !== 'blank') fillBack()
     sound.flip() // พลิกหน้า (ไฟล์ page)
     const T = MOTION.flip.turn * TIME_SCALE
     // ของที่มาถึงหน้าจริงระหว่างพลิก (เช่น ชิ้นสีของวัน) ต้องอยู่ในสำเนาด้วย ไม่งั้นตอนเอาแผ่นออกจะโผล่ทีเดียว: ถ่ายสำเนาใหม่ก่อนสลับที่ 88% เล็กน้อย
-    if (FLIP_BACK_CONTENT) refreshTimer = setTimeout(() => turnId === currentTurn && fillBack(), T * 0.84)
+    // โหมด fade: ถ่ายสำเนาใหม่หลังเฟดจบเท่านั้น (สำเนาใหม่ทึบเต็มที่ ไม่มีกระโดด)
+    const fadeEnd = timeAtProgress(FADE_TO_DEG / 180)
+    if (FLIP_BACK_MODE !== 'blank') refreshTimer = setTimeout(() => turnId === currentTurn && fillBack(), T * Math.max(0.84, fadeEnd + 0.03))
     const opts = { duration: T, fill: 'both' }
     const end = next ? -180 : 180
     // ตอนแผ่นลงถึงห้ามมีเลเยอร์ไหนโปร่งใสบางส่วนพร้อมกัน (เฟดซ้อนกันทำให้ความทึบรวมตกจนเห็นปกแดงทะลุเป็นสีชมพูจาง ๆ แล้วกระโดดกลับ)
@@ -217,6 +224,9 @@ watch(
       turnBoard.value.animate([{ transform: rot(0), easing: easingCss() }, { transform: rot(end) }], opts),
       turnFront.value.animate(side('visible'), opts),
       turnBack.value.animate(side('hidden'), opts),
+      ...(FLIP_BACK_MODE === 'fade' && turnBack.value.firstElementChild
+        ? [turnBack.value.firstElementChild.animate([{ opacity: 0, offset: 0 }, { opacity: 0, offset: timeAtProgress(FADE_FROM_DEG / 180) }, { opacity: 1, offset: fadeEnd }, { opacity: 1, offset: 1 }], opts)]
+        : []),
       turnShadow.value.animate([{ opacity: 0, offset: 0 }, { opacity: 0.45, offset: 0.5 }, { opacity: 0, offset: 1 }], opts),
       turnUnder.value.animate(step(1, 0), opts),
       landing.animate(step(0, 1), opts),
