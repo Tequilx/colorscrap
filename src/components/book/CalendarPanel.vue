@@ -2,7 +2,7 @@
   <!-- ปฏิทินเดือนเล็กแบบกระดาษแปะบนหน้าขวา (ข้อ 63): เลือกวันที่มีภาพแล้วพลิกไปวันนั้น -->
   <Teleport to="body" :disabled="!small">
   <Transition name="cal">
-    <div v-if="open" ref="panel" role="dialog" aria-label="ปฏิทินเลือกวัน" class="absolute top-[20px] z-[40] box-border w-[380px] rounded-[6px] border border-edge bg-card px-[18px] pb-4 pt-6 shadow-card" :style="placement" @keydown="onPanelKey">
+    <div v-if="open" ref="panel" role="dialog" aria-label="ปฏิทินเลือกวัน จุดสีคือสีเด่นของวันนั้น วันที่ไม่มีภาพกดไม่ได้" class="absolute top-[20px] z-[40] box-border w-[380px] rounded-[6px] border border-edge bg-card px-[18px] pb-3 pt-6 shadow-card" :style="placement" @keydown="onPanelKey">
       <Tape class="left-[150px] top-[-11px]" :rotate="-2" />
 
       <div class="flex items-center gap-1">
@@ -36,7 +36,6 @@
           </template>
         </div>
       </div>
-      <p class="m-0 mt-2 text-13 leading-thai text-ink-soft">จุดสี = สีเด่นของวันนั้น · วันที่ไม่มีภาพกดไม่ได้</p>
     </div>
   </Transition>
   </Teleport>

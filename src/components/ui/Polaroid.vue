@@ -20,10 +20,12 @@
     <!-- แถบสีที่ดูดได้จากภาพ ใต้ตัวภาพ เหนือคำบรรยาย -->
     <ColorStrip v-if="palette.length" :colors="palette" class="mt-1.5" />
     <!-- คำบรรยาย 16px (ข้อ 52e แทนข้อ 51a; การ์ดดาวน์โหลดใช้ขนาดของตัวเอง) ยาวมี "→" ตัดสองบรรทัดที่ลูกศร ขอบล่างขยายตามให้ไม่แน่น -->
-    <figcaption class="absolute inset-x-3 bottom-2 flex items-end justify-between gap-2 font-hand text-16 leading-thai text-ink-soft">
-      <span class="min-w-0 flex-1" :title="caption">
+    <figcaption class="absolute inset-x-3 bottom-2 flex items-end justify-between gap-2 font-hand text-14 leading-thai text-ink-soft">
+      <span ref="box" class="relative min-w-0 flex-1" :title="caption">
         <span class="block truncate">{{ lines[0] }}</span>
         <span v-if="lines[1]" class="block truncate">{{ lines[1] }}</span>
+        <!-- วัดความกว้างคำบรรยายบรรทัดเดียว (ข้อ 64) ไม่แสดง -->
+        <span ref="probe" class="pointer-events-none invisible absolute left-0 top-0 whitespace-nowrap" aria-hidden="true">{{ caption }}</span>
       </span>
       <span v-if="badge" class="shrink-0 rounded-[10px] bg-cover px-2 text-13 font-semibold text-white">{{ badge }}</span>
     </figcaption>
@@ -31,7 +33,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import PolaroidFrame from '@/components/ui/PolaroidFrame.vue'
 import Tape from '@/components/ui/Tape.vue'
 import RevealImg from '@/components/ui/RevealImg.vue'
@@ -55,14 +57,32 @@ const props = defineProps({
   tape: { type: Boolean, default: true },
 })
 
-// ตัดสองบรรทัดที่ " → " (บรรทัดสองขึ้นต้นด้วยลูกศร) ไม่ตัดกลางคำ
+// ข้อ 64: คำบรรยาย 14 px พอดีบรรทัดเดียวก็อยู่บรรทัดเดียว ไม่พอค่อยตัดสองบรรทัดที่ " → " (บรรทัดสองขึ้นต้นด้วยลูกศร) ไม่ตัดกลางคำ
+// วัดจริงด้วยป้ายวัดที่ซ่อนไว้ (ฟอนต์โหลดเสร็จแล้ววัดซ้ำ) ก่อนวัดเสร็จเดาจากการมี " → " เหมือนเดิม
+const box = ref(null)
+const probe = ref(null)
+const fits = ref(null) // null = ยังไม่ได้วัด
+const measure = () => {
+  if (box.value && probe.value) fits.value = probe.value.offsetWidth <= box.value.clientWidth
+}
+onMounted(() => {
+  measure()
+  document.fonts?.ready.then(measure)
+  document.fonts?.addEventListener?.('loadingdone', measure)
+})
+onBeforeUnmount(() => document.fonts?.removeEventListener?.('loadingdone', measure))
+watch(
+  () => [props.caption, props.badge],
+  () => nextTick(measure),
+)
 const lines = computed(() => {
   const k = props.caption.indexOf(' → ')
-  return k < 0 ? [props.caption] : [props.caption.slice(0, k), props.caption.slice(k + 1)]
+  const oneLine = fits.value ?? k < 0
+  return oneLine || k < 0 ? [props.caption] : [props.caption.slice(0, k), props.caption.slice(k + 1)]
 })
-// ขอบล่าง: แถบสี 14 + คำบรรยาย 24 ต่อบรรทัด + เว้น 8 (ไม่มีแถบสี: 8 + บรรทัด)
+// ขอบล่าง: แถบสี 14 + คำบรรยาย 21 ต่อบรรทัด (14 px × leading 1.5) + เว้น 8 (ไม่มีแถบสี: 8 + บรรทัด)
 const padBottom = computed(() => {
   const base = props.palette.length ? 14 : 0
-  return `${base + 24 * lines.value.length + 8}px`
+  return `${base + 21 * lines.value.length + 8}px`
 })
 </script>
