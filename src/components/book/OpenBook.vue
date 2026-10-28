@@ -38,10 +38,11 @@
     </div>
 
     <!-- หน้าเก่าฝั่งที่แผ่นจะไปลง (สำเนา) คงอยู่ใต้แผ่นจนแผ่นลงถึง แล้วจางให้เห็นหน้าใหม่ -->
-    <div ref="turnUnder" class="turn-snap pointer-events-none invisible absolute top-[14px] h-[612px] w-[492px] overflow-hidden" inert :class="turnSide === 'right' ? 'left-[14px]' : 'left-[506px]'" aria-hidden="true"></div>
+    <div ref="turnUnder" class="turn-snap pointer-events-none invisible absolute top-[14px] z-[30] h-[612px] w-[492px] overflow-hidden" inert :class="turnSide === 'right' ? 'left-[14px]' : 'left-[506px]'" aria-hidden="true"></div>
 
-    <!-- พลิกหน้าหนังสือรอบสันกลางตอนเปลี่ยนวัน (ข้อ 38): แผ่นกระดาษหน้าเดิม (หน้าหน้า = สำเนาของหน้าเก่า หลัง = กระดาษ) -->
-    <div ref="turnEl" class="pointer-events-none invisible absolute top-[14px] h-[612px] w-[492px]" inert :class="turnSide === 'right' ? 'left-[506px]' : 'left-[14px]'" aria-hidden="true">
+    <!-- z-[30]/[31] (ข้อ 61b): ชั้นของหน้ามี z-index ในตัว (.leaf-layer 1, ปุ่ม/LeafPager 10) ต้องให้สำเนาหน้าเก่าและแผ่นที่พลิกอยู่เหนือทั้งหมดเสมอ ทั้ง next และ prev
+    พลิกหน้าหนังสือรอบสันกลางตอนเปลี่ยนวัน (ข้อ 38): แผ่นกระดาษหน้าเดิม (หน้าหน้า = สำเนาของหน้าเก่า หลัง = กระดาษ) -->
+    <div ref="turnEl" class="pointer-events-none invisible absolute top-[14px] z-[31] h-[612px] w-[492px]" inert :class="turnSide === 'right' ? 'left-[506px]' : 'left-[14px]'" aria-hidden="true">
       <div ref="turnShadow" class="absolute inset-0 opacity-0" :style="{ background: turnSide === 'right' ? 'linear-gradient(to left, rgba(45,43,51,.5), rgba(45,43,51,0) 70%)' : 'linear-gradient(to right, rgba(45,43,51,.5), rgba(45,43,51,0) 70%)' }"></div>
       <div ref="turnFade" class="absolute inset-0">
         <div ref="turnBoard" class="absolute inset-0" :style="{ transformOrigin: turnSide === 'right' ? '0 50%' : '100% 50%', transformStyle: 'preserve-3d' }">

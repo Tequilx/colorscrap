@@ -26,7 +26,8 @@
 3. Build Command: `npm run build` · Output Directory: `dist` · Install Command: `npm install`
 4. เปิด **Environment Variables** ใส่ 3 ตัวด้านบน (ติ๊กทั้ง Production และ Preview)
 5. กด **Deploy** รอจนได้ URL เช่น `https://<ชื่อโปรเจกต์>.vercel.app`
-6. ตั้ง **Production Branch** เป็น branch ที่ต้องการ (ถ้าไม่ใช่ `main`) ที่ Settings → Git
+6. `vercel.json` ในรีโปตั้ง `Cache-Control: immutable` 1 ปีให้ทุกไฟล์ใน `/assets/` (js/css/เพลง/เสียงมี hash ในชื่อ เปลี่ยนเนื้อหา = เปลี่ยนชื่อ) · Netlify ใช้ `public/_headers` ที่ทำหน้าที่เดียวกัน
+7. ตั้ง **Production Branch** เป็น branch ที่ต้องการ (ถ้าไม่ใช่ `main`) ที่ Settings → Git
 
 ## 2B. Netlify
 1. เข้า app.netlify.com → **Add new site → Import an existing project** → เลือกรีโป

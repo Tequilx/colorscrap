@@ -1,11 +1,12 @@
 // สลับแอปบน iPad/iPhone (ข้อ 59b): hidden → visible → แตะ → ctx.resume() ถูกเรียกและเพลงเล่นต่อ · resume ไม่ขึ้น/ถูก close → สร้าง context ใหม่ต่อกราฟใหม่แล้วเพลงเล่นต่อ
+// ข้อ 61a: เพลงเป็นสตรีม HTMLAudioElement ต่อผ่าน MediaElementSource: preload ตอนโหลด · play() ในเหตุการณ์แตะแรกแบบซิงก์ · fade in 1.5 วินาที · ซ่อน → pause, กลับมา → play() (ถูกปฏิเสธ = เล่นตอนแตะครั้งถัดไป)
 import { describe, it, expect, vi, beforeAll } from 'vitest'
 
 const made = []
 class MockParam {
-  constructor(v = 0) { this.value = v }
+  constructor(v = 0) { this.value = v; this.ramps = [] }
   setValueAtTime(v) { this.value = v }
-  linearRampToValueAtTime(v) { this.value = v }
+  linearRampToValueAtTime(v, t) { this.value = v; this.ramps.push([v, t]) }
   exponentialRampToValueAtTime(v) { this.value = v }
   setTargetAtTime(v) { this.value = v }
   cancelScheduledValues() {}
@@ -15,6 +16,19 @@ class MockNode {
   disconnect() {}
 }
 class MockGain extends MockNode { gain = new MockParam(1) }
+const audios = []
+class MockAudio {
+  static reject = false
+  constructor() { this.paused = true; this.currentTime = 0; this.playCalls = 0; this.loadCalls = 0; this.loop = false; this.preload = ''; audios.push(this) }
+  load() { this.loadCalls++ }
+  play() {
+    this.playCalls++
+    if (MockAudio.reject) return Promise.reject(new Error('NotAllowedError'))
+    this.paused = false
+    return Promise.resolve()
+  }
+  pause() { this.paused = true }
+}
 class MockSource extends MockNode {
   constructor() { super(); this.started = false; this.playbackRate = new MockParam(1) }
   start() { this.started = true }
@@ -29,6 +43,8 @@ class MockAudioContext extends EventTarget {
     this.destination = new MockNode()
     this.resumeCalls = 0
     this.sources = []
+    this.media = [] // element ที่ต่อ MediaElementSource
+    this.gains = []
     this.resumeMode = 'ok' // ok | stuck (promise ค้าง เหมือน iOS interrupted)
     made.push(this)
   }
@@ -41,7 +57,8 @@ class MockAudioContext extends EventTarget {
   }
   suspend() { this.setState('suspended'); return Promise.resolve() }
   close() { this.setState('closed'); return Promise.resolve() }
-  createGain() { return new MockGain() }
+  createGain() { const g = new MockGain(); this.gains.push(g); return g }
+  createMediaElementSource(el) { this.media.push(el); return new MockNode() }
   createDynamicsCompressor() { return Object.assign(new MockNode(), { threshold: new MockParam(), knee: new MockParam(), ratio: new MockParam(), attack: new MockParam(), release: new MockParam() }) }
   createWaveShaper() { return new MockNode() }
   createBuffer(ch, len) { return { length: len, duration: len / 44100, getChannelData: () => new Float32Array(len) } }
@@ -64,6 +81,7 @@ beforeAll(async () => {
   globalThis.window = new EventTarget()
   globalThis.document = Object.assign(new EventTarget(), { hidden: false })
   globalThis.AudioContext = MockAudioContext
+  globalThis.Audio = MockAudio
   globalThis.fetch = vi.fn(async () => ({ ok: true, arrayBuffer: async () => new ArrayBuffer(8) }))
   soundMod = await import('./sound')
   musicMod = await import('./music')
@@ -71,12 +89,30 @@ beforeAll(async () => {
   musicMod.attachMusic()
 })
 
-const musicSources = (ctx) => ctx.sources.filter((s) => s.loop)
+const musicSources = (ctx) => ctx.media.filter((el) => !el.paused) // เพลงที่กำลังเล่นบน context นั้น
+
+describe('เพลงสตรีม (ข้อ 61a)', () => {
+  it('เริ่มโหลดตั้งแต่หน้าโหลด (ก่อนแตะ): element วนซ้ำ preload=auto เรียก load() แต่ยังไม่เล่น และยังไม่มี AudioContext', () => {
+    expect(made).toHaveLength(0)
+    expect(soundMod.audioState.value).toBe('idle')
+    expect(audios).toHaveLength(1)
+    expect(audios[0]).toMatchObject({ preload: 'auto', loop: true, loadCalls: 1, playCalls: 0, paused: true })
+  })
+  it('แตะครั้งแรก → play() ถูกเรียกทันทีภายในเหตุการณ์นั้น (ซิงก์ ไม่รอ await) และใช้ element ที่โหลดไว้แล้ว', () => {
+    tap()
+    expect(audios).toHaveLength(1)
+    expect(audios[0].playCalls).toBe(1)
+    expect(audios[0].paused).toBe(false)
+  })
+  it('fade in ประมาณ 1.5 วินาที: gain ของเพลงเริ่ม 0 แล้วไล่ขึ้น 1 ภายใน 1.5 s', () => {
+    const gain = made[0].gains.at(-1).gain
+    expect(musicMod.FADE_IN_MS).toBe(1500)
+    expect(gain.ramps[0]).toEqual([1, 1.5])
+  })
+})
 
 describe('สลับแอปแล้วเสียงกลับมา', () => {
   it('แตะครั้งแรก → สร้าง context และเพลงเริ่ม', async () => {
-    expect(soundMod.audioState.value).toBe('idle')
-    tap()
     await flush()
     await flush()
     expect(made).toHaveLength(1)
@@ -90,6 +126,7 @@ describe('สลับแอปแล้วเสียงกลับมา', (
     setHidden(true)
     await flush()
     expect(ctx.state).toBe('suspended')
+    expect(audios[0].paused).toBe(true) // ซ่อนหน้า → หยุดสตรีม
     const before = ctx.resumeCalls
     // iOS: กลับมาแล้วอยู่สถานะ interrupted และ resume() เองไม่สำเร็จ
     ctx.resumeMode = 'stuck'
@@ -106,6 +143,7 @@ describe('สลับแอปแล้วเสียงกลับมา', (
     expect(soundMod.audioState.value).toBe('running')
     expect(made).toHaveLength(1) // ไม่สร้าง context ใหม่เมื่อ resume ได้
     expect(musicSources(ctx)).toHaveLength(1) // เพลงเดิมเล่นต่อ ไม่ซ้อน
+    expect(ctx.media).toHaveLength(1)
   })
 
   it('listener ปลุกเป็นแบบครั้งเดียว: แตะซ้ำตอน running ไม่เรียก resume เพิ่ม', async () => {
@@ -134,7 +172,8 @@ describe('สลับแอปแล้วเสียงกลับมา', (
     const fresh = made[1]
     expect(fresh.state).toBe('running')
     expect(musicSources(fresh)).toHaveLength(1)
-    expect(musicSources(fresh)[0].started).toBe(true)
+    expect(fresh.media[0]).not.toBe(old.media[0]) // element ใหม่ (element เดิมต่อ context เก่าไปแล้ว)
+    expect(old.media[0].paused).toBe(true)
     expect(soundMod.audioState.value).toBe('running')
   })
 
@@ -148,6 +187,21 @@ describe('สลับแอปแล้วเสียงกลับมา', (
     await flush()
     expect(made).toHaveLength(3)
     expect(musicSources(made[2])).toHaveLength(1)
+  })
+
+  it('กลับมาแล้ว play() ถูกปฏิเสธ (ไม่มี gesture) → รอแตะ แล้ว play() ในเหตุการณ์นั้นแบบซิงก์', async () => {
+    const el = made[2].media[0]
+    setHidden(true)
+    expect(el.paused).toBe(true)
+    MockAudio.reject = true
+    setHidden(false)
+    await flush()
+    expect(el.paused).toBe(true)
+    MockAudio.reject = false
+    const n = el.playCalls
+    tap('touchend')
+    expect(el.playCalls).toBe(n + 1)
+    expect(el.paused).toBe(false)
   })
 
   it('ผู้ใช้ปิดเพลงไว้ → ไม่เล่นต่อหลังสร้างใหม่ และปุ่มยังเป็นปิด', async () => {

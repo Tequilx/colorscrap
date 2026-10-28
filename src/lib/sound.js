@@ -177,7 +177,7 @@ const ensureCtx = () => {
 // ---- ปลุกเสียงหลังสลับแอป (iOS/iPadOS Safari) ----
 // iOS ตัด AudioContext ('interrupted' / 'suspended') เมื่อสลับแอป ล็อกจอ หรือมีสายเข้า และ resume() นอกเหตุการณ์ของผู้ใช้ไม่สำเร็จ (promise ค้าง/ไม่เปลี่ยน state)
 // จึง: ซ่อน → suspend เอง · กลับมาแล้ว state ไม่ใช่ running → ติด listener ครั้งเดียว (capture) รอแตะแล้ว resume() ถ้า 800 ms แล้วยังไม่ running (หรือ context ถูก close) สร้าง context ใหม่ต่อกราฟเสียงใหม่
-// เพลงแจ้งผ่าน onAudioLost / onAudioRebuilt เพื่อเล่นต่อบน context ใหม่ (AudioBuffer ที่ถอดรหัสไว้ใช้ข้าม context ได้)
+// เพลงแจ้งผ่าน onAudioLost / onAudioRebuilt เพื่อเล่นต่อบน context ใหม่ (เพลงสร้าง HTMLAudioElement ใหม่ต่อกราฟใหม่ เพราะ element ต่อ MediaElementSource ได้ครั้งเดียว)
 export const RESUME_TIMEOUT_MS = 800
 const GESTURES = ['pointerdown', 'touchend', 'keydown']
 const lostCallbacks = []
@@ -333,10 +333,16 @@ const applyMusicGain = (instant = false) => {
   const tc = instant ? 0.001 : target < musicBus.gain.value ? 0.15 : 0.6
   musicBus.gain.setTargetAtTime(target, ctx.currentTime, tc)
 }
+// เพลงเป็นสตรีม HTMLAudioElement (lib/music.js) ต้อง play() ในเหตุการณ์ของผู้ใช้ จึงแจ้งซิงก์ตอนกดปุ่มเปิดเพลง (ไม่รอ watcher)
+const musicEnabledCallbacks = []
+export const onMusicEnabled = (cb) => musicEnabledCallbacks.push(cb)
 export const setMusic = (on) => {
   musicOn.value = on
   writeEnabled(on, MUSIC_KEY)
-  if (on) wake()
+  if (on) {
+    wake()
+    musicEnabledCallbacks.forEach((cb) => cb())
+  }
   applyMusicGain()
 }
 // ลดเสียงเพลงลงครึ่งหนึ่งนาน ms แล้วคืน (ซ้อนกันได้: นับเป็นชั้น)
