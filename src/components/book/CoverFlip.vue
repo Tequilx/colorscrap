@@ -6,14 +6,14 @@
     <div ref="shadowRef" class="absolute inset-0 opacity-0" style="background: linear-gradient(to right, rgba(45, 43, 51, 0.5), rgba(45, 43, 51, 0) 75%)"></div>
     <!-- opacity อยู่ชั้นนอก: ชั้นที่ preserve-3d ห้ามมี opacity < 1 ไม่งั้นแบนและเห็นหน้าหน้าทะลุตอนพลิกไปด้านหลัง -->
     <div ref="fadeRef" class="absolute inset-0 opacity-0">
-      <div ref="boardRef" class="absolute inset-0" style="transform-origin: 0 50%; transform-style: preserve-3d">
-        <div class="absolute inset-0 [backface-visibility:hidden]">
+      <div ref="boardRef" class="absolute inset-0" style="transform-origin: 0 50%; -webkit-transform-style: preserve-3d; transform-style: preserve-3d">
+        <div class="absolute inset-0 [backface-visibility:hidden] [-webkit-backface-visibility:hidden]">
           <div class="h-[540px] w-[420px] origin-top-left" :style="{ transform: `scale(${506 / 420}, ${640 / 540})` }">
             <BookCover :name="name" :avatar="avatar" :likes="likes" :tabs="tabs" />
           </div>
         </div>
         <!-- ด้านในปก: ขอบสีปกรอบกระดาษ ตรงกับหน้าซ้ายของสมุดเปิดที่มันไปลงจอด -->
-        <div class="absolute inset-0 rounded-xl bg-cover [backface-visibility:hidden]" style="transform: rotateY(180deg)">
+        <div class="absolute inset-0 rounded-xl bg-cover [backface-visibility:hidden] [-webkit-backface-visibility:hidden]" style="transform: rotateY(180deg)">
           <span class="absolute inset-y-[14px] left-[14px] right-0 bg-paper"></span>
         </div>
       </div>
