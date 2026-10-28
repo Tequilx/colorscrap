@@ -206,6 +206,17 @@ const PHOTO_SLOTS = [
 const PHOTO_W = 300
 const PHOTO_PITCH = 318
 
+// ป้าย "+N ภาพ" (วันที่มีภาพเกิน 3): อยู่ในแถวเดียวกับโพลารอยด์ทางขวา กรอบกว้าง = ข้อความ + padding ซ้ายขวาเท่ากัน
+// โพลารอยด์ย่อทั้งชุดลงพอให้เหลือที่ว่างทางขวา ห่างจากใบที่สาม ≥ gap จึงไม่ทับโพลารอยด์ และอยู่เหนือเส้นประท้ายการ์ดมากกว่า 16px เสมอ
+export const BADGE = { size: 24, h: 40, pad: 20, gap: 16 }
+const GROUP_W = PHOTO_W + 2 * PHOTO_PITCH // ความกว้างชุดโพลารอยด์ 3 ใบ (px ก่อนย่อ)
+const GROUP_OVERHANG = 4 // ใบที่เอียงล้ำออกด้านข้างได้ราวนี้
+export const badgeLayout = (textW, { left = 72, right = 1008 } = {}) => {
+  const bw = textW + 2 * BADGE.pad
+  const scale = Math.min(1, (right - left - bw - BADGE.gap - GROUP_OVERHANG) / GROUP_W)
+  return { bw, scale, bx: right - bw, groupRight: left + GROUP_W * scale + GROUP_OVERHANG }
+}
+
 // ป้ายเวลา + อารมณ์ของแต่ละช่วงใต้แถบ (ขีดบอกกลางช่วง เยื้องเป็นแถวตาม layoutRibbon)
 const drawRibbonLabels = (ctx, segs, top) => {
   const k = RIB_K
@@ -333,34 +344,36 @@ export const renderDayCard = async ({ date, entries, thumbs = new Map(), crop = 
   const shown = list.slice(-3)
   const more = list.length - shown.length
   const groupW = PHOTO_W + (shown.length - 1) * PHOTO_PITCH
-  const originX = 72 + (936 - groupW) / 2
+  const label = `+${more} ภาพ`
+  const textW = more > 0 ? measureText(ctx, label, { size: BADGE.size, weight: 600, kind: 'hand' }) : 0
+  const lay = more > 0 ? badgeLayout(textW) : null
+  const k = lay ? lay.scale : 1 // มีป้าย: ย่อชุดโพลารอยด์ชิดซ้าย เหลือที่ว่างทางขวาให้ป้าย
+  const originX = lay ? 72 : 72 + (936 - groupW) / 2
   const photoTop = Math.max(912, labelsTop + labelsH + 14)
   let photoH = 0
+  ctx.save()
+  ctx.translate(originX, photoTop)
+  ctx.scale(k, k)
   shown.forEach((e, i) => {
     const slot = PHOTO_SLOTS[i]
-    photoH = drawDayPolaroid(ctx, e, thumbs.get(e.id), slot, originX + i * PHOTO_PITCH, photoTop + slot.dy)
+    photoH = drawDayPolaroid(ctx, e, thumbs.get(e.id), slot, i * PHOTO_PITCH, slot.dy)
   })
-  if (more > 0) {
-    const label = `+${more} ภาพ`
+  ctx.restore()
+  if (lay) {
+    // กรอบเอียงเล็กน้อยแบบลายมือ อยู่กึ่งกลางความสูงของชุดโพลารอยด์ ข้อความอยู่กึ่งกลางกรอบทั้งแนวนอนและแนวตั้ง (drawText จัดตามกล่องบรรทัด)
+    const cx = lay.bx + lay.bw / 2
+    const cy = photoTop + (photoH / 2 + 10) * k
     ctx.save()
-    ctx.font = '600 24px Mali, "Itim", system-ui, sans-serif'
-    const tw = ctx.measureText(label).width
-    const bw = tw + 30
-    const bx = originX + groupW - bw + 6
-    const by = photoTop + photoH - 4
-    ctx.translate(bx + bw / 2, by + 18)
+    ctx.translate(cx, cy)
     ctx.rotate(3 * RAD)
     ctx.fillStyle = C.paper
     ctx.strokeStyle = C.ink
     ctx.lineWidth = 2
     ctx.beginPath()
-    roundRectPath(ctx, -bw / 2, -18, bw, 36, 13)
+    roundRectPath(ctx, -lay.bw / 2, -BADGE.h / 2, lay.bw, BADGE.h, 13)
     ctx.fill()
     ctx.stroke()
-    ctx.fillStyle = C.ink
-    ctx.textAlign = 'center'
-    ctx.textBaseline = 'middle'
-    ctx.fillText(label, 0, 1)
+    drawText(ctx, label, 0, -BADGE.h / 2, { size: BADGE.size, weight: 600, kind: 'hand', align: 'center', boxHeight: BADGE.h })
     ctx.restore()
   }
 

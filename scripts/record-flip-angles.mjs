@@ -1,7 +1,7 @@
-// สคริปต์ dev: อัดภาพแผ่นพลิกหน้าสมุดทุกมุม (0 30 60 85 95 120 150 180°) ทั้งไปวันใหม่ (next) และย้อนวันเก่า (prev) ใน WebKit และ Chromium
-// เพื่อตรวจว่าช่วง 0–90° เห็นหน้าเดิมปกติ และ 90–180° เห็นหลังแผ่นอ่านได้ปกติ (ไม่มีตัวหนังสือกลับด้านทะลุ) · ตั้ง FLIPBACK=true|false เพื่อเขียนทับค่าคงที่ FLIP_BACK_CONTENT ใน OpenBook.vue ตอนทดสอบ
+// สคริปต์ dev: อัดภาพแผ่นพลิกหน้าสมุดทุกมุม (0 30 60 85 95 110 120 140 150 170 180°) ทั้งไปวันใหม่ (next) และย้อนวันเก่า (prev) ใน WebKit และ Chromium
+// เพื่อตรวจว่าช่วง 0–90° เห็นหน้าเดิมปกติ และ 90–180° เห็นหลังแผ่นอ่านได้ปกติ (ไม่มีตัวหนังสือกลับด้านทะลุ) · ตั้ง FLIPBACK=blank|copy|fade เพื่อเขียนทับค่าคงที่ FLIP_BACK_MODE ใน OpenBook.vue ตอนทดสอบ
 //   1) VITE_USE_MOCK=true npm run dev -- --port 5199
-//   2) PLAYWRIGHT=… [FLIPBACK=true] node scripts/record-flip-angles.mjs <ชื่อรอบ> [--engine webkit|chromium|both]
+//   2) PLAYWRIGHT=… [FLIPBACK=fade] node scripts/record-flip-angles.mjs <ชื่อรอบ> [--engine webkit|chromium|both]
 // ภาพลง scripts/out/screens/flip-angles/<รอบ>-<engine>-<ทิศ>-<มุม>.png + <รอบ>-<engine>-sheet.png
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { timeAtProgress } from '../src/lib/flipTiming.js'
@@ -14,7 +14,7 @@ const OUT = 'scripts/out/screens/flip-angles'
 mkdirSync(OUT, { recursive: true })
 const pw = await import(process.env.PLAYWRIGHT || 'playwright')
 const { webkit, chromium, devices } = pw.default || pw
-const ANGLES = [0, 30, 60, 85, 95, 120, 150, 180]
+const ANGLES = [0, 30, 60, 85, 95, 110, 120, 140, 150, 170, 180]
 const S = (n) => `document.querySelector('#app').__vue_app__.config.globalProperties.$pinia._s.get('${n}')`
 
 const run = async (name, launch, ctxOpts) => {
@@ -25,10 +25,15 @@ const run = async (name, launch, ctxOpts) => {
   if (process.env.FLIPBACK) {
     await page.route('**/src/components/book/OpenBook.vue*', async (route) => {
       const r = await route.fetch()
-      const body = (await r.text()).replace(/const FLIP_BACK_CONTENT = (true|false)/, `const FLIP_BACK_CONTENT = ${process.env.FLIPBACK}`)
+      const body = (await r.text()).replace(/const FLIP_BACK_MODE = '(blank|copy|fade)'/, `const FLIP_BACK_MODE = '${process.env.FLIPBACK}'`)
       await route.fulfill({ response: r, body })
     })
   }
+  // ตอนหยุดเวลาแอนิเมชันเพื่อถ่ายทีละมุม ตัวจับเวลาถ่ายสำเนาหลังแผ่นใหม่ (ที่ ~84% ของ 800 ms) ยังเดินตามนาฬิกาจริงแล้วเอาสำเนาที่ไม่มีแอนิเมชันมาแทน จึงปิดตัวนั้นเฉพาะตอนทดสอบ
+  await page.addInitScript(() => {
+    const st = window.setTimeout
+    window.setTimeout = (fn, ms, ...a) => (ms > 560 && ms < 800 ? 0 : st(fn, ms, ...a))
+  })
   await page.addInitScript(() => localStorage.setItem('colorscrap.profile', JSON.stringify({ displayName: 'มะลิ', avatar: 'cat', coverColor: '#9E2F2A', likes: ['ทะเล'] })))
   await page.goto(base + '/', { waitUntil: 'load' })
   await page.waitForTimeout(1500)
