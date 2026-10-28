@@ -1,3 +1,4 @@
+// ทดสอบการจัดรูปวันที่ภาษาไทย (พ.ศ.) ของการ์ดเก็บรูป
 import { describe, expect, it } from 'vitest'
 import { formatThaiDate } from '@/lib/share/formatThaiDate'
 import { cardPhotoFileName, dayCardFileName, photoOnlyFileName } from '@/lib/share/fileNames'

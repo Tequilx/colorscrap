@@ -84,7 +84,7 @@ useHashView(app, profile, auth)
 attachSound()
 attachMusic() // เพลงคลอ (เริ่มหลังแตะครั้งแรก)
 installCursors() // เคอร์เซอร์นิ้วชี้ (เฉพาะเมาส์)
-// การ์ดอารมณ์ (data-no-tap) ไม่มีเสียงแตะ: ให้ได้ยินเสียงจุ่มพู่กันเสียงเดียว (ข้อ 53d)
+// การ์ดอารมณ์ (data-no-tap) ไม่มีเสียงแตะ: ให้ได้ยินเสียงจุ่มพู่กันเสียงเดียว
 const tapSound = (e) => {
   const hit = e.target?.closest?.('button, a, [role="button"]')
   if (hit && !hit.hasAttribute('data-no-tap')) sound.tap()

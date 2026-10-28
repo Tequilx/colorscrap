@@ -1,7 +1,7 @@
 // สร้างเพลงคลอชั่วคราว (placeholder) ลง public/audio/music-day.wav และ music-night.wav — เขียนไฟล์ WAV เอง ไม่ดาวน์โหลดอะไร
 // เป็นคอร์ดแพดนุ่ม ๆ วนได้เนียน 24 วินาที: ทุกความถี่ถูกปัดให้เป็นจำนวนเท่าของ 1/24 Hz (ครบรอบพอดีในความยาวไฟล์)
 // และซองคอร์ดเป็นหน้าต่าง cos² ที่ซ้อนกันครึ่งหนึ่งแบบวงกลม (รวมกันได้ 1 พอดี) จุดต่อท้าย→ต้นจึงต่อกันไม่สะดุด
-// ใช้: node scripts/make-placeholder-music.mjs   (เปลี่ยนเป็นเพลงจริง: วางไฟล์ music-day.mp3 / music-night.mp3 ชื่อเดิมใน public/audio/ ดู docs/FILE-GUIDE.md)
+// ใช้: node scripts/make-placeholder-music.mjs   (เปลี่ยนเป็นเพลงจริง: ดูวิธีใน docs/FILE-GUIDE.md หัวข้อเพลงคลอ)
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'

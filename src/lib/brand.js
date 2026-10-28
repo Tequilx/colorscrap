@@ -1,4 +1,4 @@
-// โลโก้ ColorScrap ที่เดียวของทั้งแอป (ข้อ 48): เปลี่ยนโลโก้ = แก้ไฟล์นี้ไฟล์เดียว
+// โลโก้ ColorScrap ที่เดียวของทั้งแอป: เปลี่ยนโลโก้ = แก้ไฟล์นี้ไฟล์เดียว
 // BrandMark.vue, favicon (scripts/make-favicons.mjs), การ์ดเก็บรูปทั้งสองแบบ (lib/share/cards.js) อ่านจากที่นี่หมด
 // มี 3 รูปแบบ: wordmark ("ColorScrap" — l ใน Color เป็นพู่กัน, "Scrap" บนแถบเทปเอียง −3°) · icon (ตัว C + พู่กันเอียง ~40° ปลายขนแตะปลายล่างของ C) · lockup (icon | เส้นคั่น | wordmark)
 // ตัวอักษรเป็นเวกเตอร์ล้วน (lib/brandGlyphs.js สร้างจาก Mali 700 ด้วย scripts/make-brand-glyphs.mjs) จึงไม่พึ่งฟอนต์ตอนแสดง ใช้ได้ใน favicon.svg และภาพ SVG ที่วาดลง canvas

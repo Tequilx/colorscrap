@@ -1,5 +1,5 @@
 <template>
-  <!-- บัญชีของฉัน: ออกจากระบบ และลบข้อมูลทั้งหมด (เฉพาะโหมดแก้ไขในหน้า hello ที่ต่อ Supabase จริง) ข้อ 68: อยู่ใน flow ท้ายคอลัมน์ขวาของ CoverPreview (ไม่ตรึง absolute) เป็นส่วนรอง: เส้นคั่นจางด้านบน อีเมลห่างปุ่ม 10px -->
+  <!-- บัญชีของฉัน: ออกจากระบบ และลบข้อมูลทั้งหมด (เฉพาะโหมดแก้ไขในหน้า hello ที่ต่อ Supabase จริง) อยู่ใน flow ท้ายคอลัมน์ขวาของ CoverPreview เป็นส่วนรอง: เส้นคั่นจางด้านบน อีเมลห่างปุ่ม 10px -->
   <div class="flex w-full flex-col items-center gap-2.5 border-t border-dashed border-faint pt-3">
     <span class="max-w-full truncate text-13 text-ink-soft">{{ auth.user?.email }}</span>
     <div class="flex items-center gap-3">

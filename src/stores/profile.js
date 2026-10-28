@@ -1,3 +1,4 @@
+// โปรไฟล์ผู้ใช้ (ชื่อ อวตาร สีปก สิ่งที่ทำให้ใจฟู): เก็บในเครื่องในโหมดจำลอง หรือบน Supabase ในโหมดจริง
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { COVER_COLORS } from '@/lib/tokens'

@@ -1,3 +1,4 @@
+// ทดสอบช่วงเวลาของวัน ?time= และชั่วโมงที่ใช้เลือกคำทักทาย (lib/daylight.js)
 import { describe, it, expect } from 'vitest'
 import { forcedPeriod, greetingHour, periodOf } from './daylight'
 

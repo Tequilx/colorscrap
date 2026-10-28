@@ -1,4 +1,4 @@
-// สคริปต์ dev ถ่ายภาพก่อน/หลังของข้อ 52 (a จานสี, b ข้อความปก, e คำบรรยายโพลารอยด์, f หน้าแรกของสมุด, g ปุ่มปรับแต่ง) + วัดกล่องปุ่มบนปกที่ 375px
+// สคริปต์ dev ถ่ายภาพก่อน/หลังของรายละเอียด UI (จานสี, ข้อความปก, คำบรรยายโพลารอยด์, หน้าแรกของสมุด, ปุ่มปรับแต่ง) + วัดกล่องปุ่มบนปกที่ 375px
 //   VITE_USE_MOCK=true npm run dev -- --port 5199
 //   PLAYWRIGHT=/path/to/playwright-core/index.mjs node scripts/details52.mjs <before|after> [--url http://localhost:5199]
 import { mkdirSync } from 'node:fs'

@@ -58,11 +58,11 @@ const HOLD_STRENGTH = 0.1
 const HOLD_MOVE_LIMIT = 8 // ขยับเกินนี้ (px) ถือว่าเป็นการลาก ไม่ใช่กดค้าง
 const SMEAR_RADIUS = 0.25
 // แต้มแสงแบบบาน (ดู bloomAt): ความปลอดภัยเรื่องดำ/รูขาวอยู่ที่ตัวกันดำของ GPU แล้ว (หลังยกสี พื้นที่สว่างพอให้แต้มแสงลงได้เสมอ ก่อนยกก็ไม่เกินเพดาน)
-// จึงไม่ต้องมีงบการยกสีต่อช่อง (เดิมมีงบ แล้วกดค้างหมดงบหลัง ~2 ครั้ง สีเดิมไหลกลับเต็มกลางวงและแต้มแสงหายไป วัดแล้ว)
+// จึงไม่ต้องมีงบการยกสีต่อช่อง (ถ้ามีงบ กดค้างหมดงบหลัง ~2 ครั้ง สีเก่าไหลกลับเต็มกลางวงแล้วสีใหม่หาย)
 // ขอบเข้มคูณสีเดิมของจุดนั้นแต่ไม่เกิน INK_CAP (ไม่ให้ขอบสะสมจนดำ) กันกดค้างบานถี่ไป: ไม่ถี่กว่า HOLD_BLOOM_MS
 const HOLD_BLOOM_MS = 700
 const LIFT_GAP_MS = 500 // แตะรัวถี่กว่านี้ ไม่ยกสีซ้ำ (ลงแต้มแสงอย่างเดียว) ไม่งั้นแต้มแสงที่เพิ่งลงถูกยกทิ้งทุกครั้งจนเหลือรูขาว
-const INK_SPREAD = 1.08 // วัดแล้ว: พื้นที่หยดเดี่ยวที่ 2 วินาทีเท่า main ±8% (ไม่ใส่ = 87–96%)
+const INK_SPREAD = 1.08 // ตัวคูณขยายพื้นที่หยดเดี่ยวให้ตรงเป้า (ที่ 2 วินาทีพื้นที่ตรงเป้า ±8% ถ้าไม่ใส่ได้ 87–96%)
 const DROP_RADIUS_SCALE = 3 // splatRadius ของ SPEC เล็กเกินไปบนกระดาษ 1112×612 ปรับให้หยดมีเนื้อสีพอ
 const SMEAR_FORCE = 1500
 const CLEAR_FRAMES = 8
@@ -84,7 +84,7 @@ const NOTE_TIME_SCALE = import.meta.env.DEV ? Number(new URLSearchParams(locatio
 const containerRef = ref(null)
 const inputRef = ref(null)
 
-// สำคัญมาก: ใช้ตัวแปรธรรมดา (let) ไม่ใช้ ref() เพื่อป้องกัน Vue Proxy เข้าไปแทรกแซง WebGL
+// ใช้ตัวแปรธรรมดา (let) ไม่ใช้ ref() เพราะ Vue Proxy แทรกแซง WebGL
 let fluid = null
 // มีคำสั่งหยดสีเริ่มต้นค้างอยู่ รอจนผ้าใบวิ่งอยู่และล้างเสร็จก่อนค่อยหยด
 let wantDrop = false
@@ -317,7 +317,7 @@ const splatGpu = (x, y, dx, dy, { hex, radius, strength = 1 }) => {
   let dye = dyeOf(shade, strength)
   const peak = Math.max(...dye)
   if (peak < 0.003) return false
-  // หยดเดียวไม่ให้ยอดสูงเกิน cap: ลดทั้งหยดตามสัดส่วน (รูปทรง Gaussian เดิม ไม่ตัดยอดแบน) เหมือนที่แบบเก่าทำกับหยดแรก หน้าตาหยดเดี่ยวจึงเท่าเดิม
+  // หยดเดียวไม่ให้ยอดสูงเกิน cap: ลดทั้งหยดตามสัดส่วน (คงรูปทรง Gaussian ไม่ตัดยอดแบน)
   // ส่วนการซ้อนของหยดหลายหยดที่จุดเดียวกันให้ shader ตัวกันดำจัดการ (ตรงที่สีจริงเต็มแล้วเท่านั้น)
   if (peak > FLUID_GLOBAL.gpuCap) dye = dye.map((v) => (v * FLUID_GLOBAL.gpuCap) / peak)
   if (!getDyeProgram()) return false
@@ -403,7 +403,7 @@ const dropInitial = () => {
   const fit = Math.sqrt(want / count)
   const mag = 220 * p.speed
   const calm = reducedMotion.value
-  const half = Math.min(0.46, 0.35 * level.spread) // ครึ่งช่วงของตำแหน่ง (เดิม 0.35 = 15–85%)
+  const half = Math.min(0.46, 0.35 * level.spread) // ครึ่งช่วงของตำแหน่ง (0.35 = ช่วง 15–85% ของกระดาษ)
   const radius = p.radius * DROP_RADIUS_SCALE * level.size * fit
   const span = calm ? 0 : FLUID_GLOBAL.splashMs
   lastInputAt = simNow
@@ -612,19 +612,19 @@ let lastBloomAt = 0
 const bloomOn = () => tune.bloom && WARM_BLOOM[props.emotion] !== false
 
 // ---- เส้นโค้งการบาน (หนึ่งการแตะ = หนึ่งเส้นโค้ง) ----
-// เดิมแบ่งเป็น 4 หยดก้อน + หยดประคอง 5 ครั้ง แต่ละก้อนทำให้น้ำกระแทกเป็นจังหวะ (หยดที่ 4 หนักสุดเห็นเป็นจังหวะที่สอง) จึงเปลี่ยนเป็นเส้นโค้งเดียวที่คำนวณจากเวลาจริง
+// ใช้เส้นโค้งเดียวที่คำนวณจากเวลาจริง (ไม่แบ่งเป็นหยดก้อน เพราะแต่ละก้อนทำให้น้ำกระแทกเป็นจังหวะและเห็นเป็นการบานรอบที่สอง)
 // อัตราลงสี f(t): ขึ้นแบบ sin ถึงยอดที่ BLOOM_TIP_MS แล้วลดแบบ (1 − u)^BLOOM_TAIL ถึง 0 ที่ท้ายเส้น ไม่มีช่วงไหนแรงกว่าช่วงก่อนหน้าหลังยอด
 // ปริมาณสีที่ลงในช่วงเวลาหนึ่ง = ผลต่างของปริพันธ์ F (สูตรปิด) จึงไม่ขึ้นกับ fps หยดจริงส่งทุก BLOOM_EMIT_MS เท่านั้น (ไม่ส่งทุกเฟรมจะได้ไม่หนักเมื่อแตะรัว)
-// ยกสีเดิมแบบต่อเนื่อง: ส่วนที่ยกต่อวินาทีคงที่ตามเวลา (ยกสัดส่วน L ต่อ BLOOM_LIFT_REF ms) L ลดจาก 1.2× ลงเหลือ 0.6× ของ lift ภายใน BLOOM_LIFT_FALL ms เหมือนที่ยกซ้ำ/ประคองเดิม
+// ยกสีเดิมแบบต่อเนื่อง: ส่วนที่ยกต่อวินาทีคงที่ตามเวลา (ยกสัดส่วน L ต่อ BLOOM_LIFT_REF ms) L ลดจาก 1.2× ลงเหลือ 0.6× ของ lift ภายใน BLOOM_LIFT_FALL ms
 const BLOOM_TIP_MS = 250
 const BLOOM_TAIL = 1 // f ช่วงหลังยอด = (1 − u)^BLOOM_TAIL
 const BLOOM_EMIT_MS = 30
-const BLOOM_MIN_SHARE = 0.0015 // น้อยกว่านี้รอสะสมก่อน (หยดจิ๋วจะถูกทิ้งที่ shader) ไม่ทิ้งปริมาณ ค่าสูงกว่านี้ (0.006) ช่วงท้ายเส้นหยดห่างเป็นขั้น เห็นเป็นกระแทกเล็กที่ ~2.3/2.5/2.8 วินาที (วัดแล้ว)
+const BLOOM_MIN_SHARE = 0.0015 // น้อยกว่านี้รอสะสมก่อน (หยดจิ๋วจะถูกทิ้งที่ shader) ไม่ทิ้งปริมาณ ค่าสูงกว่านี้ช่วงท้ายเส้นหยดห่างเป็นขั้น เห็นเป็นกระแทกเล็กที่ ~2.3/2.5/2.8 วินาที
 const BLOOM_LIFT_REF = 350
 const BLOOM_LIFT_FALL = 1000
-const BLOOM_UNITS_TAP = 1.85 // ปริมาณรวมของแตะ/ลองดู (เดิม 4 ก้อน 1.0 + ประคอง 5 × 0.12 = 1.6 หน่วยเดียวกับ share เดิม) ปรับให้พื้นที่/ความชัดที่ 3 วิ ตรงของเดิมที่วัดไว้
-const BLOOM_UNITS_HOLD = 1.6 // เดิม 1.0 ปรับตามแตะ (1.6 → 2.5) ให้ความชัดของกดค้างใกล้เดิม
-const BLOOM_PUSH = 16 // ความเร็วดันน้ำต่อหน่วยปริมาณที่ลง (เดิมก้อน 0.25 ดัน 30) ดันเฉพาะช่วงแรก จางเป็น 0 ที่ BLOOM_PUSH_MS ไม่งั้นพลังงานน้ำสะสมเป็นโหนกที่สอง (วัดแล้ว anxious/angry)
+const BLOOM_UNITS_TAP = 1.85 // ปริมาณรวมของแตะ/ลองดู (หน่วยเดียวกับ share) ตั้งให้พื้นที่และความชัดที่ 3 วิ ตรงเป้าที่วัดไว้
+const BLOOM_UNITS_HOLD = 1.6 // ปริมาณรวมของกดค้าง (ตั้งให้ความชัดใกล้แตะ)
+const BLOOM_PUSH = 16 // ความเร็วดันน้ำต่อหน่วยปริมาณที่ลง ดันเฉพาะช่วงแรก จางเป็น 0 ที่ BLOOM_PUSH_MS ไม่งั้นพลังงานน้ำสะสมเป็นโหนกที่สอง (เห็นใน anxious/angry)
 const BLOOM_PUSH_MS = 500
 const BLOOM_TURNS = 4 // ทิศดันหมุนกี่รอบตลอดเส้นโค้ง (ช่วงดัน 500 ms จึงหมุน ~0.7 รอบ: น้อยกว่านี้สีถูกลากเป็นหางดาวหาง มากกว่านี้ดันหักล้างกันจนพื้นที่หด)
 const BLOOM_HOLD_MS = 900 // เส้นโค้งสั้นของการกดค้าง (บานซ้ำทุก HOLD_BLOOM_MS)
@@ -663,7 +663,7 @@ const bloomFrame = () => {
     if (b.amount > 0.01) {
       // ยกสีเดิมก่อนลงสี (ไม่เพิ่มขอบ) ส่วนที่ยกตามเวลาจริงของช่วงนี้ ไม่ใช่ต่อเฟรม
       const k = Math.min(1, t / BLOOM_LIFT_FALL)
-      // หลัง BLOOM_LIFT_FALL ลดต่อเนื่องเหลือ 0 ที่ท้ายเส้น (ลงสีน้อยลงแล้ว ยกต่อเท่าเดิมจะกินแต้มแสงที่เพิ่งลง กลางวงจางลงหลัง ~1.6 วิ วัดแล้ว)
+      // หลัง BLOOM_LIFT_FALL ลดต่อเนื่องเหลือ 0 ที่ท้ายเส้น (ลงสีน้อยลงแล้ว ยกต่อเท่าเดิมจะกินแต้มแสงที่เพิ่งลง กลางวงจางลงหลัง ~1.6 วิ)
       const tail = 1 - Math.max(0, (t - BLOOM_LIFT_FALL) / Math.max(1, b.T - BLOOM_LIFT_FALL))
       const level = Math.min(0.85, b.amount * 1.2) * (1 - k) + b.amount * 0.6 * k * tail
       const part = 1 - (1 - level) ** ((t - b.tPrev) / BLOOM_LIFT_REF)
@@ -674,8 +674,8 @@ const bloomFrame = () => {
     const share = (b.units * (bloomCum(t, b.T) - bloomCum(b.tDep, b.T))) / bloomCum(b.T, b.T)
     if (share >= BLOOM_MIN_SHARE || (end && share > 0)) {
       b.tDep = t
-      const a = b.a0 + (t / b.T) * Math.PI * BLOOM_TURNS * 2 // หมุนช้า ๆ ทิศไม่สุ่มทุกครั้ง (สุ่มถี่ ๆ หักล้างกัน น้ำไม่ขยายเหมือนเดิม)
-      const speed = WARM_TAP_SPEED * BLOOM_PUSH * pushGain * share * Math.max(0, 1 - t / BLOOM_PUSH_MS) // เดิมก้อน 0.25 ดัน 30 ก้อน 0.12 ดัน 15: ดันตามปริมาณที่ลง
+      const a = b.a0 + (t / b.T) * Math.PI * BLOOM_TURNS * 2 // หมุนช้า ๆ ทิศไม่สุ่มทุกครั้ง (สุ่มถี่ ๆ หักล้างกัน น้ำไม่ขยาย)
+      const speed = WARM_TAP_SPEED * BLOOM_PUSH * pushGain * share * Math.max(0, 1 - t / BLOOM_PUSH_MS) // ดันตามปริมาณที่ลง
       const landed = splat(b.x, b.y, Math.cos(a) * speed, Math.sin(a) * speed, { hex: b.hex, radius: tune.size * scale, strength: warmStrength(b.strength) * share })
       if (landed) markWarmDropped()
     }
@@ -698,7 +698,7 @@ const bloomAt = (x, y, hex, { strength = 1, gentle = false } = {}) => {
   const recent = lastBloomAt && performance.now() - lastBloomAt < LIFT_GAP_MS
   const amount = recent ? 0 : tune.lift * (gentle ? 0.6 : 1)
   lastBloomAt = performance.now()
-  // ก. ดันสีเดิมออกเป็นวง: หลายจุดรอบกลางวง ดันออกนอก (ไม่ดันตอนลดการเคลื่อนไหว) กดค้างไม่ดัน/ไม่ยกก้อนแรก (ทุก ~0.7 วินาทีจะกระแทกเป็นจังหวะ วัดแล้ว) ใช้เส้นโค้งอย่างเดียว
+  // ก. ดันสีเดิมออกเป็นวง: หลายจุดรอบกลางวง ดันออกนอก (ไม่ดันตอนลดการเคลื่อนไหว) กดค้างไม่ดัน/ไม่ยกก้อนแรก (ทุก ~0.7 วินาทีจะกระแทกเป็นจังหวะ) ใช้เส้นโค้งอย่างเดียว
   if (!calm && !recent && !gentle) {
     wake()
     const reach = Math.sqrt((SIZE.w * SIZE.h * tune.size) / 100) * 0.6
@@ -853,7 +853,7 @@ const createFluid = () => {
     fluid = new WebGLFluid(containerRef.value)
     fluid.setConfig({
       simResolution: 128,
-      // ความละเอียดสีบนจอทั่วไป 768 (เดิม 1024) และ pressure 12 รอบ (ไลบรารีตั้งต้น 20): วัดแล้วผลภาพเหมือนเดิม (ความเข้มรอบจุด/พื้นที่ ต่างไม่เกิน 0.3%) แต่ GPU เบาลง
+      // ความละเอียดสีบนจอทั่วไป 768 และ pressure 12 รอบ (ไลบรารีตั้งต้น 20): ผลภาพต่างจากค่าสูงกว่าไม่เกิน 0.3% (ความเข้มรอบจุด/พื้นที่) แต่ GPU เบาลง
       dyeResolution: navigator.maxTouchPoints > 1 ? 512 : 768,
       pressure: 0.8,
       pressureIterations: 12,

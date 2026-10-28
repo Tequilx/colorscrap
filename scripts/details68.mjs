@@ -1,5 +1,5 @@
-// สคริปต์ dev (ข้อ 68): หน้าตั้งชื่อ/ปรับแต่งสมุด (โหมดแก้ไข) คอลัมน์ขวา: ตัวอย่างปก → ปุ่มบันทึก → กลุ่มบัญชี ที่ Mac 1280×800 / iPad 1180×820 และ 820×1180 / 375×667 + วัดระยะ
-// AccountActions แสดงเฉพาะโหมดจริง จึง mount ซ้อนเองในหน้า mock (auth.user ปลอม) เหมือนข้อ 53b — แต่ mount ในตำแหน่งที่ App.vue ใช้จริง: ถ้า CoverPreview มีช่อง slot รับกลุ่มบัญชี (หลังแก้) ใช้ช่องนั้น
+// สคริปต์ dev: หน้าตั้งชื่อ/ปรับแต่งสมุด (โหมดแก้ไข) คอลัมน์ขวา: ตัวอย่างปก → ปุ่มบันทึก → กลุ่มบัญชี ที่ Mac 1280×800 / iPad 1180×820 และ 820×1180 / 375×667 + วัดระยะ
+// AccountActions แสดงเฉพาะโหมดจริง จึง mount ซ้อนเองในหน้า mock (auth.user ปลอม) โดย mount ลงช่อง [data-account-slot] ของ CoverPreview (ตำแหน่งเดียวกับที่ใช้จริง)
 //   VITE_USE_MOCK=true npm run dev -- --port 5199
 //   PLAYWRIGHT=… node scripts/details68.mjs <before|after>
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'

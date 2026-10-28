@@ -58,7 +58,7 @@ const drawHeader = (ctx, brand, dateText) => {
 }
 
 // ท้ายการ์ด: เส้นประ + "โดย {ชื่อ}" (ซ่อนถ้าไม่มีชื่อ) + "สมุดระบายความรู้สึก"
-// bottom = ระยะจากขอบล่างการ์ด, padTop = ช่องไฟใต้เส้นประ (7a: 48/20, 7b: 52/22)
+// bottom = ระยะจากขอบล่างการ์ด, padTop = ช่องไฟใต้เส้นประ
 const drawFooter = (ctx, maskedName, bottom, padTop) => {
   const content = Math.max(28 * LINE.hand.box, 22 * LINE.body.box)
   const top = CARD_H - bottom - (2 + padTop + content)
@@ -194,7 +194,7 @@ export const renderPhotoCard = async ({ entry, image = null, userName = '' }) =>
 // กรอบสีของวันและแถบสีของวันเป็น SVG เดียวกับในสมุด (lib/dayFrame.js, lib/dayRibbon.js) แปลงเป็นภาพแล้ว drawImage: ไม่วาดแถบใหม่ด้วย Canvas 2D
 // ป้ายเวลา/อารมณ์ใต้แถบใช้ layoutRibbon ตัวเดียวกับในแอป (รวมช่วง เยื้องแถว) วางที่สเกล RIB_K
 
-const RIB_K = 1.8 // หน่วยของแถบในแอป → px ของการ์ด (ข้อ 44: ป้าย 11/12px ในแอป → ~20/22px บนการ์ด แถบเตี้ยลงครึ่งหนึ่งเหมือนในแอป)
+const RIB_K = 1.8 // หน่วยของแถบในแอป → px ของการ์ด (ป้าย 11/12px ในแอป → ~20/22px บนการ์ด)
 const RIB_X = 72
 const RIB_W = 936
 
@@ -273,7 +273,7 @@ const drawDayPolaroid = (ctx, e, thumb, slot, x, y) => {
 }
 
 // thumbs: Map entryId → ภาพย่อ (ImageBitmap) หรือไม่มี (ใช้ภาพจำลองจากสี)
-// crop: ภาพชิ้นสีของวัน (ImageBitmap จาก lib/dayCrop.js) หรือ null = วาดก้อนสีเดิม
+// crop: ภาพชิ้นสีของวัน (ImageBitmap จาก lib/dayCrop.js) หรือ null = วาดก้อนสี
 export const renderDayCard = async ({ date, entries, thumbs = new Map(), crop = null, cropInfo = null, userName = '' }) => {
   const list = [...entries].sort((a, b) => a.local_time.localeCompare(b.local_time))
   const day = dayColor(list)

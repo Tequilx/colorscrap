@@ -1,3 +1,4 @@
+// ทดสอบเรขาคณิตแถบสีของวัน: รวมช่วง ป้ายเวลา gradient และ markup (lib/dayRibbon.js)
 import { describe, it, expect } from 'vitest'
 import { BLEND_FRAC, LABEL_GAP, LABEL_NONE_MIN, gradientStops, groupLabel, groupRuns, jaggedOffsets, labelsHeight, layoutRibbon, ribbonCaption, ribbonSvgMarkup, sortedByTime, sweepPolygon, textWidth, timeIcon } from './dayRibbon'
 

@@ -1,3 +1,4 @@
+// ทดสอบตัววัดหมึก/พื้นที่สีของผ้าใบ (src/dev/fluidMetrics.js)
 import { describe, expect, it } from 'vitest'
 import { colorCentroids, meanAbsDiff, measureInk } from '@/dev/fluidMetrics'
 

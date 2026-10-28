@@ -1,3 +1,4 @@
+// รายการภาพในสมุด: โหลดสรุปรายวันและรายละเอียดต่อวัน, บันทึกภาพใหม่, อัปโหลด และข้อมูลจำลอง (mock)
 import { defineStore } from 'pinia'
 import { ref, computed, markRaw, shallowReactive } from 'vue'
 import { saveRecord, loadRecords, deleteRecord } from '@/lib/imageStore'
@@ -53,7 +54,7 @@ const MOCK = [
   [6, '14:20', 'angry', 2, true],
 ]
 
-// ข้อ 63: ข้อมูลจำลองย้อนหลัง 7–45 วัน มีวันว่างปน (ทดสอบแท็บ 4 วัน + ปฏิทิน) แน่นอนทุกครั้ง ไม่สุ่ม
+// ข้อมูลจำลองย้อนหลัง 7–45 วัน มีวันว่างปน (ทดสอบแท็บ 4 วัน + ปฏิทิน) แน่นอนทุกครั้ง ไม่สุ่ม
 const EMOTIONS = ['happy', 'calm', 'excited', 'warm', 'sad', 'angry', 'anxious', 'tired']
 const WARMABLE = ['sad', 'angry', 'anxious', 'tired'] // เฉพาะอารมณ์ลบที่มีโทนอุ่น (SPEC §6.4)
 for (let back = 7; back <= 45; back++) {
@@ -123,7 +124,7 @@ export const useEntriesStore = defineStore('entries', () => {
       return
     }
     const uid = auth.user.id
-    // ข้อ 63: ดึงสรุปรายวันทั้งสมุด (เบา ครั้งเดียว) แล้วรายละเอียดเฉพาะวันที่ต้องใช้ตอนเปิด: 7 วันล่าสุด (แถบหน้าปก) + 3 วันล่าสุดที่มีภาพ (แท็บบนปก) + วันล่าสุด
+    // ดึงสรุปรายวันทั้งสมุด (เบา ครั้งเดียว) แล้วรายละเอียดเฉพาะวันที่ต้องใช้ตอนเปิด: 7 วันล่าสุด (แถบหน้าปก) + 3 วันล่าสุดที่มีภาพ (แท็บบนปก) + วันล่าสุด
     const summaries = await fetchDaySummaries()
     daySummaries.value = summariesToDays(summaries)
     const bootDates = bootDatesOf(daySummaries.value.map((d) => d.date))
@@ -145,7 +146,7 @@ export const useEntriesStore = defineStore('entries', () => {
     await imageUrls.prefetch(rows.map((e) => e.thumb_path))
   }
 
-  // ---- รายวัน (ข้อ 63) ----
+  // ---- รายวัน ----
   // daySummaries: [{ date, hex }] ของทุกวันที่มีภาพบนเซิร์ฟเวอร์ (โหมดจำลองไม่ใช้ ใช้ entries ทั้งหมดแทน) · loaded = วันที่ดึงรายละเอียดแล้ว
   const daySummaries = ref([])
   const loaded = shallowReactive(new Set())
@@ -231,7 +232,7 @@ export const useEntriesStore = defineStore('entries', () => {
     return dates.value.slice(-3).map((date) => ({ date, hex: dayHex(date), day: parseLocalDate(date) }))
   })
 
-  // วันที่ที่มีบันทึก เรียงเก่า → ใหม่ (ข้อ 63: สรุปรายวันจากเซิร์ฟเวอร์ + วันของ entry ที่โหลด/เพิ่งบันทึกในเครื่อง)
+  // วันที่ที่มีบันทึก เรียงเก่า → ใหม่ (สรุปรายวันจากเซิร์ฟเวอร์ + วันของ entry ที่โหลด/เพิ่งบันทึกในเครื่อง)
   const dates = computed(() => [...new Set([...daySummaries.value.map((d) => d.date), ...entries.value.map((e) => e.local_date)])].sort())
   // สีเด่นของวัน: วันที่โหลดรายละเอียดแล้วคำนวณจาก entries จริง (รวมภาพใหม่) ไม่งั้นใช้สรุปรายวัน
   const dayHex = (date) => {

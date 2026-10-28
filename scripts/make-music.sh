@@ -1,7 +1,7 @@
 #!/bin/sh
-# ข้อ 61a: เตรียมไฟล์เพลงคลอจากต้นฉบับใน docs/design/audio-src/music-<day|night>-src.mp3 → src/assets/audio/music-<day|night>.mp3
+# เตรียมไฟล์เพลงคลอจากต้นฉบับใน docs/design/audio-src/music-<day|night>-src.mp3 → src/assets/audio/music-<day|night>.mp3
 #  - ตัดความเงียบหัว/ท้าย (head/end วัดด้วย silencedetect -50 dB) · เพลงต้องมีเสียงภายใน 0.3 วินาทีแรก
-#  - ทำ loop ให้ต่อกันเนียน: ท้ายไฟล์ = crossfade (equal power, X วินาที) ของช่วงท้าย → ช่วงหัวเดิม แล้วไฟล์เริ่มที่ S วินาที (ข้ามช่วงนำเข้าที่เบาเกินไป)
+#  - ทำ loop ให้ต่อกันเนียน: ท้ายไฟล์ = crossfade (equal power, X วินาที) ของช่วงท้าย → ช่วงหัวของไฟล์ แล้วไฟล์เริ่มที่ S วินาที (ข้ามช่วงนำเข้าที่เบาเกินไป)
 #    ดังนั้นตอน <audio loop> วนจากท้ายกลับหัว เนื้อเพลงต่อกันพอดี ไม่มีช่องเงียบ ไม่มีรอยตัด
 #  - เข้ารหัส stereo mp3 112 kbps (LAME ใส่ header gapless ให้) ไฟล์ใน src/assets จะถูก Vite ใส่ hash ในชื่อ → cache ยาวได้ (vercel.json / public/_headers)
 # ใช้: sh scripts/make-music.sh   (ต้องมี ffmpeg)

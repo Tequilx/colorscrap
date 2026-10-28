@@ -1,7 +1,7 @@
-// ชิ้นสีของวัน (ข้อ 49, 50i): ครอปจากภาพที่ผู้ใช้ระบายจริง ใช้ในกรอบ "สีของวัน" ของจานสีในสมุดและการ์ดเก็บรูปของวัน (ผลครอปและชื่อเดียวกัน)
+// ชิ้นสีของวัน: ครอปจากภาพที่ผู้ใช้ระบายจริง ใช้ในกรอบ "สีของวัน" ของจานสีในสมุดและการ์ดเก็บรูปของวัน (ผลครอปและชื่อเดียวกัน)
 // ทางหลัก: ใช้สีผสมของวัน (ที่ชื่อสีอ้างถึง) เป็นเป้าหมาย ค้นทุกภาพของวัน (ภาพย่อ ~128px) หาภาพ+ตำแหน่งที่ใกล้สีเป้าหมายมากที่สุด แล้วครอปจากภาพเต็ม
-// ทาง fallback: ไม่มีภาพที่มีสีนี้จริง (คะแนน < MIN_MATCH) → ครอปส่วนที่สีเยอะสุดของภาพที่เลือกตามข้อ 49 แล้วตั้งชื่อสีใหม่จากชิ้นนั้น
-// โหลดภาพ: Blob ในเครื่อง / signed URL ที่ imageUrls cache ไว้แล้ว (ภาพย่อ ไม่ขอ URL ใหม่) / loadEntryBitmap ตัวเดิม (ภาพเต็ม 1 ครั้งต่อวันเฉพาะภาพที่ชนะ) ผลเก็บในหน่วยความจำต่อวัน
+// ทาง fallback: ไม่มีภาพที่มีสีนี้จริง (คะแนน < MIN_MATCH) → ครอปส่วนที่สีเยอะสุดของภาพที่เลือก (cropWindow.bestWindow) แล้วตั้งชื่อสีใหม่จากชิ้นนั้น
+// โหลดภาพ: Blob ในเครื่อง / signed URL ที่ imageUrls cache ไว้แล้ว (ภาพย่อ ไม่ขอ URL ใหม่) / loadEntryBitmap (ภาพเต็ม 1 ครั้งต่อวันเฉพาะภาพที่ชนะ) ผลเก็บในหน่วยความจำต่อวัน
 import { oklabToHex, hexToOklab } from '@/lib/color'
 import { C, canvasToBlob, makeCanvas } from '@/lib/share/cardDraw'
 import { bestWindow, bestWindowOf, dominantOfPixels, MIN_MATCH, pickSourceEntry, SAMPLE_LONG, scaleWindow, targetScores } from '@/lib/cropWindow'
@@ -30,7 +30,7 @@ const mockPainting = async (entry, w = MOCK_W) => {
   return canvas
 }
 
-// ภาพย่อสำหรับค้น: Blob ในเครื่อง ไม่งั้นใช้ signed URL ที่ cache ไว้แล้วของภาพย่อ ไม่มีก็ใช้ตัวโหลดเดิม
+// ภาพย่อสำหรับค้น: Blob ในเครื่อง ไม่งั้นใช้ signed URL ที่ cache ไว้แล้วของภาพย่อ ไม่มีก็ใช้ loadEntryBitmap
 const loadSample = async (entry) => {
   if (entry.thumb) return createImageBitmap(entry.thumb)
   if (entry.thumb_path) {
@@ -40,7 +40,7 @@ const loadSample = async (entry) => {
         const res = await fetch(url)
         if (res.ok) return await createImageBitmap(await res.blob())
       } catch {
-        /* ใช้ตัวโหลดเดิมแทน */
+        /* ใช้ loadEntryBitmap แทน */
       }
     }
     return loadEntryBitmap(entry, 'thumb')
@@ -87,7 +87,7 @@ const compute = async (entries) => {
   const best = samples.reduce((a, b) => (b.win.mean > a.win.mean ? b : a))
   const viaTarget = best.win.mean >= MIN_MATCH
 
-  // 2) เลือกภาพ+หน้าต่าง: ทางหลักตามสีเป้าหมาย / fallback ข้อ 49 (ภาพต้นทาง = ถูกใจ/ล่าสุด หน้าต่างที่สีเยอะสุด)
+  // 2) เลือกภาพ+หน้าต่าง: ทางหลักตามสีเป้าหมาย / fallback (ภาพต้นทาง = ถูกใจ/ล่าสุด หน้าต่างที่สีเยอะสุด)
   let pick = best
   let win = best.win
   if (!viaTarget) {

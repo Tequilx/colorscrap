@@ -73,7 +73,7 @@
           @click="profile.toggleLike(l)"
         >{{ l }}</HandButton>
       </div>
-      <!-- โปรไฟล์เดิมที่บันทึกไว้เกิน 3: แสดงที่เลือกไว้ทั้งหมดและบอกให้เอาออก (ปุ่มบันทึกกดไม่ได้จนเหลือ ≤ 3) -->
+      <!-- โปรไฟล์ที่บันทึกไว้เกิน 3: แสดงที่เลือกไว้ทั้งหมดและบอกให้เอาออก (ปุ่มบันทึกกดไม่ได้จนเหลือ ≤ 3) -->
       <span v-if="profile.likesTooMany" role="alert" class="text-14 text-ink">เลือกไว้เกิน {{ MAX_LIKES }} อย่าง กดอันที่เลือกไว้เพื่อเอาออกให้เหลือ {{ MAX_LIKES }} อย่าง</span>
       <span v-else-if="profile.likes.length >= MAX_LIKES" class="text-14 text-ink-soft">ครบแล้ว กดอันที่เลือกไว้เพื่อเอาออก</span>
     </div>

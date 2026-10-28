@@ -1,5 +1,5 @@
 <template>
-  <!-- ปฏิทินเดือนเล็กแบบกระดาษแปะบนหน้าขวา (ข้อ 63): เลือกวันที่มีภาพแล้วพลิกไปวันนั้น -->
+  <!-- ปฏิทินเดือนเล็กแบบกระดาษแปะบนหน้าขวา: เลือกวันที่มีภาพแล้วพลิกไปวันนั้น -->
   <Teleport to="body" :disabled="!small">
   <Transition name="cal">
     <div v-if="open" ref="panel" role="dialog" aria-label="ปฏิทินเลือกวัน จุดสีคือสีเด่นของวันนั้น วันที่ไม่มีภาพกดไม่ได้" class="absolute top-[20px] z-[40] box-border w-[380px] rounded-[6px] border border-edge bg-card px-[18px] pb-3 pt-6 shadow-card" :style="placement" @keydown="onPanelKey">
@@ -60,7 +60,7 @@ const WEEK = ['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส']
 const panel = ref(null)
 
 // เวที 1280×800 ย่อตามหน้าจอ (Stage.vue: min(กว้าง/1280, สูง/800)) บนจอเล็กหรือไอแพดแนวตั้ง (ย่อ < 0.8) ปุ่ม 44 หน่วยในเวทีจะเหลือต่ำกว่า 44 px จริง และเวทียัง clip ของที่ใหญ่กว่ากรอบ
-// จึงย้ายปฏิทินออกไปที่ body เป็นแผ่นกลางจอหน่วย px จริง (ปุ่มวัน ≥ 44 px) · จอใหญ่อยู่บนหน้าขวาของสมุดเหมือนเดิม
+// จึงย้ายปฏิทินออกไปที่ body เป็นแผ่นกลางจอหน่วย px จริง (ปุ่มวัน ≥ 44 px) · จอใหญ่อยู่บนหน้าขวาของสมุด
 const stageScale = ref(1)
 const fit = () => (stageScale.value = Math.min(window.innerWidth / 1280, window.innerHeight / 800))
 fit()

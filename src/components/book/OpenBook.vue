@@ -11,7 +11,7 @@
       <span class="h-[18px] w-[18px] rounded-full bg-line"></span>
     </div>
 
-    <!-- ห่อหน้าซ้าย/ขวาด้วย display: contents (ไม่มีกล่อง ตำแหน่งลูกเหมือนเดิม) ให้เก็บภาพหน้าเดิมและซ่อนระหว่างพลิกได้ -->
+    <!-- ห่อหน้าซ้าย/ขวาด้วย display: contents (ไม่มีกล่อง ตำแหน่งลูกไม่เปลี่ยน) ให้เก็บภาพหน้าเดิมและซ่อนระหว่างพลิกได้ -->
     <div ref="leftWrap" class="contents">
     <PhotoPage
       v-if="date"
@@ -41,14 +41,14 @@
     <!-- หน้าเก่าฝั่งที่แผ่นจะไปลง (สำเนา) คงอยู่ใต้แผ่นจนแผ่นลงถึง แล้วจางให้เห็นหน้าใหม่ -->
     <div ref="turnUnder" class="turn-snap pointer-events-none invisible absolute top-[14px] z-[30] h-[612px] w-[492px] overflow-hidden" inert :class="turnSide === 'right' ? 'left-[14px]' : 'left-[506px]'" aria-hidden="true"></div>
 
-    <!-- z-[30]/[31] (ข้อ 61b): ชั้นของหน้ามี z-index ในตัว (.leaf-layer 1, ปุ่ม/LeafPager 10) ต้องให้สำเนาหน้าเก่าและแผ่นที่พลิกอยู่เหนือทั้งหมดเสมอ ทั้ง next และ prev
-    พลิกหน้าหนังสือรอบสันกลางตอนเปลี่ยนวัน (ข้อ 38): แผ่นกระดาษหน้าเดิม (หน้าหน้า = สำเนาของหน้าเก่า หลัง = กระดาษ) -->
+    <!-- z-[30]/[31]: ชั้นของหน้ามี z-index ในตัว (.leaf-layer 1, ปุ่ม/LeafPager 10) ต้องให้สำเนาหน้าเก่าและแผ่นที่พลิกอยู่เหนือทั้งหมดเสมอ ทั้ง next และ prev
+    พลิกหน้าหนังสือรอบสันกลางตอนเปลี่ยนวัน: แผ่นกระดาษหน้าเดิม (หน้าหน้า = สำเนาของหน้าเก่า หลัง = กระดาษ) -->
     <div ref="turnEl" class="pointer-events-none invisible absolute top-[14px] z-[31] h-[612px] w-[492px]" inert :class="turnSide === 'right' ? 'left-[506px]' : 'left-[14px]'" aria-hidden="true">
       <div ref="turnShadow" class="absolute inset-0 opacity-0" :style="{ background: turnSide === 'right' ? 'linear-gradient(to left, rgba(45,43,51,.5), rgba(45,43,51,0) 70%)' : 'linear-gradient(to right, rgba(45,43,51,.5), rgba(45,43,51,0) 70%)' }"></div>
       <div ref="turnFade" class="absolute inset-0">
         <div ref="turnBoard" class="absolute inset-0" :style="{ transformOrigin: turnSide === 'right' ? '0 50%' : '100% 50%', transformStyle: 'preserve-3d' }">
           <div ref="turnFront" class="turn-snap absolute inset-0 overflow-hidden bg-paper [backface-visibility:hidden]"></div>
-          <!-- หลังแผ่น = สำเนาหน้าใหม่ที่แผ่นจะไปลง (ข้อ 62) พลิกไปพร้อมแผ่น ตอนลงถึงหน้าจริงเหมือนกันทุกพิกเซล ไม่มีของโผล่ -->
+          <!-- หลังแผ่น = สำเนาหน้าใหม่ที่แผ่นจะไปลง พลิกไปพร้อมแผ่น ตอนลงถึงหน้าจริงเหมือนกันทุกพิกเซล ไม่มีของโผล่ -->
           <div ref="turnBack" class="turn-snap absolute inset-0 overflow-hidden bg-paper [backface-visibility:hidden]" style="transform: rotateY(180deg)"></div>
         </div>
       </div>
@@ -113,7 +113,7 @@ watch(
   () => (calOpen.value = false),
 )
 
-// ---- พลิกหน้าหนังสือตอนเปลี่ยนวัน (ข้อ 38) ----
+// ---- พลิกหน้าหนังสือตอนเปลี่ยนวัน ----
 // next (วันใหม่กว่า): หน้าขวายกขึ้นแล้วพลิกไปทางซ้ายรอบสันกลาง ไปลงบนหน้าซ้าย · prev (วันเก่ากว่า): หน้าซ้ายยกขึ้นแล้วพลิกกลับไปทางขวา ไปลงบนหน้าขวา
 // ข้อมูลเปลี่ยนทันที (อยู่ใต้แผ่น) หน้าที่แผ่นจะไปลงถูกซ่อนจนแผ่นลงถึงแล้วค่อยจางเผย เงาทอดลงหน้าที่ถูกเปิดเผย
 const leftWrap = ref(null)
@@ -159,7 +159,7 @@ watch(
     const from = (next ? rightWrap : leftWrap).value?.firstElementChild
     const landing = (next ? leftWrap : rightWrap).value?.firstElementChild
     if (!from || !landing) return
-    // สำเนาหน้าเดิม (ก่อนข้อมูลเปลี่ยน: watcher นี้ทำงานก่อน render) ไปไว้หน้าหน้าของแผ่น
+    // สำเนาหน้าเก่า (ก่อนข้อมูลเปลี่ยน: watcher นี้ทำงานก่อน render) ไว้ด้านหน้าของแผ่น
     const clone = snapshot(from)
     clone.style.left = '0px'
     clone.style.top = '0px'
@@ -175,7 +175,7 @@ watch(
     turnEl.value.style.visibility = 'visible'
     landing.style.opacity = '0' // หน้าที่แผ่นจะไปลง ซ่อนไว้จนแผ่นลงถึง
     app.leafFlipping = true
-    // ข้อ 62: แผ่นหยุดอยู่ที่เดิมคลุมหน้าเก่า (ภาพเหมือนก่อนกด) รอให้หน้าปลายทางพร้อมก่อน: ภาพย่อ + ชิ้นสีของวัน (ถ้ายังไม่เคยอุ่น) + decode รูปที่ render แล้ว รวมกันไม่เกิน FLIP_WAIT_MS ไม่ทันก็เริ่มพลิกเลย
+    // แผ่นหยุดคลุมหน้าเก่าไว้ รอให้หน้าปลายทางพร้อมก่อน: ภาพย่อ + ชิ้นสีของวัน + decode รูปที่ render แล้ว รวมกันไม่เกิน FLIP_WAIT_MS ไม่ทันก็เริ่มพลิกเลย
     const turnId = ++currentTurn
     const t0 = performance.now()
     const left = () => FLIP_WAIT_MS - (performance.now() - t0)
@@ -202,7 +202,7 @@ watch(
     refreshTimer = setTimeout(() => turnId === currentTurn && fillBack(), T * 0.84)
     const opts = { duration: T, fill: 'both' }
     const end = next ? -180 : 180
-    // ข้อ 65: ตอนแผ่นลงถึงห้ามมีเลเยอร์ไหนโปร่งใสบางส่วนพร้อมกัน (เดิมแผ่น/สำเนาหน้าเก่า/หน้าจริงเฟดซ้อนกันช่วง 88–100% ความทึบรวมตก เห็นปกแดงทะลุเป็นสีชมพูจาง ๆ แล้วกระโดดกลับในเฟรมเดียว)
+    // ตอนแผ่นลงถึงห้ามมีเลเยอร์ไหนโปร่งใสบางส่วนพร้อมกัน (เฟดซ้อนกันทำให้ความทึบรวมตกจนเห็นปกแดงทะลุเป็นสีชมพูจาง ๆ แล้วกระโดดกลับ)
     // จึงสลับแบบทันที (step) ที่ 88% ขณะแผ่นเกือบแบนและยังทึบเต็มที่: หน้าจริงขึ้นเป็น 1 ใต้แผ่น + สำเนาหน้าเก่าใต้แผ่นหายไป แผ่น (หลัง = สำเนาหน้าใหม่ เหมือนหน้าจริงทุกพิกเซล) อยู่ทึบจนจบ
     const step = (from, to) => [{ opacity: from, offset: 0 }, { opacity: from, offset: 0.88 }, { opacity: to, offset: 0.8801 }, { opacity: to, offset: 1 }]
     turnAnims = [
@@ -231,7 +231,7 @@ watch(
     warmTimer = setTimeout(() => {
       for (const d of [prevDate.value, nextDate.value]) {
         if (!d) continue
-        // ข้อ 63: ดึงรายละเอียดของวันข้างเคียง (ถ้ายังไม่มี) → ภาพย่อ → แล้วชิ้นสีของวัน (ใช้ภาพย่อที่อุ่นแล้ว + ภาพเต็มของภาพที่ชนะ 1 ภาพ ซึ่งต้องโหลดอยู่ดีเมื่อเปิดวันนั้น)
+        // ดึงรายละเอียดของวันข้างเคียง (ถ้ายังไม่มี) → ภาพย่อ → แล้วชิ้นสีของวัน (ใช้ภาพย่อที่อุ่นแล้ว + ภาพเต็มของภาพที่ชนะ 1 ภาพ ซึ่งต้องโหลดอยู่ดีเมื่อเปิดวันนั้น)
         entries
           .ensureDay(d)
           .then(() => {
@@ -239,7 +239,7 @@ watch(
             const leaf = chunk(day, PHOTOS_PER_LEAF).at(-1) ?? []
             return warmEntries(leaf, imageUrls).then(() => getDayCrop(day))
           })
-          .catch(() => {}) // วันข้างเคียงโหลดไม่ได้ตอนนี้ไม่เป็นไร จะโหลดใหม่ตอนเปิดวันนั้น
+          .catch(() => {}) // วันข้างเคียงโหลดไม่ได้ก็ไม่เป็นไร จะโหลดใหม่ตอนเปิดวันนั้น
       }
     }, 300)
   },

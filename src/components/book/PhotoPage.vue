@@ -4,7 +4,7 @@
     <!-- ขอบกระดาษซ้อนกันตามจำนวนแผ่นที่เหลือ -->
     <span v-for="n in Math.max(0, leaves.length - 1)" :key="n" class="absolute inset-x-1.5 h-1.5 rounded-bl border-b-[1.5px] border-l-[1.5px] border-edge" :style="{ bottom: 62 - (n - 1) * 5 + 'px' }" aria-hidden="true"></span>
 
-    <!-- แต่ละแผ่นเป็น layer ของตัวเอง (:key) แผ่นแทรกพลิกขึ้น-ลงรอบแนวเทปด้านบน (rotateX) เมื่อเปลี่ยนแผ่นในวันเดียวกัน (ข้อ 37) ส่วนเปลี่ยนวันพลิกทั้งหน้าที่ OpenBook (ข้อ 38) -->
+    <!-- แต่ละแผ่นเป็น layer ของตัวเอง (:key) แผ่นแทรกพลิกขึ้น-ลงรอบแนวเทปด้านบน (rotateX) เมื่อเปลี่ยนแผ่นในวันเดียวกัน ส่วนเปลี่ยนวันพลิกทั้งหน้าที่ OpenBook -->
     <Transition :name="flipName" :css="flipAnimated" :duration="flipDuration" @before-enter="flipStart" @after-enter="flipEnd" @enter-cancelled="flipEnd" @leave-cancelled="flipEnd">
       <div :key="leafIndex" class="leaf-layer absolute inset-0">
         <!-- แผ่นที่ 1 คือตัวหน้ากระดาษเอง -->

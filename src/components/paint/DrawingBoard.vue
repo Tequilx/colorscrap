@@ -41,7 +41,7 @@
   <div class="pointer-events-none absolute left-0 top-[150px] h-[500px] w-[92px] overflow-hidden rounded-r-xl transition-opacity duration-600 ease-desk" :class="inStrip ? 'opacity-100' : 'opacity-0'" aria-hidden="true">
     <span class="absolute inset-x-0 top-0 h-6 bg-board"></span>
     <span class="absolute inset-x-0 bottom-0 h-6 bg-board"></span>
-    <!-- ภาพจริงที่เพิ่งเซฟล่าสุด (cover จัดกลาง) ยังไม่มีภาพ = ก้อนสีกราฟิกเดิม -->
+    <!-- ภาพจริงที่เพิ่งเซฟล่าสุด (cover จัดกลาง) ยังไม่มีภาพ = ก้อนสีกราฟิก -->
     <img v-if="latestUrl" :src="latestUrl" alt="" draggable="false" class="absolute left-0 top-6 h-[452px] w-16 object-cover" />
     <svg v-else width="64" height="452" viewBox="0 0 64 452" class="absolute left-0 top-6">
       <g class="filter-wc" opacity="0.5">
@@ -93,7 +93,7 @@ const FULL_CLIP = 'inset(0px 0px 0px 0px round 0px 0px 0px 0px)'
 // แถบซ้ายของ book: x 0–92, y 150–650 มุมขวาโค้ง 12px
 const STRIP_CLIP = 'inset(150px 1188px 150px 0px round 0px 12px 12px 0px)'
 
-// wrapper: paint = เต็มจอ | book = แถบซ้าย 92×500 | อื่น ๆ = เลื่อนซ้ายออกนอกจอ (reduced-motion: อยู่ที่เดิมแล้ว fade ด้วย opacity)
+// wrapper: paint = เต็มจอ | book = แถบซ้าย 92×500 | อื่น ๆ = เลื่อนซ้ายออกนอกจอ (reduced-motion: อยู่กับที่แล้ว fade ด้วย opacity)
 const wrapperStyle = computed(() => {
   if (app.view === 'paint') return { transform: 'translateX(0px)', clipPath: FULL_CLIP, opacity: 1 }
   if (inStrip.value) return { transform: 'translateX(0px)', clipPath: STRIP_CLIP, opacity: 1 }

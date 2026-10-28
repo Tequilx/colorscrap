@@ -1,7 +1,7 @@
 <template>
   <!-- หน้า cover: ข้อความและปุ่มฝั่งขวา (สมุดปิดฝั่งซ้ายคือ Scrapbook) — SPEC §5.1 -->
   <div>
-    <!-- ปรับแต่งหน้าตาสมุด (ข้อ 52g): ปุ่มพื้นทึบ 56px + ป้ายใต้ปุ่ม เด่นกว่าปุ่มเสียงที่เป็นกรอบเส้น และแยกกลุ่มจากปุ่มเสียง -->
+    <!-- ปรับแต่งหน้าตาสมุด: ปุ่มพื้นทึบ 56px + ป้ายใต้ปุ่ม เด่นกว่าปุ่มเสียงที่เป็นกรอบเส้น และแยกกลุ่มจากปุ่มเสียง -->
     <div class="absolute right-9 top-6 flex flex-col items-center gap-1">
       <HandButton variant="icon" filled large aria-label="ปรับแต่งหน้าตาสมุด" @click="app.openSettings()">
         <Doodle name="settings" :size="26" />

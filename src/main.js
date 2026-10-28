@@ -1,3 +1,4 @@
+// จุดเริ่มแอป: โหลดบัญชี โปรไฟล์ และสมุดให้เสร็จก่อน แล้วค่อย mount
 import { createApp } from "vue";
 import { createPinia } from "pinia";
 import App from "./App.vue";

@@ -3,7 +3,7 @@ import { BRUSH_HOTSPOT, CURSOR_SIZE, FINGER_HOTSPOT, brushCursor, brushSvg, canv
 
 const decode = (v) => decodeURIComponent(v.match(/base64|charset=utf8,([^"]+)"/)[1])
 
-// SVG ต้องเป็น XML ที่ถูกต้อง: แอตทริบิวต์ซ้ำในแท็กเดียวทำให้เบราว์เซอร์โหลดภาพไม่ได้และเคอร์เซอร์ถอยเป็น auto เงียบ ๆ (เคยพลาดมาแล้ว)
+// SVG ต้องเป็น XML ที่ถูกต้อง: แอตทริบิวต์ซ้ำในแท็กเดียวทำให้เบราว์เซอร์โหลดภาพไม่ได้และเคอร์เซอร์ถอยเป็น auto เงียบ ๆ
 const noDuplicateAttrs = (svg) =>
   [...svg.matchAll(/<[a-zA-Z][^>]*>/g)].every(([tag]) => {
     const names = [...tag.matchAll(/\s([a-zA-Z:-]+)=/g)].map((m) => m[1])

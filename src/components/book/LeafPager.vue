@@ -1,3 +1,4 @@
+<!-- ปุ่มเลื่อนแผ่นก่อนหน้า/ถัดไป และตัวบอก "แผ่น n / N" ของวันที่มีหลายแผ่น -->
 <template>
   <div class="absolute inset-x-0 bottom-0 z-10 flex items-center justify-center gap-2.5">
     <button type="button" aria-label="แผ่นก่อนหน้า" :disabled="index === 0" class="flex h-11 w-11 cursor-pointer items-center justify-center border-0 bg-transparent p-0 text-ink disabled:cursor-not-allowed disabled:opacity-30" @click="$emit('go', index - 1)">

@@ -28,7 +28,7 @@
       </ul>
     </div>
 
-    <!-- 3. สีของวันนี้: แถบสีของวันปาดช่วงสุดท้าย + ก้อนสีของวันเปลี่ยนจากสีเดิมเป็นสีใหม่ที่ ~1.5 วิ (ชื่อเดิมเทาขีดฆ่า ชื่อใหม่ตัวหนา) -->
+    <!-- 3. สีของวันนี้: แถบสีของวันปาดช่วงสุดท้าย + ก้อนสีของวันเปลี่ยนจากสีก่อนบันทึกเป็นสีใหม่ที่ ~1.5 วิ (ชื่อเก่าเทาขีดฆ่า ชื่อใหม่ตัวหนา) -->
     <div class="flex flex-col gap-1 border-t-[1.5px] border-dashed border-line py-[22px]">
       <div class="flex items-baseline gap-2">
         <span class="font-hand text-17 font-semibold">{{ !before.length ? 'สีแรกของวันนี้' : unchanged ? 'สีของวันนี้ยังคงเดิม' : 'สีของวันนี้' }}</span>
@@ -36,10 +36,10 @@
       </div>
       <DayRibbon :entries="day" highlight-last animate="paintLast" :width="RIBBON_W" />
       <div class="relative mt-1 h-[64px]">
-        <!-- ก้อนสีของวัน: สีเดิมจางออก สีใหม่จางเข้า -->
+        <!-- ก้อนสีของวัน: สีเก่าจางออก สีใหม่จางเข้า -->
         <WatercolorBlob class="absolute left-0 top-2 transition-opacity duration-600 ease-desk" :class="changed ? 'opacity-0' : 'opacity-100'" :color="beforeMix" :width="76" :height="54" :opacity="0.85" />
         <WatercolorBlob class="absolute left-0 top-2 transition-opacity duration-600 ease-desk" :class="changed || !before.length ? 'opacity-100' : 'opacity-0'" :color="afterMix" :width="76" :height="54" :opacity="0.85" />
-        <!-- ชื่อ: ก่อนเปลี่ยนแสดงชื่อเดิมตัวหนา หลังเปลี่ยนเหลือชื่อเดิมเทาขีดฆ่าตัวเล็ก + ชื่อใหม่ตัวหนา -->
+        <!-- ชื่อ: ก่อนเปลี่ยนแสดงชื่อตัวหนา หลังเปลี่ยนเหลือชื่อเก่าเทาขีดฆ่าตัวเล็ก + ชื่อใหม่ตัวหนา -->
         <div class="absolute left-[92px] right-0 top-0 flex h-full flex-col justify-center transition-opacity duration-450 ease-desk" :class="showOld ? 'opacity-100' : 'opacity-0'">
           <span class="font-hand text-[22px] font-semibold leading-stack">{{ beforeName }}</span>
         </div>
@@ -90,10 +90,10 @@ const beforeMix = computed(() => beforeColor.value?.mix ?? afterColor.value?.mix
 const afterMix = computed(() => afterColor.value?.mix ?? PALETTE['paper-deep'])
 const beforeName = computed(() => beforeColor.value?.name.full ?? afterColor.value?.name.full ?? '')
 const afterName = computed(() => afterColor.value?.name.full ?? '')
-// ส่วนสีของชื่อ (กลุ่มสี + ตัวขยาย) ก่อนและหลังบันทึกเหมือนกัน ไม่นับช่วงเวลา แสดงว่ายังคงเดิมแทนที่จะขีดฆ่า
+// ส่วนสีของชื่อ (กลุ่มสี + ตัวขยาย) ก่อนและหลังบันทึกเหมือนกัน ไม่นับช่วงเวลา แสดงว่ายังเป็นสีเดิมแทนที่จะขีดฆ่า
 const unchanged = computed(() => before.value.length > 0 && sameColorName(beforeColor.value, afterColor.value))
 
-// ที่ ~1.5 วิ (หลังแถบปาดช่วงสุดท้ายเกือบจบ) ก้อนสี/ชื่อของวันเปลี่ยนเป็นของใหม่ ภาพแรกของวัน/ชื่อไม่เปลี่ยนไม่ต้องรอ
+// ที่ ~1.5 วิ (หลังแถบปาดช่วงสุดท้ายเกือบจบ) ก้อนสี/ชื่อของวันเปลี่ยนเป็นของใหม่ ภาพแรกของวันหรือชื่อไม่เปลี่ยนก็ไม่ต้องรอ
 const changed = ref(false)
 const showOld = computed(() => before.value.length > 0 && !unchanged.value && !changed.value)
 let timer = 0

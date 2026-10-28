@@ -1,3 +1,4 @@
+// ทดสอบความสว่างและสีจางของ lib/color.js
 import { describe, it, expect } from 'vitest'
 import { PALE_L, isPale, lightnessOf } from './color'
 

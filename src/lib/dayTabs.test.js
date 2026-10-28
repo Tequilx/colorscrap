@@ -1,3 +1,4 @@
+// ทดสอบแท็บวันเลื่อนตามวันที่เปิดและฟังก์ชันของปฏิทิน (lib/dayTabs.js)
 import { describe, it, expect } from 'vitest'
 import { bootDatesOf, clampMonth, monthCells, monthIndex, monthOfIndex, monthRange, slideStart, summariesToDays } from './dayTabs'
 

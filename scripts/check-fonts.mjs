@@ -1,4 +1,4 @@
-// ตรวจฟอนต์ออฟไลน์ (ข้อ 43): บล็อก fonts.googleapis.com / fonts.gstatic.com แล้วเดินหลายหน้า ฟอนต์ Mali 400–700 / IBM Plex Sans Thai Looped 400–600 ต้องโหลดจากไฟล์ของแอปเอง
+// ตรวจฟอนต์ออฟไลน์: บล็อก fonts.googleapis.com / fonts.gstatic.com แล้วเดินหลายหน้า ฟอนต์ Mali 400–700 / IBM Plex Sans Thai Looped 400–600 ต้องโหลดจากไฟล์ของแอปเอง
 //   VITE_USE_MOCK=true npm run dev -- --port 5199
 //   PW=/path/to/playwright/index.mjs node scripts/check-fonts.mjs <ไฟล์ภาพ-prefix>   (ใส่ 'open' เป็นอาร์กิวเมนต์ที่ 2 เพื่อไม่บล็อก)
 const { chromium } = await import(process.env.PW || process.env.PLAYWRIGHT)

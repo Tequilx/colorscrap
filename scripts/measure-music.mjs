@@ -1,4 +1,4 @@
-// สคริปต์ dev (ข้อ 61a): วัดเวลาจากแตะครั้งแรก → เพลงเริ่มดัง บน throttle Fast 4G (CDP: 9 Mbps ลง, หน่วง 150 ms)
+// สคริปต์ dev : วัดเวลาจากแตะครั้งแรก → เพลงเริ่มดัง บน throttle Fast 4G (CDP: 9 Mbps ลง, หน่วง 150 ms)
 // "เริ่มดัง" = window.__music().playing (ต้อง ?debug บน dev server): มีแทร็กและเล่นไปแล้ว (เวลา > 0 และบัสไม่เป็น 0 หลังเปิดเสียง)
 //   1) VITE_USE_MOCK=true npm run dev -- --port 5199
 //   2) PLAYWRIGHT=… node scripts/measure-music.mjs [--url http://localhost:5199] [--time day|night] [--tapAfter 1500] [--net fast4g|none]

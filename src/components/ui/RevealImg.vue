@@ -1,5 +1,5 @@
 <template>
-  <!-- รูปที่ไม่กะพริบ (ข้อ 62): รูปที่พร้อมแล้วตอนติดตั้ง (หรือโหลดเสร็จเร็วกว่า FAST_MS) แสดงทันทีไม่เฟด · รูปที่ยังไม่พร้อม แสดงพื้นกระดาษของกรอบก่อน (opacity 0) แล้ว decode เสร็จค่อย opacity 0→1 200 ms ease-out
+  <!-- รูปที่ไม่กะพริบ: รูปที่พร้อมแล้วตอนติดตั้ง (หรือโหลดเสร็จเร็วกว่า FAST_MS) แสดงทันทีไม่เฟด · รูปที่ยังไม่พร้อม แสดงพื้นกระดาษของกรอบก่อน (opacity 0) แล้ว decode เสร็จค่อย opacity 0→1 200 ms ease-out
        เปลี่ยน src ภายหลัง (เช่น ภาพย่อ → ภาพเต็ม) ไม่เฟดซ้ำ reduced-motion: ไม่เฟด (ปรากฏทันทีเมื่อพร้อม) -->
   <img ref="el" :src="src" :alt="alt" draggable="false" :class="[cls, pending ? 'opacity-0' : 'opacity-100', fading ? 'reveal-fade' : '']" @load="onLoad" @error="pending = false" />
 </template>

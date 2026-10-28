@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# เตรียมเสียงจุ่มพู่กันจากต้นฉบับ docs/design/audio-src/ (ข้อ 56): ตัดเงียบหัว ยาว ≤ 600 ms fade out 100 ms ตัด < 120 Hz (2 ชั้น) mono แล้วปรับยอด −6 dBFS → mp3 96 kbps
-# ใช้: scripts/make-dip-sfx.sh   (สร้างเฉพาะ src/assets/sfx/dip-1.mp3 จาก docs/design/audio-src/dip-b.mp3; ข้อ 57 เอา dip-a ออก)
+# เตรียมเสียงจุ่มพู่กันจากต้นฉบับ docs/design/audio-src/: ตัดเงียบหัว ยาว ≤ 600 ms fade out 100 ms ตัด < 120 Hz (2 ชั้น) mono แล้วปรับยอด −6 dBFS → mp3 96 kbps
+# ใช้: scripts/make-dip-sfx.sh   (สร้างเฉพาะ src/assets/sfx/dip-1.mp3 จาก docs/design/audio-src/dip-b.mp3)
 #      scripts/make-dip-sfx.sh <ต้นฉบับ> <ปลายทาง> สำหรับไฟล์อื่น
 set -euo pipefail
 in="${1:-docs/design/audio-src/dip-b.mp3}"; out="${2:-src/assets/sfx/dip-1.mp3}"

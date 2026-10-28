@@ -1,3 +1,4 @@
+// คิวอัปโหลดภาพที่ค้างใน IndexedDB ขึ้น Supabase: ลองใหม่เมื่อพลาดหรือกลับมาออนไลน์ และรอจนลำดับบันทึกจบก่อน
 import { defineStore } from 'pinia'
 import { USE_MOCK } from '@/lib/supabase'
 import { loadRecords } from '@/lib/imageStore'

@@ -1,5 +1,5 @@
 <template>
-  <!-- ปกสมุดที่พลิกรอบสันซ้ายของหน้าขวา (เฉพาะหน้าแรก ↔ สมุด) (ข้อ 22): วางทับหน้าขวาของสมุดเปิด 506×640 (พิกัดในชั้นสมุดเปิด จึงตามการซูมของหน้า saved เอง)
+  <!-- ปกสมุดที่พลิกรอบสันซ้ายของหน้าขวา (เฉพาะหน้าแรก ↔ สมุด): วางทับหน้าขวาของสมุดเปิด 506×640 (พิกัดในชั้นสมุดเปิด จึงตามการซูมของหน้า saved เอง)
        หน้าหน้า = ปกสมุดปิด (BookCover) หน้าหลัง = กระดาษในปก (backface-visibility hidden) เวลาพลิก ~1.3 วิ มีเงาของปกทอดลงหน้าขวา
        ใช้ transform/opacity เท่านั้น (WAAPI) พักอยู่ในสถานะซ่อน ไม่ทำงานเมื่อ reduced-motion (Scrapbook ไม่เรียก) -->
   <div class="pointer-events-none absolute left-[506px] top-0 h-[640px] w-[506px]" aria-hidden="true">
@@ -31,7 +31,7 @@ defineProps({
   name: { type: String, default: '' },
   avatar: { type: String, default: 'cat' },
   likes: { type: Array, default: () => [] },
-  tabs: { type: Array, default: () => [] }, // แท็บคั่นหน้าบนปก ติดไปกับปกที่พลิก (ข้อ 41)
+  tabs: { type: Array, default: () => [] }, // แท็บคั่นหน้าบนปก ติดไปกับปกที่พลิก
 })
 
 const boardRef = ref(null)

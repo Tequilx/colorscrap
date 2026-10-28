@@ -1,4 +1,4 @@
-// สคริปต์ dev ถ่ายภาพก่อน/หลังของข้อ 53 (a เทปหน้าปรับแต่งสมุด, b ปุ่มบัญชีห่างขอบล่าง) ที่ 1280×800, iPad 1180×820 และ 375×667
+// สคริปต์ dev ถ่ายภาพก่อน/หลังของหน้าปรับแต่งสมุด (เทป, ปุ่มบัญชีห่างขอบล่าง) ที่ 1280×800, iPad 1180×820 และ 375×667
 // AccountActions แสดงเฉพาะโหมดจริง จึง mount ซ้อนเองในหน้า mock (auth.user ปลอม) เพื่อวัดตำแหน่ง
 //   VITE_USE_MOCK=true npm run dev -- --port 5199
 //   PLAYWRIGHT=/path/to/playwright-core/index.mjs node scripts/details53.mjs <before|after> [--url http://localhost:5199]

@@ -1,3 +1,4 @@
+// ทดสอบส่วนที่ไม่ใช้ AudioContext ของ lib/sound.js: ระดับเสียงตามอารมณ์ กลุ่มเสียง ฯลฯ
 import { describe, it, expect } from 'vitest'
 import { sfxBase, SFX_NAMES, hasSfx, sfxUrls, MAX_VOICES, SOFT_CEILING, bloomEnvelope, BELL_SCALE, pickBellNotes, createVoicePool, pitchOf, readEnabled, softClipCurve } from './sound'
 

@@ -1,3 +1,4 @@
+// ทดสอบการเลือกแทร็กเพลงคลอ เวที fade และระดับเสียงเพลง (lib/music.js, lib/sound.js)
 import { describe, it, expect } from 'vitest'
 import { CROSSFADE_MS, FADE_IN_MS, trackOf, urlOf } from './music'
 import { MASTER_GAIN, MUSIC_BASE, MUSIC_DUCK, readEnabled } from './sound'

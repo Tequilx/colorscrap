@@ -1,3 +1,4 @@
+// ทดสอบตารางเวลาของลำดับบันทึกลงสมุด (lib/saveTimeline.js)
 import { describe, expect, it } from 'vitest'
 import { PAPER, POLAROID, ZOOM, flightPoses, poseTransform, saveSchedule, slotCenter } from '@/lib/saveTimeline'
 import { FIRST_LEAF_SLOTS, INSERT_LEAF_SLOTS } from '@/lib/photos'
