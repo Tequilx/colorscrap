@@ -1,89 +1,102 @@
 <template>
   <!-- หน้าขวา: จานสีประจำวัน (SPEC §5.7) -->
-  <div class="absolute left-[506px] top-[14px] h-[612px] w-[492px] rounded-[0_6px_6px_0] bg-paper shadow-[inset_18px_0_22px_-16px_rgba(45,43,51,0.35)]">
+  <div
+    class="absolute left-[506px] top-[14px] h-[612px] w-[492px] rounded-[0_6px_6px_0] bg-paper shadow-[inset_18px_0_22px_-16px_rgba(45,43,51,0.35)]">
     <!-- หน้า saved: การ์ดทับหน้านี้อยู่ ซ่อนเนื้อหาทั้งหมด เหลือแต่กระดาษ -->
     <!-- ออก: fade, เข้า: ทีละส่วนตาม bookTick (ไม่เล่นซ้ำตอนพลิกแผ่น/เปลี่ยนวัน เพราะ key เปลี่ยนเฉพาะตอนเข้า book) -->
     <Transition leave-active-class="fade-leave-active" leave-to-class="fade-leave-to">
-    <div v-if="!hidden" class="absolute inset-0">
-    <!-- key = bookTick: เข้า book ใหม่แล้วสร้างเนื้อหาใหม่ (แทนที่ทันที ไม่มี fade ซ้อน) เพื่อเล่นการปรากฏทีละส่วนใหม่ -->
-    <div :key="app.bookTick" class="absolute inset-0">
-      <!-- หัวข้อ + จำนวนภาพใต้หัวข้อ (ซ้าย) กับปุ่ม "เก็บรูป" ที่เก็บการ์ดจานสีของวันที่เปิดอยู่ (ขวา) วันที่ไม่มีภาพปุ่มกดไม่ได้ -->
-      <div class="absolute left-10 top-[22px] flex w-[412px] items-center justify-between">
-        <div class="flex flex-col gap-1">
-          <span class="whitespace-nowrap font-hand text-26 font-semibold leading-head">{{ title }}</span>
-          <span v-if="entries.length" class="whitespace-nowrap text-13 text-ink-soft">{{ entries.length }} ภาพ · {{ moodCount }} อารมณ์</span>
-        </div>
-        <button
-          type="button"
-          class="relative inline-flex min-h-[44px] cursor-pointer items-center gap-1.5 border-0 bg-transparent py-0 pl-2.5 pr-3.5 font-hand text-15 font-semibold text-ink aria-disabled:cursor-not-allowed aria-disabled:opacity-40"
-          aria-label="เก็บจานสีวันนี้เป็นรูป"
-          :aria-disabled="canSave ? undefined : 'true'"
-          @click="saveCard"
-        >
-          <span class="pointer-events-none absolute inset-0 rounded-[14px_18px_12px_16px] border-2 border-ink bg-white filter-wob" aria-hidden="true"></span>
-          <span class="relative inline-flex items-center gap-1.5"><Doodle name="download" :size="20" /> {{ share.busy.day ? 'กำลังทำรูป…' : 'เก็บรูป' }}</span>
-        </button>
-      </div>
-
-      <p v-if="!entries.length" class="pal-rise absolute left-10 top-[120px] m-0 w-[412px] text-16 leading-[1.7] text-ink-soft" :style="reveal(1, 'rise')">ยังไม่มีสีของวันนี้ ลองระบายสักภาพแล้วสีจะมารวมกันตรงนี้</p>
-
-      <template v-else>
-        <!-- สีของวัน: ชิ้นภาพจริงของวัน ในกรอบโพลารอยด์ขาวเดียวกับภาพในสมุด (PolaroidFrame ขอบล่างหนากว่า) เอียง −3° ไม่มีเทป -->
-        <div class="absolute left-10 top-[104px] flex w-[412px] items-center gap-6">
-          <PolaroidFrame class="pal-seep h-[138px] w-[138px] shrink-0 px-2.5 pb-[18px] pt-2.5" :rotate="-3" data-day-frame :style="reveal(0, 'seep')">
-            <!-- ชิ้นที่มีสีมากที่สุดของภาพจริงในวันนั้น (ไม่มี blur/filter) ระหว่างโหลดเป็นพื้นกระดาษเปล่าแล้ว fade เข้า ครอปไม่ได้ = ก้อนสี -->
-            <div class="relative h-full w-full overflow-hidden bg-paper">
-              <RevealImg v-if="cropUrl" :key="cropUrl" :src="cropUrl" cls="absolute inset-0 h-full w-full object-cover" />
-              <template v-else-if="cropFailed">
-                <WatercolorBlob class="absolute left-[-4px] top-[10px]" :color="mix" :width="124" :height="96" :opacity="0.85" />
-                <WatercolorBlob v-if="dominant" class="absolute left-[28px] top-[34px]" :color="dominant" :width="58" :height="42" :opacity="0.7" />
-              </template>
+      <div v-if="!hidden" class="absolute inset-0">
+        <!-- key = bookTick: เข้า book ใหม่แล้วสร้างเนื้อหาใหม่ (แทนที่ทันที ไม่มี fade ซ้อน) เพื่อเล่นการปรากฏทีละส่วนใหม่ -->
+        <div :key="app.bookTick" class="absolute inset-0">
+          <!-- หัวข้อ + จำนวนภาพใต้หัวข้อ (ซ้าย) กับปุ่ม "เก็บรูป" ที่เก็บการ์ดจานสีของวันที่เปิดอยู่ (ขวา) วันที่ไม่มีภาพปุ่มกดไม่ได้ -->
+          <div class="absolute left-10 top-[22px] flex w-[412px] items-center justify-between">
+            <div class="flex flex-col gap-1">
+              <span class="whitespace-nowrap font-hand text-26 font-semibold leading-head">{{ title }}</span>
+              <span v-if="entries.length" class="whitespace-nowrap text-13 text-ink-soft">{{ entries.length }} ภาพ · {{
+                moodCount }} อารมณ์</span>
             </div>
-          </PolaroidFrame>
-          <div class="pal-rise flex min-w-0 flex-col gap-1" :style="reveal(1, 'rise')">
-            <span class="text-13 text-ink-soft">{{ isToday ? 'สีของวันนี้' : 'สีของวัน' }}</span>
-            <span class="font-hand text-26 font-semibold leading-stack">{{ name.colorPart }}<br />{{ name.periodPart }}</span>
+            <button type="button"
+              class="relative inline-flex min-h-[44px] cursor-pointer items-center gap-1.5 border-0 bg-transparent py-0 pl-2.5 pr-3.5 font-hand text-15 font-semibold text-ink aria-disabled:cursor-not-allowed aria-disabled:opacity-40"
+              aria-label="เก็บจานสีวันนี้เป็นรูป" :aria-disabled="canSave ? undefined : 'true'" @click="saveCard">
+              <span
+                class="pointer-events-none absolute inset-0 rounded-[14px_18px_12px_16px] border-2 border-ink bg-white filter-wob"
+                aria-hidden="true"></span>
+              <span class="relative inline-flex items-center gap-1.5">
+                <Doodle name="download" :size="20" /> {{ share.busy.day ? 'กำลังทำรูป…' : 'เก็บรูป' }}
+              </span>
+            </button>
           </div>
-        </div>
 
-        <!-- ส่วนล่างของหน้า เรียงไหลลงเป็นคอลัมน์เดียว: หัวข้อ → แถบสี + ป้าย (สูงตามจำนวนแถวป้าย) → ย่อหน้าสรุป (เว้น 20px จากป้าย) → รายการอารมณ์ (เว้น 12px) เห็น 3 แถวเต็ม
+          <p v-if="!entries.length"
+            class="pal-rise absolute left-10 top-[120px] m-0 w-[412px] text-16 leading-[1.7] text-ink-soft"
+            :style="reveal(1, 'rise')">ยังไม่มีสีของวันนี้ ลองระบายสักภาพแล้วสีจะมารวมกันตรงนี้</p>
+
+          <template v-else>
+            <!-- สีของวัน: ชิ้นภาพจริงของวัน ในกรอบโพลารอยด์ขาวเดียวกับภาพในสมุด (PolaroidFrame ขอบล่างหนากว่า) เอียง −3° ไม่มีเทป -->
+            <div class="absolute left-10 top-[104px] flex w-[412px] items-center gap-6">
+              <PolaroidFrame class="pal-seep h-[138px] w-[138px] shrink-0 px-2.5 pb-[18px] pt-2.5" :rotate="-3"
+                data-day-frame :style="reveal(0, 'seep')">
+                <!-- ชิ้นที่มีสีมากที่สุดของภาพจริงในวันนั้น (ไม่มี blur/filter) ระหว่างโหลดเป็นพื้นกระดาษเปล่าแล้ว fade เข้า ครอปไม่ได้ = ก้อนสี -->
+                <div class="relative h-full w-full overflow-hidden bg-paper">
+                  <RevealImg v-if="cropUrl" :key="cropUrl" :src="cropUrl"
+                    cls="absolute inset-0 h-full w-full object-cover" />
+                  <template v-else-if="cropFailed">
+                    <WatercolorBlob class="absolute left-[-4px] top-[10px]" :color="mix" :width="124" :height="96"
+                      :opacity="0.85" />
+                    <WatercolorBlob v-if="dominant" class="absolute left-[28px] top-[34px]" :color="dominant"
+                      :width="58" :height="42" :opacity="0.7" />
+                  </template>
+                </div>
+              </PolaroidFrame>
+              <div class="pal-rise flex min-w-0 flex-col gap-1" :style="reveal(1, 'rise')">
+                <span class="text-13 text-ink-soft">{{ isToday ? 'สีของวันนี้' : 'สีของวัน' }}</span>
+                <span class="font-hand text-26 font-semibold leading-stack">{{ name.colorPart }}<br />{{ name.periodPart
+                }}</span>
+              </div>
+            </div>
+
+            <!-- ส่วนล่างของหน้า เรียงไหลลงเป็นคอลัมน์เดียว: หัวข้อ → แถบสี + ป้าย (สูงตามจำนวนแถวป้าย) → ย่อหน้าสรุป (เว้น 20px จากป้าย) → รายการอารมณ์ (เว้น 12px) เห็น 3 แถวเต็ม
              รายการเกินพื้นที่ → เลื่อนได้ในกล่อง กล่องรวมสูงคงที่ไม่ดันส่วนท้ายของหน้า -->
-        <div class="absolute left-10 top-[254px] flex h-[276px] w-[412px] flex-col">
-          <span class="pal-fade font-hand text-17 font-semibold leading-head" :style="reveal(3, 'fade')">สีของวันตามลำดับเวลา</span>
-          <DayRibbon class="mt-2" :entries="entries" animate="reveal" :delay="ribbonDelay" :width="412" />
+            <div class="absolute left-10 top-[254px] flex h-[276px] w-[412px] flex-col">
+              <span class="pal-fade font-hand text-17 font-semibold leading-head"
+                :style="reveal(3, 'fade')">สีของวันตามลำดับเวลา</span>
+              <DayRibbon class="mt-2" :entries="entries" animate="reveal" :delay="ribbonDelay" :width="412" />
 
-          <div class="pal-rise mt-[28px] flex min-h-0 flex-1 flex-col text-ink-2" :style="reveal(2, 'rise')">
-            <p class="m-0 text-15 leading-thai" data-mood-text>{{ summary.text }}<template v-if="summary.greet"> {{ summary.greet }}</template></p>
-            <ul
-              ref="moodList"
-              class="mood-list m-0 mt-3 min-h-0 flex-1 list-none overflow-y-auto p-0 pr-1"
-              :style="{ '--ft': moreAbove ? '18px' : '0px', '--fb': moreBelow ? '18px' : '0px', '--ta': moreAbove ? 0 : 1, '--tb': moreBelow ? 0 : 1, maxHeight: '78px' }"
-              aria-label="อารมณ์ของวันนี้ เรียงจากมากไปน้อย"
-              tabindex="0"
-              @scroll="checkScroll"
-            >
-              <li v-for="row in summary.rows" :key="row.key" class="flex h-[26px] items-center gap-2 text-15 leading-thai">
-                <WatercolorBlob :color="row.hex" :width="22" :height="16" :opacity="0.85" />
-                <span class="font-hand font-semibold">{{ row.th }}</span>
-                <span class="text-ink-soft">{{ row.n }} ภาพ</span>
-              </li>
-            </ul>
+              <div class="pal-rise mt-[28px] flex min-h-0 flex-1 flex-col text-ink-2" :style="reveal(2, 'rise')">
+                <p class="m-0 text-15 leading-thai" data-mood-text>{{ summary.text }}<template v-if="summary.greet"> {{
+                  summary.greet }}</template></p>
+                <ul ref="moodList" class="mood-list m-0 mt-3 min-h-0 flex-1 list-none overflow-y-auto p-0 pr-1"
+                  :style="{ '--ft': moreAbove ? '18px' : '0px', '--fb': moreBelow ? '18px' : '0px', '--ta': moreAbove ? 0 : 1, '--tb': moreBelow ? 0 : 1, maxHeight: '78px' }"
+                  aria-label="อารมณ์ของวันนี้ เรียงจากมากไปน้อย" tabindex="0" @scroll="checkScroll">
+                  <li v-for="row in summary.rows" :key="row.key"
+                    class="flex h-[26px] items-center gap-2 text-15 leading-thai">
+                    <WatercolorBlob :color="row.hex" :width="22" :height="16" :opacity="0.85" />
+                    <span class="font-hand font-semibold">{{ row.th }}</span>
+                    <span class="text-ink-soft">{{ row.n }} ภาพ</span>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </template>
+
+          <div
+            class="absolute inset-x-10 bottom-[22px] flex items-center justify-between border-t-[1.5px] border-dashed border-line pt-2">
+            <button v-if="prevDate" type="button"
+              class="inline-flex min-h-[44px] cursor-pointer items-center gap-1.5 border-0 bg-transparent p-0 font-hand text-16 font-semibold text-ink"
+              @click="$emit('day', prevDate)">
+              <Doodle name="back" :size="20" /> {{ shortLabel(prevDate) }}
+            </button>
+            <span v-else></span>
+            <button v-if="nextDate" type="button"
+              class="inline-flex min-h-[44px] cursor-pointer items-center gap-1.5 border-0 bg-transparent p-0 font-hand text-16 font-semibold text-ink"
+              @click="$emit('day', nextDate)">
+              {{ shortLabel(nextDate) }}
+              <Doodle name="forward" :size="20" />
+            </button>
+            <span v-else class="text-14 text-ink-soft">หน้าล่าสุด</span>
           </div>
         </div>
-      </template>
-
-      <div class="absolute inset-x-10 bottom-[22px] flex items-center justify-between border-t-[1.5px] border-dashed border-line pt-2">
-        <button v-if="prevDate" type="button" class="inline-flex min-h-[44px] cursor-pointer items-center gap-1.5 border-0 bg-transparent p-0 font-hand text-16 font-semibold text-ink" @click="$emit('day', prevDate)">
-          <Doodle name="back" :size="20" /> {{ shortLabel(prevDate) }}
-        </button>
-        <span v-else></span>
-        <button v-if="nextDate" type="button" class="inline-flex min-h-[44px] cursor-pointer items-center gap-1.5 border-0 bg-transparent p-0 font-hand text-16 font-semibold text-ink" @click="$emit('day', nextDate)">
-          {{ shortLabel(nextDate) }} <Doodle name="forward" :size="20" />
-        </button>
-        <span v-else class="text-14 text-ink-soft">หน้าล่าสุด</span>
       </div>
-    </div>
-    </div>
     </Transition>
   </div>
 </template>
@@ -171,7 +184,7 @@ const summary = computed(() => {
   const lastIndex = (key) => list.map((e) => e.emotion).lastIndexOf(key)
   const ranked = [...counts.value.entries()].sort((a, b) => b[1] - a[1] || lastIndex(b[0]) - lastIndex(a[0]))
   const rows = ranked.map(([key, n]) => ({ key, n, th: th(key), hex: EMOTION_BY_KEY[key].hex }))
-  const greet = list.length >= 5 ? 'วันนี้แวะมาบ่อยเลยนะ' : ''
+  const greet = list.length >= 5 ? ' วันนี้ก็แวะมาบ่อยเลยนะ' : ''
   const [main, second] = ranked
   if (!second) return { text: list.length === 1 ? `${th(main[0])} ตอน${dayPart(list[0].local_time)}` : `${th(main[0])}ทั้งวันเลย`, greet, rows }
   const secondEntry = list[lastIndex(second[0])]
@@ -206,41 +219,51 @@ onMounted(() => nextTick(resetScroll))
   touch-action: pan-y;
   overscroll-behavior: contain;
 }
+
 .mood-list::-webkit-scrollbar {
   width: 4px;
 }
+
 .mood-list::-webkit-scrollbar-thumb {
   @apply rounded-full bg-faint;
 }
+
 /* animation-fill-mode: backwards ให้ซ่อนอยู่ระหว่างรอ delay โดยไม่ต้องมี state และไม่ขวางการกดปุ่ม */
 .pal-seep {
   animation: pal-seep var(--dur) cubic-bezier(0.2, 0.8, 0.2, 1) var(--d) backwards;
 }
+
 .pal-rise {
   animation: pal-rise var(--dur) cubic-bezier(0.2, 0.8, 0.2, 1) var(--d) backwards;
 }
+
 .pal-fade {
   animation: pal-fade var(--dur) cubic-bezier(0.2, 0.8, 0.2, 1) var(--d) backwards;
 }
+
 @keyframes pal-seep {
   from {
     opacity: 0;
     transform: scale(0.92);
   }
 }
+
 @keyframes pal-rise {
   from {
     opacity: 0;
     transform: translateY(8px);
   }
 }
+
 @keyframes pal-fade {
   from {
     opacity: 0;
   }
 }
+
 /* reduced-motion: ทั้งก้อน fade ครั้งเดียว ≤150ms พร้อมกัน (duration/delay ถูกบีบใน app.css) ตัด scale และการเลื่อน */
 @media (prefers-reduced-motion: reduce) {
+
   .pal-seep,
   .pal-rise {
     animation-name: pal-fade;
