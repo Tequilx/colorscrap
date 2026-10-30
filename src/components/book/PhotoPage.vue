@@ -11,7 +11,7 @@
         <template v-if="leafIndex === 0">
           <div class="absolute left-9 top-10 flex flex-col gap-0.5">
             <span class="font-hand text-26 font-semibold">{{ dateText }}</span>
-            <span class="text-14 text-ink-soft">{{ subtitle }}</span>
+            <span v-if="subtitle" class="text-14 text-ink-soft">{{ subtitle }}</span>
           </div>
             <template v-for="(e, i) in leaf" :key="e.id">
             <EmptySlot v-if="landing(e)" :pos="FIRST_LEAF_SLOTS[i]" />
@@ -112,8 +112,7 @@ const dateText = computed(() => thaiDayFull(day.value))
 const dateTextShort = computed(() => `${day.value.getDate()} ${thaiDayFull(day.value).split(' ')[2]}`)
 const subtitle = computed(() => {
   if (props.mode === 'saved') return `ภาพที่ ${total.value} ของวันนี้`
-  if (props.leaves.length > 1) return `แผ่นที่ 1 · เต็มแล้ว ${PHOTOS_PER_LEAF} ภาพ · ทั้งวัน ${total.value} ภาพ`
-  return total.value ? `${total.value} ภาพ` : 'ยังไม่มีภาพ'
+  return props.leaves.length > 1 ? 'แผ่นที่ 1' : '' // วันที่มีแผ่นเดียวไม่มีบรรทัดนี้
 })
 </script>
 
